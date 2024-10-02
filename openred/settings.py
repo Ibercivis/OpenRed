@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -132,6 +133,15 @@ ACCOUNT_AUTHENTICATION_METHOD = 'email'  # 'username' or 'username_email'
 
 # Allow signup via social accounts
 SOCIALACCOUNT_QUERY_EMAIL = True
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+        'CLIENT_ID': config('GOOGLE_CLIENT_ID'),  # Fetch from environment variable
+        'SECRET': config('GOOGLE_CLIENT_SECRET'),  # Fetch from environment variable
+    }
+}
 
 
 # Internationalization
