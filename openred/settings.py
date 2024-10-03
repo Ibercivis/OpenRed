@@ -49,6 +49,7 @@ INSTALLED_APPS = [
 
     # Custom apps
     'devices',
+    'measures',
 ]
 
 MIDDLEWARE = [
