@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 from decouple import config
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,6 +31,8 @@ ALLOWED_HOSTS = []
 
 SITE_ID = 1
 
+APPS_DIRS = True
+
 
 # Application definition
 
@@ -47,9 +50,15 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
 
+    # Other apps
+    'rest_framework',
+    'drf_yasg',
+
     # Custom apps
     'devices',
     'measures',
+
+    
 ]
 
 MIDDLEWARE = [
@@ -70,7 +79,7 @@ ROOT_URLCONF = 'openred.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
