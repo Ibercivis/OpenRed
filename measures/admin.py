@@ -3,5 +3,3 @@ from .models import Measurement
 
 # Register your models here.
 admin.site.register(Measurement)
-
-

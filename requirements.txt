@@ -1,0 +1,17 @@
+asgiref==3.8.1
+certifi==2024.8.30
+cffi==1.17.1
+charset-normalizer==3.3.2
+cryptography==43.0.1
+Django==4.2.16
+django-allauth==65.0.2
+djangorestframework==3.15.2
+idna==3.10
+psycopg2==2.9.9
+pycparser==2.22
+PyJWT==2.9.0
+python-decouple==3.8
+requests==2.32.3
+sqlparse==0.5.1
+typing_extensions==4.12.2
+urllib3==2.2.3
