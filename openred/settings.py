@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     # Custom apps
     'devices',
     'measures',
+    'frontend',
 
     
 ]
@@ -82,6 +83,7 @@ TEMPLATES = [
         'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
+            'debug': True,
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
@@ -155,6 +157,9 @@ SOCIALACCOUNT_PROVIDERS = {
         'SECRET': config('GOOGLE_CLIENT_SECRET'),  # Fetch from environment variable
     }
 }
+
+# Mapbox
+MAPBOX_ACCESS_TOKEN = config('MAPBOX_ACCESS_TOKEN')
 
 
 # Internationalization
