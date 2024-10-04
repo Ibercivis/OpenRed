@@ -3,20 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deck.gl Map</title>
+    <title>OpenRed</title>
     <!-- Include Mapbox and deck.gl CDN -->
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/deck.gl@latest/dist.min.js"></script>
+    <!-- Bootstrap 5 CSS -->
+    {% load django_bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+  
+   
+     
 </head>
-<body>
-    <div id="map-container" style="width: 100%; height: 500px;"></div>
+<body class="vh-100 vw-100">
+    <div id="map-container" class="w-100 h-100 position-relative"></div>
 
     <script>
-        // Mapbox access token
+        // Mapbox access token from Django settings (passed in through the template)
         const MAPBOX_ACCESS_TOKEN = "{{mapbox_token}}";
+        const csrfToken = "{{ csrf_token }}";
 
-        // Initialize the deck.gl map
+        // Initialize the Deck.gl map
         const deckgl = new deck.DeckGL({
             container: 'map-container',
             mapboxApiAccessToken: MAPBOX_ACCESS_TOKEN,
@@ -28,18 +36,53 @@
                 pitch: 45,
                 bearing: 0
             },
-            controller: true,
-            layers: [
-                new deck.ScatterplotLayer({
-                    data: [
-                        {position: [-122.4, 37.8], size: 100}
-                    ],
+            controller: true
+        });
+
+        // Function to fetch data and update the map
+        function fetchAndUpdateData() {
+            fetch('http://127.0.0.1:8000/api/measurements/', {
+                headers: {
+                    'accept': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Map the API response to the format needed for deck.gl ScatterplotLayer
+                const points = data.map(measurement => ({
+                    position: [measurement.longitude, measurement.latitude],
+                    size: 10, // or use other fields from measurement for size
+                    color: [255, 0, 0]  // Use a constant color or map based on data
+                }));
+
+                // Create a new ScatterplotLayer with the API data
+                const scatterplotLayer = new deck.ScatterplotLayer({
+                    id: 'scatterplot-layer',
+                    data: points,
                     getPosition: d => d.position,
                     getRadius: d => d.size,
-                    getFillColor: [255, 0, 0],
-                })
-            ]
-        });
+                    getFillColor: d => d.color,
+                    radiusMinPixels: 5,
+                    radiusMaxPixels: 10,
+                    pickable: true
+                });
+
+                // Add the layer to the map
+                deckgl.setProps({
+                    layers: [scatterplotLayer]
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
+            });
+        }
+
+        // Initial fetch and update
+        fetchAndUpdateData();
+
+        // Set interval to fetch new data every 10 seconds (10000 milliseconds)
+        setInterval(fetchAndUpdateData, 10000);
     </script>
 </body>
 </html>

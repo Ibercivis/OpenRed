@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     # Other apps
     'rest_framework',
     'drf_yasg',
+    'django_bootstrap5',
 
     # Custom apps
     'devices',
