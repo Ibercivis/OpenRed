@@ -30,6 +30,12 @@ class Command(BaseCommand):
         # Hardcoded locations (Zaragoza example)
         location_coordinates = {
             'Zaragoza': (41.6488, -0.8891),  # Latitude, Longitude of Zaragoza
+            'Madrid': (40.4168, -3.7038),  # Latitude, Longitude of Madrid
+            'Barcelona': (41.3851, 2.1734),  # Latitude, Longitude of Barcelona
+            'Valencia': (39.4699, -0.3763),  # Latitude, Longitude of Valencia
+            'Seville': (37.3886, -5.9826),  # Latitude, Longitude of Seville
+            'Bilbao': (43.2630, -2.9350),  # Latitude, Longitude of Bilbao
+            'Malaga': (36.7213, -4.4215),  # Latitude, Longitude of Malaga
             # Add more locations if needed
         }
 
@@ -47,8 +53,8 @@ class Command(BaseCommand):
 
         for _ in range(num_iterations):
             # Simulate a random walk (change latitude and longitude slightly)
-            current_latitude += random.uniform(-1, 1) * METERS_IN_LATITUDE * 50  # Adjust for 50 meters
-            current_longitude += random.uniform(-1, 1) * METERS_IN_LONGITUDE * 50  # Adjust for 50 meters
+            current_latitude += random.uniform(-1, 1) * METERS_IN_LATITUDE * 500  # Adjust for 50 meters
+            current_longitude += random.uniform(-1, 1) * METERS_IN_LONGITUDE * 500  # Adjust for 50 meters
 
 
             # Example data to be sent
@@ -82,5 +88,5 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f'Response: {response.text}'))
 
             # Wait for 10 seconds before adding the next measurement
-            time.sleep(10)
+            time.sleep(1)
 

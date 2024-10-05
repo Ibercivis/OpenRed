@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,21 +9,64 @@
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/deck.gl@latest/dist.min.js"></script>
+    <!-- noUiSlider CSS and JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.8.1/nouislider.css"
+        integrity="sha512-MKxcSu/LDtbIYHBNAWUQwfB3iVoG9xeMCm32QV5hZ/9lFaQZJVaXfz9aFa0IZExWzCpm7OWvp9zq9gVip/nLMg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.8.1/nouislider.min.js"
+        integrity="sha512-g/feAizmeiVKSwvfW0Xk3ZHZqv5Zs8PEXEBKzL15pM0SevEvoX8eJ4yFWbqakvRj7vtw1Q97bLzEpG2IVWX0Mg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
     <!-- Bootstrap 5 CSS -->
     {% load django_bootstrap5 %}
     {% bootstrap_css %}
     {% bootstrap_javascript %}
-  
-   
-     
+    <style>
+        /* Control panel styling */
+        #slider-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 3em;
+            z-index: 100;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+
+        #slider {
+            margin-top: 20px;
+            margin: 0.5em;
+        }
+
+        #slider-value {
+            margin-top: 10px;
+        }
+    </style>
+
+
+
 </head>
+
 <body class="vh-100 vw-100">
+    <!-- Datetime Range Slider Control -->
+    <div id="slider-container" class="bg-light p-3">
+        <h5>Select Date Range</h5>
+        <div id="slider"></div>
+        <div id="slider-value">
+            From:<span id="start-value" class="small"></span><br />
+            To:<span id="end-value" class="small"></span>
+        </div>
+    </div>
     <div id="map-container" class="w-100 h-100 position-relative"></div>
 
     <script>
-        // Mapbox access token from Django settings (passed in through the template)
-        const MAPBOX_ACCESS_TOKEN = "{{mapbox_token}}";
+        const MAPBOX_ACCESS_TOKEN = "{{mapbox_token}}";  // Replace with your Mapbox token
         const csrfToken = "{{ csrf_token }}";
+        let allData = [];
+        let slider;  // Declare slider variable outside of fetch
 
         // Initialize the Deck.gl map
         const deckgl = new deck.DeckGL({
@@ -39,50 +83,134 @@
             controller: true
         });
 
-        // Function to fetch data and update the map
-        function fetchAndUpdateData() {
-            fetch('http://127.0.0.1:8000/api/measurements/', {
+        // Function to fetch data from API
+        function fetchData() {
+            return fetch('http://127.0.0.1:8000/api/measurements/', {
                 headers: {
-                    'accept': 'application/json',
+                    'Accept': 'application/json',
                     'X-CSRFToken': csrfToken
                 }
             })
-            .then(response => response.json())
-            .then(data => {
-                // Map the API response to the format needed for deck.gl ScatterplotLayer
-                const points = data.map(measurement => ({
-                    position: [measurement.longitude, measurement.latitude],
-                    size: 10, // or use other fields from measurement for size
-                    color: [255, 0, 0]  // Use a constant color or map based on data
-                }));
+                .then(response => response.json())
+                .then(data => {
+                    // Convert dateTime to timestamp for easier comparison
+                    allData = data.map(item => ({
+                        ...item,
+                        dateTime: new Date(item.dateTime).getTime()
+                    }));
 
-                // Create a new ScatterplotLayer with the API data
-                const scatterplotLayer = new deck.ScatterplotLayer({
-                    id: 'scatterplot-layer',
-                    data: points,
-                    getPosition: d => d.position,
-                    getRadius: d => d.size,
-                    getFillColor: d => d.color,
-                    radiusMinPixels: 5,
-                    radiusMaxPixels: 10,
-                    pickable: true
-                });
+                    if (!slider) {
+                        // Initialize slider if it's the first time data is loaded
+                        setSliderRange(allData);
+                    }
 
-                // Add the layer to the map
-                deckgl.setProps({
-                    layers: [scatterplotLayer]
+                    // Apply filter based on current slider range
+                    const [startTimestamp, endTimestamp] = slider.noUiSlider.get().map(v => new Date(v).getTime());
+                    const filteredData = filterDataByTimestamp(startTimestamp, endTimestamp);
+                    updateMap(filteredData);
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
                 });
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
+        }
+
+        // Function to filter data by timestamp
+        function filterDataByTimestamp(startTimestamp, endTimestamp) {
+            return allData.filter(measurement => {
+                return measurement.dateTime >= startTimestamp && measurement.dateTime <= endTimestamp;
             });
         }
 
-        // Initial fetch and update
-        fetchAndUpdateData();
+        // Function to update the map with data
+        // Function to update the map with data and color gradient based on radiation value
+function updateMap(data) {
+    const points = data.map(measurement => {
+        // Define the radiation value range
+        const minRadiation = 50;
+        const maxRadiation = 100;  // Radiation over 80 will be fully red
+        
+        // Clamp the radiation value to stay within the range
+        const radiation = Math.max(minRadiation, Math.min(maxRadiation, measurement.values.radiation));
+        
+        // Calculate the interpolation factor (0 means fully green, 1 means fully red)
+        const t = (radiation - minRadiation) / (maxRadiation - minRadiation);
 
-        // Set interval to fetch new data every 10 seconds (10000 milliseconds)
-        setInterval(fetchAndUpdateData, 10000);
+        // Interpolate between green and red
+        const color = [
+            Math.round((1 - t) * 0 + t * 155 + 100),  // Red channel (100 to 255)
+            Math.round((1 - t) * 155 + t * 0 + 100),  // Green channel (255 to 100)
+            100  // Blue channel is constant (100)
+        ];
+        
+        return {
+            position: [measurement.longitude, measurement.latitude],
+            size: 10,
+            color: color  // Use the interpolated color
+        };
+    });
+
+    const scatterplotLayer = new deck.ScatterplotLayer({
+        id: 'scatterplot-layer',
+        data: points,
+        getPosition: d => d.position,
+        getRadius: d => d.size,
+        getFillColor: d => d.color,
+        radiusMinPixels: 5,
+        radiusMaxPixels: 10,
+        pickable: true
+    });
+
+    deckgl.setProps({
+        layers: [scatterplotLayer]
+    });
+}
+
+        // Initialize the datetime range slider
+        const startValueEl = document.getElementById('start-value');
+        const endValueEl = document.getElementById('end-value');
+
+        function setSliderRange(data) {
+            // Get the minimum and maximum timestamp from the data
+            const minTimestamp = Math.min(...data.map(item => item.dateTime));
+            // For maxTimestamp, we want 6 hours from the current time
+            const maxTimestamp = new Date().getTime() + 6 * 60 * 60 * 1000;
+            slider = document.getElementById('slider');  // Initialize slider
+
+            noUiSlider.create(slider, {
+                start: [minTimestamp, maxTimestamp],
+                connect: true,
+                range: {
+                    min: minTimestamp,
+                    max: maxTimestamp
+                },
+                tooltips: false,
+                format: {
+                    to: value => new Date(value), // Display as readable datetime
+                    from: value => value
+                }
+            });
+
+            // Update slider labels and filter data
+            slider.noUiSlider.on('update', function (values, handle) {
+                const startTimestamp = new Date(values[0]).getTime();
+                const endTimestamp = new Date(values[1]).getTime();
+
+                // Update labels
+                startValueEl.innerHTML = new Date(startTimestamp).toLocaleString();
+                endValueEl.innerHTML = new Date(endTimestamp).toLocaleString();
+
+                // Filter data and update the map
+                const filteredData = filterDataByTimestamp(startTimestamp, endTimestamp);
+                updateMap(filteredData);
+            });
+        }
+
+        // Fetch data every 10 seconds
+        setInterval(fetchData, 10000);
+
+        // Fetch data initially when the page loads
+        fetchData();
     </script>
 </body>
+
 </html>
