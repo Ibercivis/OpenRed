@@ -154,13 +154,13 @@ SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': ['profile', 'email'],
         'AUTH_PARAMS': {'access_type': 'online'},
-        'CLIENT_ID': config('GOOGLE_CLIENT_ID'),  # Fetch from environment variable
-        'SECRET': config('GOOGLE_CLIENT_SECRET'),  # Fetch from environment variable
+        'CLIENT_ID': config('GOOGLE_CLIENT_ID', default=''),  # Fetch from environment variable
+        'SECRET': config('GOOGLE_CLIENT_SECRET', default=''),  # Fetch from environment variable
     }
 }
 
 # Mapbox
-MAPBOX_ACCESS_TOKEN = config('MAPBOX_ACCESS_TOKEN')
+MAPBOX_ACCESS_TOKEN = config('MAPBOX_ACCESS_TOKEN', default=''), # Fetch from environment variable
 
 
 # Internationalization
