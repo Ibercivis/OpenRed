@@ -60,6 +60,10 @@
             To:<span id="end-value" class="small"></span>
         </div>
     </div>
+     <!-- Popup to display on hover -->
+     <div id="popup" style="position: absolute; display: block; background: white; padding: 5px; border-radius: 5px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); z-index: 100;">
+        <p id="popup-content"></p>
+    </div>
     <div id="map-container" class="w-100 h-100 position-relative"></div>
 
     <script>
@@ -144,6 +148,8 @@ function updateMap(data) {
         
         return {
             position: [measurement.longitude, measurement.latitude],
+            values: measurement.values,
+            dateTime: measurement.dateTime,
             size: 10,
             color: color  // Use the interpolated color
         };
@@ -157,7 +163,8 @@ function updateMap(data) {
         getFillColor: d => d.color,
         radiusMinPixels: 5,
         radiusMaxPixels: 10,
-        pickable: true
+        pickable: true,
+        onHover: ({object, x, y}) => handleHover(object, x, y)
     });
 
     deckgl.setProps({
@@ -203,6 +210,32 @@ function updateMap(data) {
                 const filteredData = filterDataByTimestamp(startTimestamp, endTimestamp);
                 updateMap(filteredData);
             });
+        }
+
+            // Function to handle hover and display popup
+        function handleHover(object, x, y) {
+            const popup = document.getElementById('popup');
+            const popupContent = document.getElementById('popup-content');
+
+            if (object) {
+                // check if the object is valid
+                if(!object.values) {
+                    object.values = {};
+                }
+                popupContent.innerHTML = `
+                    <strong>Radiation Level:</strong> ${object.values.radiation}<br/>
+                    <strong>Location:</strong> (${object.position[0]}, ${object.position[1]})<br/>
+                    <strong>Date:</strong> ${new Date(object.dateTime).toLocaleString()}
+                `;
+
+                // Position the popup near the mouse
+                popup.style.left = `${x}px`;
+                popup.style.top = `${y}px`;
+                popup.style.display = 'block';  // Show the popup
+            } else {
+                console.log('No object');
+                popup.style.display = 'none';  // Hide the popup when not hovering
+            }
         }
 
         // Fetch data every 10 seconds
