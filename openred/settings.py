@@ -160,7 +160,7 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 # Mapbox
-MAPBOX_ACCESS_TOKEN = config('MAPBOX_ACCESS_TOKEN', default=''), # Fetch from environment variable
+MAPBOX_ACCESS_TOKEN = config('MAPBOX_ACCESS_TOKEN', default='') # Fetch from environment variable
 
 
 # Internationalization
