@@ -10,6 +10,7 @@ class DeviceModel(models.Model):
     manufacturer = models.CharField(max_length=100)  # Manufacturer of the device
     version = models.CharField(max_length=50, blank=True, null=True)  # Optional version of the device model
     technology = models.CharField(max_length=100, blank=True, null=True)  # Optional technology used in the device
+    validatedByOpenRed = models.BooleanField(default=False)  # Indicates if the device model has been validated by OpenRed
     description = models.TextField(blank=True, null=True)  # Optional description of the device
     picture = models.ImageField(upload_to='device_pictures/', blank=True, null=True)  # Optional picture of the device
     max_radiation_range = models.FloatField(help_text="Maximum radiation range the device can measure (in appropriate units)")
