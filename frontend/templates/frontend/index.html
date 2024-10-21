@@ -24,10 +24,11 @@
     {% bootstrap_javascript %}
     <link rel="stylesheet" href="{% static 'frontend/css/styles.css' %}" />
     <script src="{% static 'frontend/js/map.js' %}"></script>
-    <style>
-
-    </style>
-
+    <script>
+        // Define the variables dynamically in the HTML template
+        window.MAPBOX_ACCESS_TOKEN = "{{ MAPBOX_ACCESS_TOKEN }}";
+        window.csrfToken = "{{ csrf_token }}";
+    </script>
 
 
 </head>
