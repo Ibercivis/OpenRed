@@ -180,7 +180,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
+# URL to use when referring to static files located in STATIC_ROOT
 STATIC_URL = '/static/'
+
+# Directory where collectstatic will store static files
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Additional directories for static files
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',  # This is an optional folder for custom static files
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
