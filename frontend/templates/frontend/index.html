@@ -36,7 +36,7 @@
             width: 300px;
         }
 
-        #slider {
+        .slider {
             margin-top: 20px;
             margin: 0.5em;
         }
@@ -54,14 +54,21 @@
     <!-- Datetime Range Slider Control -->
     <div id="slider-container" class="bg-light p-3">
         <h5>Select Date Range</h5>
-        <div id="slider"></div>
+        <div id="slider" class="slider"></div>
         <div id="slider-value">
             From:<span id="start-value" class="small"></span><br />
             To:<span id="end-value" class="small"></span>
         </div>
+        <h5>Select Intensity</h5>
+        <div id="slider-intensity" class="slider"></div>
+        <div id="slider-intensity-value"></div>
+        From:<span id="intensity-start-value" class="small"></span><br />
+        To:<span id="intensity-end-value" class="small"></span>
     </div>
-     <!-- Popup to display on hover -->
-     <div id="popup" style="position: absolute; display: block; background: white; padding: 5px; border-radius: 5px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); z-index: 100;">
+    </div>
+    <!-- Popup to display on hover -->
+    <div id="popup"
+        style="position: absolute; display: block; background: white; padding: 5px; border-radius: 5px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); z-index: 100;">
         <p id="popup-content"></p>
     </div>
     <div id="map-container" class="w-100 h-100 position-relative"></div>
@@ -71,6 +78,7 @@
         const csrfToken = "{{ csrf_token }}";
         let allData = [];
         let slider;  // Declare slider variable outside of fetch
+        let sliderIntensity;  // Declare slider variable outside of fetch
 
         // Initialize the Deck.gl map
         const deckgl = new deck.DeckGL({
@@ -109,6 +117,10 @@
                         setSliderRange(allData);
                     }
 
+                    if(!sliderIntensity){
+                        setSliderIntensity(allData);
+                    }
+
                     // Apply filter based on current slider range
                     const [startTimestamp, endTimestamp] = slider.noUiSlider.get().map(v => new Date(v).getTime());
                     const filteredData = filterDataByTimestamp(startTimestamp, endTimestamp);
@@ -126,52 +138,59 @@
             });
         }
 
+        // Function to filter data by radiation value
+        function filterDataByRadiation(startRadiation, endRadiation) {
+            return allData.filter(measurement => {
+                return measurement.values.radiation >= startRadiation && measurement.values.radiation <= endRadiation;
+            });
+        }
+
         // Function to update the map with data
         // Function to update the map with data and color gradient based on radiation value
-function updateMap(data) {
-    const points = data.map(measurement => {
-        // Define the radiation value range
-        const minRadiation = 50;
-        const maxRadiation = 100;  // Radiation over 80 will be fully red
-        
-        // Clamp the radiation value to stay within the range
-        const radiation = Math.max(minRadiation, Math.min(maxRadiation, measurement.values.radiation));
-        
-        // Calculate the interpolation factor (0 means fully green, 1 means fully red)
-        const t = (radiation - minRadiation) / (maxRadiation - minRadiation);
+        function updateMap(data) {
+            const points = data.map(measurement => {
+                // Define the radiation value range
+                const minRadiation = 50;
+                const maxRadiation = 100;  // Radiation over 80 will be fully red
 
-        // Interpolate between green and red
-        const color = [
-            Math.round((1 - t) * 0 + t * 155 + 100),  // Red channel (100 to 255)
-            Math.round((1 - t) * 155 + t * 0 + 100),  // Green channel (255 to 100)
-            100  // Blue channel is constant (100)
-        ];
-        
-        return {
-            position: [measurement.longitude, measurement.latitude],
-            values: measurement.values,
-            dateTime: measurement.dateTime,
-            size: 10,
-            color: color  // Use the interpolated color
-        };
-    });
+                // Clamp the radiation value to stay within the range
+                const radiation = Math.max(minRadiation, Math.min(maxRadiation, measurement.values.radiation));
 
-    const scatterplotLayer = new deck.ScatterplotLayer({
-        id: 'scatterplot-layer',
-        data: points,
-        getPosition: d => d.position,
-        getRadius: d => d.size,
-        getFillColor: d => d.color,
-        radiusMinPixels: 5,
-        radiusMaxPixels: 10,
-        pickable: true,
-        onHover: ({object, x, y}) => handleHover(object, x, y)
-    });
+                // Calculate the interpolation factor (0 means fully green, 1 means fully red)
+                const t = (radiation - minRadiation) / (maxRadiation - minRadiation);
 
-    deckgl.setProps({
-        layers: [scatterplotLayer]
-    });
-}
+                // Interpolate between green and red
+                const color = [
+                    Math.round((1 - t) * 0 + t * 155 + 100),  // Red channel (100 to 255)
+                    Math.round((1 - t) * 155 + t * 0 + 100),  // Green channel (255 to 100)
+                    100  // Blue channel is constant (100)
+                ];
+
+                return {
+                    position: [measurement.longitude, measurement.latitude],
+                    values: measurement.values,
+                    dateTime: measurement.dateTime,
+                    size: 10,
+                    color: color  // Use the interpolated color
+                };
+            });
+
+            const scatterplotLayer = new deck.ScatterplotLayer({
+                id: 'scatterplot-layer',
+                data: points,
+                getPosition: d => d.position,
+                getRadius: d => d.size,
+                getFillColor: d => d.color,
+                radiusMinPixels: 5,
+                radiusMaxPixels: 10,
+                pickable: true,
+                onHover: ({ object, x, y }) => handleHover(object, x, y)
+            });
+
+            deckgl.setProps({
+                layers: [scatterplotLayer]
+            });
+        }
 
         // Initialize the datetime range slider
         const startValueEl = document.getElementById('start-value');
@@ -213,14 +232,53 @@ function updateMap(data) {
             });
         }
 
-            // Function to handle hover and display popup
+        // Initialize the intensity range slider
+        const intensityStartValueEl = document.getElementById('intensity-start-value');
+        const intensityEndValueEl = document.getElementById('intensity-end-value');
+
+        function setSliderIntensity(data) {
+            // Get the minimum and maximum timestamp from the data
+            const minRadiation = Math.min(...data.map(item => item.values.radiation));
+            const maxRadiation = Math.max(...data.map(item => item.values.radiation));
+            sliderIntensity = document.getElementById('slider-intensity');  // Initialize slider
+
+            noUiSlider.create(sliderIntensity, {
+                start: [minRadiation, maxRadiation],
+                connect: true,
+                range: {
+                    min: minRadiation,
+                    max: maxRadiation
+                },
+                tooltips: false,
+                format: {
+                    to: value => value, // Display as readable datetime
+                    from: value => value
+                }
+            });
+
+            // Update slider labels and filter data
+            sliderIntensity.noUiSlider.on('update', function (values, handle) {
+                const startRadiation = values[0];
+                const endRadiation = values[1];
+
+                // Update labels
+                intensityStartValueEl.innerHTML = startRadiation;
+                intensityEndValueEl.innerHTML = endRadiation;
+
+                // Filter data and update the map
+                const filteredData = filterDataByRadiation(startRadiation, endRadiation);
+                updateMap(filteredData);
+            });
+        }
+
+        // Function to handle hover and display popup
         function handleHover(object, x, y) {
             const popup = document.getElementById('popup');
             const popupContent = document.getElementById('popup-content');
 
             if (object) {
                 // check if the object is valid
-                if(!object.values) {
+                if (!object.values) {
                     object.values = {};
                 }
                 popupContent.innerHTML = `
