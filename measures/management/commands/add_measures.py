@@ -20,7 +20,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # URL of your API endpoint
-        api_url = 'http://localhost:8000/api/measurements/'
+        api_url = 'http://localhost:8001/api/measurements/'
 
         # Handle location argument or latitude/longitude directly
         location = options.get('location', None)

@@ -76,8 +76,8 @@
         const deckgl = new deck.DeckGL({
             container: 'map-container',
             mapboxApiAccessToken: MAPBOX_ACCESS_TOKEN,
-            mapStyle: 'mapbox://styles/mapbox/light-v9',
-            // mapStyle: 'mapbox://styles/frasanz/cm22xixvn002501o20b0ehcdw',
+            //mapStyle: 'mapbox://styles/mapbox/light-v9',
+            mapStyle: 'mapbox://styles/frasanz/cm2cdgqus00a001pgfupfdsdq',
             initialViewState: {
                 longitude: -0.88,
                 latitude: 41.64,
@@ -90,7 +90,7 @@
 
         // Function to fetch data from API
         function fetchData() {
-            return fetch('http://127.0.0.1:8000/api/measurements/', {
+            return fetch('http://127.0.0.1:8003/api/measurements/', {
                 headers: {
                     'Accept': 'application/json',
                     'X-CSRFToken': csrfToken
