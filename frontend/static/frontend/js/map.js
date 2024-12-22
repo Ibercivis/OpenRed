@@ -1,7 +1,7 @@
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function () {
 
-    const MAPBOX_ACCESS_TOKEN = "{{mapbox_token}}";  // Replace with your Mapbox token
+    const MAPBOX_ACCESS_TOKEN = window.MAPBOX_ACCESS_TOKEN;  // Replace with your Mapbox token
     const csrfToken = "{{ csrf_token }}";
     let allData = [];
     let slider;  // Declare slider variable outside of fetch
@@ -165,10 +165,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function setSliderIntensity(data) {
         // Get the minimum and maximum timestamp from the data
-        const minRadiation = Math.min(...data.map(item => item.values.radiation));
-        const maxRadiation = Math.max(...data.map(item => item.values.radiation));
+        const minRadiation = 0;
+        const maxRadiation = 1000;
         sliderIntensity = document.getElementById('slider-intensity');  // Initialize slider
-
+        console.log(minRadiation, maxRadiation);
+        console.log("sliderIntensity", sliderIntensity);
         noUiSlider.create(sliderIntensity, {
             start: [minRadiation, maxRadiation],
             connect: true,

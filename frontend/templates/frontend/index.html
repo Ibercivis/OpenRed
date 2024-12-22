@@ -26,7 +26,7 @@
     <script src="{% static 'frontend/js/map.js' %}"></script>
     <script>
         // Define the variables dynamically in the HTML template
-        window.MAPBOX_ACCESS_TOKEN = "{{ MAPBOX_ACCESS_TOKEN }}";
+        window.MAPBOX_ACCESS_TOKEN = "{{ mapbox_token }}";
         window.csrfToken = "{{ csrf_token }}";
     </script>
 
