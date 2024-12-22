@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -21,31 +22,13 @@
     {% load django_bootstrap5 %}
     {% bootstrap_css %}
     {% bootstrap_javascript %}
-    <style>
-        /* Control panel styling */
-        #slider-container {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            padding: 3em;
-            z-index: 100;
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 300px;
-        }
-
-        #slider {
-            margin-top: 20px;
-            margin: 0.5em;
-        }
-
-        #slider-value {
-            margin-top: 10px;
-        }
-    </style>
-
+    <link rel="stylesheet" href="{% static 'frontend/css/styles.css' %}" />
+    <script src="{% static 'frontend/js/map.js' %}"></script>
+    <script>
+        // Define the variables dynamically in the HTML template
+        window.MAPBOX_ACCESS_TOKEN = "{{ MAPBOX_ACCESS_TOKEN }}";
+        window.csrfToken = "{{ csrf_token }}";
+    </script>
 
 
 </head>
@@ -54,197 +37,24 @@
     <!-- Datetime Range Slider Control -->
     <div id="slider-container" class="bg-light p-3">
         <h5>Select Date Range</h5>
-        <div id="slider"></div>
+        <div id="slider" class="slider"></div>
         <div id="slider-value">
             From:<span id="start-value" class="small"></span><br />
             To:<span id="end-value" class="small"></span>
         </div>
+        <h5>Select Intensity</h5>
+        <div id="slider-intensity" class="slider"></div>
+        <div id="slider-intensity-value"></div>
+        From:<span id="intensity-start-value" class="small"></span><br />
+        To:<span id="intensity-end-value" class="small"></span>
     </div>
-     <!-- Popup to display on hover -->
-     <div id="popup" style="position: absolute; display: block; background: white; padding: 5px; border-radius: 5px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); z-index: 100;">
+    </div>
+    <!-- Popup to display on hover -->
+    <div id="popup"
+        style="position: absolute; display: block; background: white; padding: 5px; border-radius: 5px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); z-index: 100;">
         <p id="popup-content"></p>
     </div>
     <div id="map-container" class="w-100 h-100 position-relative"></div>
-
-    <script>
-        const MAPBOX_ACCESS_TOKEN = "{{mapbox_token}}";  // Replace with your Mapbox token
-        const csrfToken = "{{ csrf_token }}";
-        let allData = [];
-        let slider;  // Declare slider variable outside of fetch
-
-        // Initialize the Deck.gl map
-        const deckgl = new deck.DeckGL({
-            container: 'map-container',
-            mapboxApiAccessToken: MAPBOX_ACCESS_TOKEN,
-            //mapStyle: 'mapbox://styles/mapbox/light-v9',
-            mapStyle: 'mapbox://styles/frasanz/cm2cdgqus00a001pgfupfdsdq',
-            initialViewState: {
-                longitude: -0.88,
-                latitude: 41.64,
-                zoom: 12,
-                pitch: 45,
-                bearing: 0
-            },
-            controller: true
-        });
-
-        // Function to fetch data from API
-        function fetchData() {
-            return fetch('http://127.0.0.1:8003/api/measurements/', {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRFToken': csrfToken
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    // Convert dateTime to timestamp for easier comparison
-                    allData = data.map(item => ({
-                        ...item,
-                        dateTime: new Date(item.dateTime).getTime()
-                    }));
-
-                    if (!slider) {
-                        // Initialize slider if it's the first time data is loaded
-                        setSliderRange(allData);
-                    }
-
-                    // Apply filter based on current slider range
-                    const [startTimestamp, endTimestamp] = slider.noUiSlider.get().map(v => new Date(v).getTime());
-                    const filteredData = filterDataByTimestamp(startTimestamp, endTimestamp);
-                    updateMap(filteredData);
-                })
-                .catch(error => {
-                    console.error('Error fetching data:', error);
-                });
-        }
-
-        // Function to filter data by timestamp
-        function filterDataByTimestamp(startTimestamp, endTimestamp) {
-            return allData.filter(measurement => {
-                return measurement.dateTime >= startTimestamp && measurement.dateTime <= endTimestamp;
-            });
-        }
-
-        // Function to update the map with data
-        // Function to update the map with data and color gradient based on radiation value
-function updateMap(data) {
-    const points = data.map(measurement => {
-        // Define the radiation value range
-        const minRadiation = 50;
-        const maxRadiation = 100;  // Radiation over 80 will be fully red
-        
-        // Clamp the radiation value to stay within the range
-        const radiation = Math.max(minRadiation, Math.min(maxRadiation, measurement.values.radiation));
-        
-        // Calculate the interpolation factor (0 means fully green, 1 means fully red)
-        const t = (radiation - minRadiation) / (maxRadiation - minRadiation);
-
-        // Interpolate between green and red
-        const color = [
-            Math.round((1 - t) * 0 + t * 155 + 100),  // Red channel (100 to 255)
-            Math.round((1 - t) * 155 + t * 0 + 100),  // Green channel (255 to 100)
-            100  // Blue channel is constant (100)
-        ];
-        
-        return {
-            position: [measurement.longitude, measurement.latitude],
-            values: measurement.values,
-            dateTime: measurement.dateTime,
-            size: 10,
-            color: color  // Use the interpolated color
-        };
-    });
-
-    const scatterplotLayer = new deck.ScatterplotLayer({
-        id: 'scatterplot-layer',
-        data: points,
-        getPosition: d => d.position,
-        getRadius: d => d.size,
-        getFillColor: d => d.color,
-        radiusMinPixels: 5,
-        radiusMaxPixels: 10,
-        pickable: true,
-        onHover: ({object, x, y}) => handleHover(object, x, y)
-    });
-
-    deckgl.setProps({
-        layers: [scatterplotLayer]
-    });
-}
-
-        // Initialize the datetime range slider
-        const startValueEl = document.getElementById('start-value');
-        const endValueEl = document.getElementById('end-value');
-
-        function setSliderRange(data) {
-            // Get the minimum and maximum timestamp from the data
-            const minTimestamp = Math.min(...data.map(item => item.dateTime));
-            // For maxTimestamp, we want 6 hours from the current time
-            const maxTimestamp = new Date().getTime() + 6 * 60 * 60 * 1000;
-            slider = document.getElementById('slider');  // Initialize slider
-
-            noUiSlider.create(slider, {
-                start: [minTimestamp, maxTimestamp],
-                connect: true,
-                range: {
-                    min: minTimestamp,
-                    max: maxTimestamp
-                },
-                tooltips: false,
-                format: {
-                    to: value => new Date(value), // Display as readable datetime
-                    from: value => value
-                }
-            });
-
-            // Update slider labels and filter data
-            slider.noUiSlider.on('update', function (values, handle) {
-                const startTimestamp = new Date(values[0]).getTime();
-                const endTimestamp = new Date(values[1]).getTime();
-
-                // Update labels
-                startValueEl.innerHTML = new Date(startTimestamp).toLocaleString();
-                endValueEl.innerHTML = new Date(endTimestamp).toLocaleString();
-
-                // Filter data and update the map
-                const filteredData = filterDataByTimestamp(startTimestamp, endTimestamp);
-                updateMap(filteredData);
-            });
-        }
-
-            // Function to handle hover and display popup
-        function handleHover(object, x, y) {
-            const popup = document.getElementById('popup');
-            const popupContent = document.getElementById('popup-content');
-
-            if (object) {
-                // check if the object is valid
-                if(!object.values) {
-                    object.values = {};
-                }
-                popupContent.innerHTML = `
-                    <strong>Radiation Level:</strong> ${object.values.radiation}<br/>
-                    <strong>Location:</strong> (${object.position[0]}, ${object.position[1]})<br/>
-                    <strong>Date:</strong> ${new Date(object.dateTime).toLocaleString()}
-                `;
-
-                // Position the popup near the mouse
-                popup.style.left = `${x}px`;
-                popup.style.top = `${y}px`;
-                popup.style.display = 'block';  // Show the popup
-            } else {
-                console.log('No object');
-                popup.style.display = 'none';  // Hide the popup when not hovering
-            }
-        }
-
-        // Fetch data every 10 seconds
-        setInterval(fetchData, 10000);
-
-        // Fetch data initially when the page loads
-        fetchData();
-    </script>
 </body>
 
 </html>
