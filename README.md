@@ -116,5 +116,7 @@ python manage.py test
 This setup uses **SQLite** as the default database, making development simpler. Let me know if you need any modifications! 😊
 
 
-## Some commands
+## Some useful commands
+```bash
 python ./manage.py add_measures Zaragoza (to add test measures near Zaragoza)
+```
