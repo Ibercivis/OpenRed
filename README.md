@@ -118,5 +118,6 @@ This setup uses **SQLite** as the default database, making development simpler. 
 
 ## Some useful commands
 ```bash
-python ./manage.py add_measures Zaragoza (to add test measures near Zaragoza)
+python ./manage.py add_measures Zaragoza
 ```
+ (to add test measures near Zaragoza)
