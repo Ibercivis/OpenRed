@@ -41,7 +41,15 @@ venv\Scripts\activate  # On Windows (PowerShell)
 
 ---
 
-### **4. Install Python Dependencies**  
+### *4. On **Debian/Ubuntu**, install the required packages:
+
+```bash
+sudo apt update && sudo apt install -y python3 python3-venv python3-pip build-essential python3-dev libpq-dev
+```
+
+---
+
+### **5. Install Python Dependencies**  
 Once the virtual environment is active, install the required dependencies:  
 
 ```bash
@@ -51,7 +59,7 @@ pip install -r requirements.txt
 
 ---
 
-### **5. Configure Environment Variables**  
+### **6. Configure Environment Variables**  
 Create a `.env` file inside the **OpenRed** directory:  
 
 ```bash
@@ -69,7 +77,7 @@ ALLOWED_HOSTS=*
 
 ---
 
-### **6. Apply Migrations & Create Superuser**  
+### **7. Apply Migrations & Create Superuser**  
 Run the migrations and create an admin user:  
 
 ```bash
@@ -79,7 +87,7 @@ python manage.py createsuperuser
 
 ---
 
-### **7. Start the Development Server**  
+### **8. Start the Development Server**  
 Run the development server:  
 
 ```bash
@@ -91,7 +99,7 @@ Now you can access the platform at:
 
 ---
 
-### **8. Running Tests (Optional, but Recommended)**  
+### **9. Running Tests (Optional, but Recommended)**  
 To ensure everything is set up correctly, you can run the tests:  
 
 ```bash
