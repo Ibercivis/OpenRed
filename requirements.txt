@@ -20,6 +20,7 @@ python-decouple==3.8
 pytz==2024.2
 PyYAML==6.0.2
 requests==2.32.3
+setuptools
 soupsieve==2.6
 sqlparse==0.5.1
 typing_extensions==4.12.2
