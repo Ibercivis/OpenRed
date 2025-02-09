@@ -161,7 +161,7 @@ SOCIALACCOUNT_PROVIDERS = {
 
 # Mapbox
 MAPBOX_ACCESS_TOKEN = config('MAPBOX_ACCESS_TOKEN', default='') # Fetch from environment variable
-
+OSR_API_KEY = config('OSR_API_KEY', default='') # Fetch from environment variable
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
