@@ -136,6 +136,7 @@ pyzmq==26.2.0
 redis==5.1.1
 referencing==0.35.1
 requests==2.32.3
+<<<<<<< HEAD
 requests-oauthlib==2.0.0
 rpds-py==0.22.3
 rq==2.0.0
@@ -148,6 +149,9 @@ simplejson==3.19.3
 six==1.16.0
 social-auth-app-django==5.4.2
 social-auth-core==4.5.4
+=======
+setuptools
+>>>>>>> 709b819ac3e020e08629a02af2b179b852107016
 soupsieve==2.6
 sqlparse==0.5.1
 stack-data==0.6.3
