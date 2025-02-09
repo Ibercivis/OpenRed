@@ -1,0 +1,6 @@
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+# for map
+MAPBOX_ACCESS_TOKEN=
+# for the command go_to.py
+OSR_API_KEY=
