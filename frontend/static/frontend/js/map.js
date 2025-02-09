@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to fetch data from API
     function fetchData() {
-        return fetch('http://127.0.0.1:8000/api/measurements/', {
+        return fetch('/api/measurements/', {
             headers: {
                 'Accept': 'application/json',
                 'X-CSRFToken': csrfToken
