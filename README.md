@@ -116,3 +116,8 @@ This setup uses **SQLite** as the default database, making development simpler. 
 python ./manage.py add_measures Zaragoza
 ```
  (to add test measures near Zaragoza)
+
+ ```bash
+python ./manage.py go_to Zaragoza Lisbon --speed 1000
+```
+ (to add test measures in a travel from  Zaragoza to Lisbon)
