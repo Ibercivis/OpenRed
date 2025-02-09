@@ -12,12 +12,12 @@ brotlipy==0.7.0
 captcha==0.4
 certifi==2024.8.30
 cffi==1.17.1
-chardet @ file:///Users/runner/miniforge3/conda-bld/chardet_1610093454858/work
+chardet
 charset-normalizer==3.3.2
 click==8.1.7
 comm==0.2.2
 conda==4.9.2
-conda-package-handling @ file:///Users/runner/miniforge3/conda-bld/conda-package-handling_1602876806364/work
+conda-package-handling
 contourpy==1.1.1
 coreapi==2.3.3
 coreschema==0.0.4
@@ -117,16 +117,16 @@ psycopg2==2.9.9
 ptyprocess==0.7.0
 pure_eval==0.2.3
 pycodestyle==2.7.0
-pycosat @ file:///Users/runner/miniforge3/conda-bld/pycosat_1610094841871/work
+pycosat
 pycparser==2.22
 pycryptodomex==3.21.0
 Pygments==2.19.1
 pyjwkest==1.4.2
 PyJWT==2.9.0
 pylint==3.3.1
-pyOpenSSL @ file:///home/conda/feedstock_root/build_artifacts/pyopenssl_1608055815057/work
+pyOpenSSL
 pyparsing==3.1.1
-PySocks @ file:///Users/runner/miniforge3/conda-bld/pysocks_1610291460269/work
+PySocks
 python-dateutil==2.9.0.post0
 python-decouple==3.8
 python3-openid==3.2.0
@@ -136,29 +136,25 @@ pyzmq==26.2.0
 redis==5.1.1
 referencing==0.35.1
 requests==2.32.3
-<<<<<<< HEAD
 requests-oauthlib==2.0.0
 rpds-py==0.22.3
 rq==2.0.0
-ruamel-yaml-conda @ file:///Users/runner/miniforge3/conda-bld/ruamel_yaml_1611943386799/work
+ruamel-yaml-conda
 ruamel.yaml==0.18.6
 ruamel.yaml.clib==0.2.12
-scipy @ file:///Users/runner/miniforge3/conda-bld/scipy_1609457861629/work
+scipy
 shortuuid==1.0.11
 simplejson==3.19.3
 six==1.16.0
 social-auth-app-django==5.4.2
 social-auth-core==4.5.4
-=======
-setuptools
->>>>>>> 709b819ac3e020e08629a02af2b179b852107016
 soupsieve==2.6
 sqlparse==0.5.1
 stack-data==0.6.3
 tomli==2.0.2
 tomlkit==0.13.2
 tornado==6.4.2
-tqdm @ file:///home/conda/feedstock_root/build_artifacts/tqdm_1613628259277/work
+tqdm
 traitlets==5.14.3
 typing_extensions==4.12.2
 tzdata==2023.3
