@@ -60,20 +60,7 @@ pip install -r requirements.txt
 ---
 
 ### **6. Configure Environment Variables**  
-Create a `.env` file inside the **OpenRed** directory:  
-
-```bash
-touch .env
-```
-
-Edit the `.env` file and add the following:  
-
-```ini
-DEBUG=True
-SECRET_KEY=your_secret_key
-DATABASE_URL=sqlite:///db.sqlite3
-ALLOWED_HOSTS=*
-```
+Copy local.env to .env and add the keys
 
 ---
 
@@ -99,7 +86,7 @@ Now you can access the platform at:
 
 ---
 
-### **9. Running Tests (Optional, but Recommended)**  
+### **10. Running Tests (Optional, but Recommended)**  
 To ensure everything is set up correctly, you can run the tests:  
 
 ```bash
