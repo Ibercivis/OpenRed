@@ -16,7 +16,7 @@ chardet
 charset-normalizer==3.3.2
 click==8.1.7
 comm==0.2.2
-conda==4.9.2
+#conda==4.9.2
 conda-package-handling
 contourpy==1.1.1
 coreapi==2.3.3
@@ -139,9 +139,9 @@ requests==2.32.3
 requests-oauthlib==2.0.0
 rpds-py==0.22.3
 rq==2.0.0
-ruamel-yaml-conda
-ruamel.yaml==0.18.6
-ruamel.yaml.clib==0.2.12
+#ruamel-yaml-conda
+#ruamel.yaml==0.18.6
+#ruamel.yaml.clib==0.2.12
 scipy
 shortuuid==1.0.11
 simplejson==3.19.3

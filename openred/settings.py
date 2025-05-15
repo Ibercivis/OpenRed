@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-j4%fow6!6o+e35fnjd&hpvvfhsud!llj=jlej5@mpcqkzdj7lg
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 SITE_ID = 1
 
@@ -59,7 +59,9 @@ INSTALLED_APPS = [
     # Custom apps
     'devices',
     'measures',
+    'missions',
     'frontend',
+
 
     
 ]
@@ -150,6 +152,18 @@ ACCOUNT_AUTHENTICATION_METHOD = 'email'  # 'username' or 'username_email'
 
 # Allow signup via social accounts
 SOCIALACCOUNT_QUERY_EMAIL = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
+ACCOUNT_LOGOUT_REDIRECT_URL = "/"
+ACCOUNT_LOGOUT_ON_GET = True
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = 'Soporte OpenRed <no-reply@openred.com>'
+print (EMAIL_HOST_PASSWORD)
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
@@ -164,10 +178,12 @@ SOCIALACCOUNT_PROVIDERS = {
 MAPBOX_ACCESS_TOKEN = config('MAPBOX_ACCESS_TOKEN', default='') # Fetch from environment variable
 OSR_API_KEY = config('OSR_API_KEY', default='') # Fetch from environment variable
 
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es'
 
 TIME_ZONE = 'UTC'
 

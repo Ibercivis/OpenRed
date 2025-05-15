@@ -1,0 +1,27 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+{% load socialaccount %}
+{% load i18n %}
+{% block title %}Verifique su dirección de correo electrónico - OpenRed{% endblock %}
+
+{% block base_content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-body">
+                    
+
+                <h1>
+                    {% trans "Verify Your Email Address" %}
+                </h1>
+                <p>
+                    {% blocktrans %}We have sent an email to you for verification. Follow the link provided to finalize the signup process. If you do not see the verification email in your main inbox, check your spam folder. Please contact us if you do not receive the verification email within a few minutes.{% endblocktrans %}
+                </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

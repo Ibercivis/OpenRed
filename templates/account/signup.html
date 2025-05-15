@@ -1,0 +1,38 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+{% load socialaccount %}
+
+{% block title %}Iniciar sesión - OpenRed{% endblock %}
+
+{% block base_content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h4 class="mb-4 text-center">Crear una cuenta</h4>
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            Por favor, corrige los errores indicados abajo.
+                        </div>
+                    {% endif %}
+                    <form method="POST" action="{% url 'account_signup' %}">
+                        {% csrf_token %}
+                        {% bootstrap_form form %}
+                        <button type="submit" class="btn btn-success w-100 mt-3">Registrarse</button>
+                    </form>
+                    <a href="{% provider_login_url 'google' %}" class="btn w-100 btn-outline-secondary mt-2 mb-3">
+                        <img src="{% static 'img/google-icon.svg' %}" alt="Google" width="20" class="me-2">
+                        Registrarse con Google
+                    </a>
+                    
+                    <div class="text-center mt-3">
+                        <p>¿Ya tienes una cuenta? <a href="{% url 'account_login' %}">Inicia sesión</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

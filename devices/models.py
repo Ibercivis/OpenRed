@@ -37,7 +37,7 @@ class Device(models.Model):
         super(Device, self).save(*args, **kwargs)
 
     def __str__(self):
-        return f"Device {self.serial_number} ({self.device_model.name})"
+        return f"Device {self.serial_number} ({self.device_model.name}) - Owner: {self.owner.username if self.owner else 'No owner'}"
 
     class Meta:
         verbose_name = "Device"

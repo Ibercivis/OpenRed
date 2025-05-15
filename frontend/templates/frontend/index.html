@@ -1,60 +1,61 @@
+{% extends "frontend/base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenRed</title>
-    <!-- Include Mapbox and deck.gl CDN -->
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css" rel="stylesheet" />
-    <script src="https://unpkg.com/deck.gl@latest/dist.min.js"></script>
-    <!-- noUiSlider CSS and JS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.8.1/nouislider.css"
-        integrity="sha512-MKxcSu/LDtbIYHBNAWUQwfB3iVoG9xeMCm32QV5hZ/9lFaQZJVaXfz9aFa0IZExWzCpm7OWvp9zq9gVip/nLMg=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.8.1/nouislider.min.js"
-        integrity="sha512-g/feAizmeiVKSwvfW0Xk3ZHZqv5Zs8PEXEBKzL15pM0SevEvoX8eJ4yFWbqakvRj7vtw1Q97bLzEpG2IVWX0Mg=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+{% block title %}Inicio | OpenRed{% endblock %}
 
-    <!-- Bootstrap 5 CSS -->
-    {% load django_bootstrap5 %}
-    {% bootstrap_css %}
-    {% bootstrap_javascript %}
-    <link rel="stylesheet" href="{% static 'frontend/css/styles.css' %}" />
-    <script src="{% static 'frontend/js/map.js' %}"></script>
-    <script>
-        // Define the variables dynamically in the HTML template
-        window.MAPBOX_ACCESS_TOKEN = "{{ mapbox_token }}";
-        window.csrfToken = "{{ csrf_token }}";
-    </script>
+{% block extra_head %}
+<!-- Mapbox and deck.gl CDN -->
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/deck.gl@latest/dist.min.js"></script>
 
+<!-- noUiSlider CSS and JS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.8.1/nouislider.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.8.1/nouislider.min.js"></script>
 
-</head>
+<!-- Custom JS -->
+<script src="{% static 'frontend/js/map.js' %}"></script>
 
-<body class="vh-100 vw-100">
-    <!-- Datetime Range Slider Control -->
-    <div id="slider-container" class="bg-light p-3">
-        <h5>Select Date Range</h5>
+<script>
+    window.MAPBOX_ACCESS_TOKEN = "{{ mapbox_token }}";
+    window.csrfToken = "{{ csrf_token }}";
+</script>
+{% endblock %}
+
+{% block base_content %}
+<div class="container-fluid h-100">
+    <!-- Slider Controls -->
+    <div id="slider-container" class="bg-light p-3 mt-5">
+        <h5>Seleccionar Rango de Fechas</h5>
         <div id="slider" class="slider"></div>
         <div id="slider-value">
-            From:<span id="start-value" class="small"></span><br />
-            To:<span id="end-value" class="small"></span>
+            Desde: <span id="start-value" class="small"></span><br />
+            Hasta: <span id="end-value" class="small"></span>
         </div>
-        <h5>Select Intensity</h5>
+        <h5>Seleccionar Intensidad</h5>
         <div id="slider-intensity" class="slider"></div>
-        <div id="slider-intensity-value"></div>
-        From:<span id="intensity-start-value" class="small"></span><br />
-        To:<span id="intensity-end-value" class="small"></span>
+        <div id="slider-intensity-value">
+            Desde: <span id="intensity-start-value" class="small"></span><br />
+            Hasta: <span id="intensity-end-value" class="small"></span>
+        </div>
+        <h5>Seleccionar Campaña</h5>
+        <select id="campaign-select" class="form-select mb-3">
+            <option value="">-- Selecciona una campaña --</option>
+            {% for campaign in campaigns %}
+                <option value="{{ campaña.id }}">{{ campaign }}</option>
+            {% endfor %}
+        </select>
+
+
     </div>
-    </div>
-    <!-- Popup to display on hover -->
+
+    <!-- Mapa -->
+    <div id="map-container" class="w-100 h-100 position-relative"></div>
+
+    <!-- Popup -->
     <div id="popup"
         style="position: absolute; display: block; background: white; padding: 5px; border-radius: 5px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); z-index: 100;">
         <p id="popup-content"></p>
     </div>
-    <div id="map-container" class="w-100 h-100 position-relative"></div>
-</body>
-
-</html>
+</div>
+{% endblock %}

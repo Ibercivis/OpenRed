@@ -1,0 +1,32 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+{% load i18n %}
+
+{% block title %}Iniciar sesión - OpenRed{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h4 class="mb-4 text-center">Completa tu registro</h4>
+                     {% if form.errors %}
+                        <div class="alert alert-danger">
+                            Por favor, corrige los errores indicados abajo.
+                        </div>
+                    {% endif %}
+                    <form method="post" action="">
+                        {% csrf_token %}
+                        {% bootstrap_form form %}
+                        <button type="submit" class="btn btn-primary w-100 mt-3">
+                            {% trans "Registrarse" %}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "frontend/base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+{% load socialaccount %}  {# <-- esta línea es clave #}
+
+{% block title %}Iniciar sesión con Google - OpenRed{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h4 class="mb-4 text-center">Iniciar sesión con una cuenta externa</h4>
+                    <p class="text-center">Haz clic en el proveedor con el que deseas continuar:</p>
+
+                    <div class="d-grid gap-2 mt-3">
+                        {% providers_media_js %}
+                        {% for provider in socialaccount_providers %}
+                            <a class="btn btn-outline-dark" href="{% provider_login_url provider.id %}">
+                                <img src="{% static 'img/google-logo.svg' %}" alt="Google" style="height: 20px; margin-right: 8px;">
+                                Continuar con {{ provider.name }}
+                            </a>
+                        {% endfor %}
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <p><a href="{% url 'account_login' %}">Volver al inicio de sesión</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

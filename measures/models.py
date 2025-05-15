@@ -27,3 +27,12 @@ class Measurement(models.Model):
         verbose_name = "Measurement"
         verbose_name_plural = "Measurements"
         ordering = ['-dateTime']
+
+class Track(models.Model):
+    name = models.CharField(max_length=100)
+    device = models.ForeignKey('devices.Device', on_delete=models.CASCADE, related_name='tracks')
+    campaign = models.ForeignKey('missions.Campaign', on_delete=models.CASCADE, related_name='tracks')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Track {self.name} - {self.device} - {self.campaign}"

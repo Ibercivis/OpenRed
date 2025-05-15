@@ -1,0 +1,23 @@
+{% extends "frontend/base.html" %}
+{% load django_bootstrap5 %}
+
+{% block title %}Asociar Dispositivo{% endblock %}
+
+{% block base_content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h4 class="mb-4 text-center">Asociar nuevo dispositivo</h4>
+                    <form method="POST" action="{% url 'add_device' %}">
+                        {% csrf_token %}
+                        {% bootstrap_form form %}
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>        
+</div>
+{% endblock %}
