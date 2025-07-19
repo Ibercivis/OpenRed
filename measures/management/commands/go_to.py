@@ -5,6 +5,7 @@ import openrouteservice  # OpenStreetMap-based routing API
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.conf import settings
+import random   # For generating random radiation values
 
 
 class Command(BaseCommand):
@@ -68,8 +69,14 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f'Starting movement from {origin} to {destination} at {speed_kmh} km/h.'))
 
+        
+
         for i in range(len(route_coords) - 1):
             lon2, lat2 = route_coords[i + 1]
+
+            # a randon value for radiation between 0 and 100
+            radiation_value = round(random.uniform(0, 100), 2)
+
             
             # Send data to API
             data = {
@@ -78,7 +85,7 @@ class Command(BaseCommand):
                 "latitude": lat2,
                 "longitude": lon2,
                 "altitude": 200,
-                "values": {"radiation": 50},
+                "values": {"radiation": radiation_value},
                 "dateTime": timezone.now().isoformat(),
                 "accuracy": 1.0,
                 "unit": "Sieverts",

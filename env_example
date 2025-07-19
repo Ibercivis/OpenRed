@@ -1,6 +1,17 @@
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-# for map
+
+# For map
 MAPBOX_ACCESS_TOKEN=
-# for the command go_to.py
+
+# For the command go_to.py
 OSR_API_KEY=
+
+# Amazon SES Email Configuration
+AWS_ACCESS_KEY_ID=your_aws_access_key_here
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key_here
+AWS_SES_REGION_NAME=us-east-1
+AWS_SES_CONFIGURATION_SET=
+
+# Email settings
+DEFAULT_FROM_EMAIL=noreply@yourdomain.com

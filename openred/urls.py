@@ -18,6 +18,7 @@ from django.urls import path, include
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from django.contrib.auth import views as auth_views
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -34,12 +35,23 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('accounts/', include('allauth.urls')),
+    
+    # URL mínima necesaria para que dj-rest-auth no falle (no se usa directamente)
+    path('password-reset-confirm/<uidb64>/<token>/', 
+         auth_views.PasswordResetConfirmView.as_view(), 
+         name='password_reset_confirm'),
+    
+    # Solo APIs - no vistas HTML de allauth
+    # path('accounts/', include('allauth.urls')),  # ELIMINADO - solo usamos API
+    
     path('api/', include('devices.urls')),
     path('api/', include('measures.urls')),
     path('api/', include('missions.urls')),
     path('api/', include('users.urls')),  # Include user URLs
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    path('dj-rest-auth/', include('dj_rest_auth.urls')),
+    path('dj-rest-auth/registration/', include('dj_rest_auth.registration.urls')),
+
     path('', include('frontend.urls')),
 ]

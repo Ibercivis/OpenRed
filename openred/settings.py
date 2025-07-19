@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',  # Necesario para sites framework
     #'django_extensions', for model.png
 
     # Allauth apps
@@ -50,6 +51,12 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    'dj_rest_auth',  # Agregar el módulo principal
+    'dj_rest_auth.registration',
+    'rest_framework.authtoken',
+
+    # Email backends
+    'django_ses',
 
     # Other apps
     'rest_framework',
@@ -61,9 +68,7 @@ INSTALLED_APPS = [
     'measures',
     'missions',
     'frontend',
-
-
-    
+    'users',  # Agregamos la app users
 ]
 
 MIDDLEWARE = [
@@ -104,10 +109,21 @@ WSGI_APPLICATION = 'openred.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
+#DATABASES = {
+#    'default': {
+#        'ENGINE': 'django.db.backends.sqlite3',
+#        'NAME': BASE_DIR / 'db.sqlite3',
+##    }
+#}
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'openred_db',
+        'USER': 'openred_user',
+        'PASSWORD': 'openred',  # Cambiar por tu contraseña real
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
@@ -138,9 +154,9 @@ AUTHENTICATION_BACKENDS = [
     # `allauth` specific authentication methods
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
-# Redirect after login/logout
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/'
+# No usar redirecciones HTML - todo se maneja via API
+# LOGIN_REDIRECT_URL = '/'  # No necesario para API
+# LOGOUT_REDIRECT_URL = '/'  # No necesario para API
 
 # Email confirmation settings
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # Options: "none", "optional", "mandatory"
@@ -149,21 +165,65 @@ ACCOUNT_EMAIL_REQUIRED = True
 # Username behavior
 ACCOUNT_USERNAME_REQUIRED = False  # If you want to log in with email only
 ACCOUNT_AUTHENTICATION_METHOD = 'email'  # 'username' or 'username_email'
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None  # No usar username
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 
-# Allow signup via social accounts
+# Generar username automáticamente basado en email
+ACCOUNT_ADAPTER = 'users.adapters.EmailUsernameAdapter'
+ACCOUNT_USERNAME_VALIDATORS = []  # Eliminar validadores de username
+
+# Desactivar redirecciones automáticas - usaremos React
+# ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = 'http://localhost:3000/verify-email?key={key}'
+# ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = 'http://localhost:3000/verify-email?key={key}'
+
+# Configuración de URL personalizada para confirmación de email
+ACCOUNT_CONFIRM_EMAIL_ON_GET = False  # No confirmar automáticamente con GET
+ACCOUNT_EMAIL_CONFIRMATION_HMAC = False  # Usar el formato de key simple
+
+# Social account settings - solo para API
 SOCIALACCOUNT_QUERY_EMAIL = True
-SOCIALACCOUNT_LOGIN_ON_GET = True
-ACCOUNT_LOGOUT_REDIRECT_URL = "/"
-ACCOUNT_LOGOUT_ON_GET = True
+# SOCIALACCOUNT_LOGIN_ON_GET = True  # No necesario para API
+# ACCOUNT_LOGOUT_REDIRECT_URL = "/"  # No necesario para API
+# ACCOUNT_LOGOUT_ON_GET = True  # No necesario para API
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = 'Soporte OpenRed <no-reply@openred.com>'
-print (EMAIL_HOST_PASSWORD)
+# Amazon SES Email Configuration
+EMAIL_BACKEND = 'django_ses.SESBackend'
+
+# AWS Credentials (mejor usar IAM roles en producción)
+AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default='')
+AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default='')
+AWS_SES_REGION_NAME = config('AWS_SES_REGION_NAME', default='us-east-1')  # Región donde está configurado SES
+AWS_SES_REGION_ENDPOINT = f'email.{AWS_SES_REGION_NAME}.amazonaws.com'
+
+# Configuración adicional de SES
+AWS_SES_AUTO_THROTTLE = 0.5  # Limitar el envío para evitar rate limits
+AWS_SES_CONFIGURATION_SET = config('AWS_SES_CONFIGURATION_SET', default=None)  # Opcional: para analytics
+
+# Email settings
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@ibercivis.es')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL  # Para emails de error del servidor
+
+# Fallback a console para desarrollo
+if DEBUG and not AWS_ACCESS_KEY_ID:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Configuración de dj-rest-auth
+REST_AUTH = {
+    'REGISTER_SERIALIZER': 'users.serializers.CustomRegisterSerializer',
+    'USER_DETAILS_SERIALIZER': 'users.serializers.UserSerializer',
+    # Usar el serializador por defecto de dj-rest-auth para password reset
+}
+
+# Configuración para password reset
+PASSWORD_RESET_TIMEOUT = 3600  # 1 hora para que expire el link
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',  # Para tokens tradicionales de Django
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Para JWT
+    ],
+}
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {

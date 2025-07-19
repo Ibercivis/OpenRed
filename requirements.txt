@@ -166,3 +166,8 @@ Werkzeug==3.0.4
 Whoosh==2.7.4
 wrapt==1.16.0
 zipp==3.21.0
+# Amazon SES para envío de correos
+boto3==1.35.70
+django-ses==4.2.0
+# DRF Auth para API authentication
+dj-rest-auth==6.0.0

@@ -1,0 +1,8 @@
+{% load i18n %}{% autoescape off %}¡Hola de parte de OpenRed!
+
+{% block content %}{% endblock content %}
+
+¡Gracias por usar OpenRed!
+
+El equipo de OpenRed
+{% endautoescape %}
