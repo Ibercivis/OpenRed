@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let allData = [];
     let slider;  // Declare slider variable outside of fetch
     let sliderIntensity;  // Declare slider variable outside of fetch
+    let isHeatmapVisible = false; // Track heatmap visibility
 
     // Initialize the Deck.gl map
     const deckgl = new deck.DeckGL({
@@ -21,6 +22,14 @@ document.addEventListener('DOMContentLoaded', function () {
             bearing: 0
         },
         controller: true
+    });
+
+    document.getElementById('toggle-heatmap').addEventListener('click', () => {
+        isHeatmapVisible = !isHeatmapVisible;
+        // Cambiar el texto del botón
+        document.getElementById('toggle-heatmap').innerText = isHeatmapVisible ? 'Mostrar puntos' : 'Mostrar mapa de calor';
+        // Actualiza la capa
+        updateMap(allData);  // currentFilteredData será la última data filtrada
     });
 
     // Function to fetch data from API
@@ -50,7 +59,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // Apply filter based on current slider range
                 const [startTimestamp, endTimestamp] = slider.noUiSlider.get().map(v => new Date(v).getTime());
-                const filteredData = filterDataByTimestamp(startTimestamp, endTimestamp);
+                let filteredData = filterDataByTimestamp(startTimestamp, endTimestamp);
+                // Apply filter based on current intensity slider range
+                const [startRadiation, endRadiation] = sliderIntensity.noUiSlider.get().map(v => parseFloat(v));
+                const radiationFilteredData = filterDataByRadiation(startRadiation, endRadiation);
+                // Combine both filters
+                filteredData = filteredData.filter(measurement => {
+                    return radiationFilteredData.some(radiationMeasurement => {
+                        return measurement.dateTime === radiationMeasurement.dateTime &&
+                            measurement.latitude === radiationMeasurement.latitude &&
+                            measurement.longitude === radiationMeasurement.longitude;
+                    });
+                });
+                // Update the map with the filtered data        
                 updateMap(filteredData);
             })
             .catch(error => {
@@ -75,48 +96,76 @@ document.addEventListener('DOMContentLoaded', function () {
     // Function to update the map with data
     // Function to update the map with data and color gradient based on radiation value
     function updateMap(data) {
-        const points = data.map(measurement => {
-            // Define the radiation value range
-            const minRadiation = 50;
-            const maxRadiation = 100;  // Radiation over 80 will be fully red
+        console.log("Updating map with data:", data);
+        const minRadiation = 50;
+        const maxRadiation = 200; 
+        if (isHeatmapVisible) {
+            // Capa de calor
+            const heatmapLayer = new deck.HeatmapLayer({
+                id: 'heatmap-layer',
+                data: data,
+                getPosition: d => [d.longitude, d.latitude],
+                getWeight: d => {
+                    const r = d.values.radiation;
+                    return Math.max(minRadiation, Math.min(maxRadiation, r));
+                },
+                colorDomain: [50, 200], 
+                radiusPixels: 60,
+                aggregation: 'MEAN',
+                
+                colorRange: [
+                    [100, 255, 100],  // Verde (50)
+                    [162, 215, 100],  // Amarillo
+                    [224, 175, 100],  // Naranja
+                    [255, 155, 100]   // Rojo (200)
+                ]
+            });
+    
+            deckgl.setProps({ layers: [heatmapLayer] });
+    
+        } else {
+            const points = data.map(measurement => {
+                // Define the radiation value range
+                 // Radiation over 80 will be fully red
 
-            // Clamp the radiation value to stay within the range
-            const radiation = Math.max(minRadiation, Math.min(maxRadiation, measurement.values.radiation));
+                // Clamp the radiation value to stay within the range
+                const radiation = Math.max(minRadiation, Math.min(maxRadiation, measurement.values.radiation));
 
-            // Calculate the interpolation factor (0 means fully green, 1 means fully red)
-            const t = (radiation - minRadiation) / (maxRadiation - minRadiation);
+                // Calculate the interpolation factor (0 means fully green, 1 means fully red)
+                const t = (radiation - minRadiation) / (maxRadiation - minRadiation);
 
-            // Interpolate between green and red
-            const color = [
-                Math.round((1 - t) * 0 + t * 155 + 100),  // Red channel (100 to 255)
-                Math.round((1 - t) * 155 + t * 0 + 100),  // Green channel (255 to 100)
-                100  // Blue channel is constant (100)
-            ];
+                // Interpolate between green and red
+                const color = [
+                    Math.round((1 - t) * 0 + t * 155 + 100),  // Red channel (100 to 255)
+                    Math.round((1 - t) * 155 + t * 0 + 100),  // Green channel (255 to 100)
+                    100  // Blue channel is constant (100)
+                ];
 
-            return {
-                position: [measurement.longitude, measurement.latitude],
-                values: measurement.values,
-                dateTime: measurement.dateTime,
-                size: 10,
-                color: color  // Use the interpolated color
-            };
-        });
+                return {
+                    position: [measurement.longitude, measurement.latitude],
+                    values: measurement.values,
+                    dateTime: measurement.dateTime,
+                    size: 10,
+                    color: color  // Use the interpolated color
+                };
+            });
 
-        const scatterplotLayer = new deck.ScatterplotLayer({
-            id: 'scatterplot-layer',
-            data: points,
-            getPosition: d => d.position,
-            getRadius: d => d.size,
-            getFillColor: d => d.color,
-            radiusMinPixels: 5,
-            radiusMaxPixels: 10,
-            pickable: true,
-            onHover: ({ object, x, y }) => handleHover(object, x, y)
-        });
+            const scatterplotLayer = new deck.ScatterplotLayer({
+                id: 'scatterplot-layer',
+                data: points,
+                getPosition: d => d.position,
+                getRadius: d => d.size,
+                getFillColor: d => d.color,
+                radiusMinPixels: 5,
+                radiusMaxPixels: 10,
+                pickable: true,
+                onHover: ({ object, x, y }) => handleHover(object, x, y)
+            });
 
-        deckgl.setProps({
-            layers: [scatterplotLayer]
-        });
+            deckgl.setProps({
+                layers: [scatterplotLayer]
+            });
+        }    
     }
 
     // Initialize the datetime range slider
