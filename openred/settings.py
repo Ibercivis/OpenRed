@@ -44,7 +44,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',  # Necesario para sites framework
+    'django.contrib.gis',  # GeoDjango para soporte PostGIS
     #'django_extensions', for model.png
+    
+    # CORS headers
+    'corsheaders',
 
     # Allauth apps
     'allauth',
@@ -62,6 +66,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'django_bootstrap5',
+    'django_rq',  # RQ for background tasks
 
     # Custom apps
     'devices',
@@ -73,6 +78,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # CORS debe ir ANTES de CommonMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -118,12 +124,12 @@ WSGI_APPLICATION = 'openred.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',  # PostGIS backend for spatial support
         'NAME': 'openred_db',
         'USER': 'openred_user',
-        'PASSWORD': 'openred',  # Cambiar por tu contraseña real
+        'PASSWORD': 'openred',
         'HOST': 'localhost',
-        'PORT': '5432',
+        'PORT': '5434',
     }
 }
 
@@ -212,19 +218,101 @@ if DEBUG and not AWS_ACCESS_KEY_ID:
 REST_AUTH = {
     'REGISTER_SERIALIZER': 'users.serializers.CustomRegisterSerializer',
     'USER_DETAILS_SERIALIZER': 'users.serializers.UserSerializer',
-    # Usar el serializador por defecto de dj-rest-auth para password reset
+    'SESSION_LOGIN': False,  # Para API pura sin cookies de sesión
 }
 
 # Configuración para password reset
 PASSWORD_RESET_TIMEOUT = 3600  # 1 hora para que expire el link
 
+# ====================
+# REST Framework Configuration
+# ====================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',  # Para tokens tradicionales de Django
-        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Para JWT
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',  # Para el browsable API
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',  # Por defecto público, cada ViewSet controla sus permisos
     ],
 }
 
+# ====================
+# Swagger Configuration
+# ====================
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Token': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': 'Token authentication using the format: Token <your_token>'
+        }
+    },
+    'USE_SESSION_AUTH': True,
+    'PERSIST_AUTH': True,
+}
+
+# ====================
+# CORS Configuration
+# ====================
+if DEBUG:
+    # Desarrollo: permitir todos los orígenes
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOW_CREDENTIALS = True
+else:
+    # Producción: solo dominios específicos
+    CORS_ALLOWED_ORIGINS = [
+        "https://openred.es",
+        "https://www.openred.es",
+        "https://app.openred.es",
+    ]
+    CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# ====================
+# CSRF Configuration
+# ====================
+if DEBUG:
+    # Desarrollo: permitir acceso desde múltiples orígenes locales
+    CSRF_TRUSTED_ORIGINS = [
+        'http://localhost:8001',
+        'http://127.0.0.1:8001',
+        'http://192.168.1.2:8001',
+        'http://localhost:3000',
+        'http://192.168.1.2:3000',
+    ]
+else:
+    # Producción: solo dominios verificados
+    CSRF_TRUSTED_ORIGINS = [
+        'https://openred.es',
+        'https://www.openred.es',
+        'https://app.openred.es',
+    ]
+
+# ====================
+# Social Auth Configuration
+# ====================
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': ['profile', 'email'],
@@ -268,7 +356,103 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',  # This is an optional folder for custom static files
 ]
 
+# ====================
+# Media Files Configuration
+# ====================
+
+# URL that handles the media served from MEDIA_ROOT
+MEDIA_URL = '/media/'
+
+# Absolute filesystem path to the directory that will hold user-uploaded files
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# ====================
+# RQ (Redis Queue) Configuration
+# ====================
+
+RQ_QUEUES = {
+    'default': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'DEFAULT_TIMEOUT': '10m',  # 10 minutes timeout
+    },
+    'high': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'DEFAULT_TIMEOUT': '5m',
+    },
+    'low': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'DEFAULT_TIMEOUT': '30m',
+    },
+}
+
+# RQ Scheduler - Periodic tasks
+# ====================
+# Scheduled jobs will be executed by rqscheduler
+# Run: python manage.py rqscheduler
+
+RQ_SHOW_ADMIN_LINK = True  # Show RQ link in admin
+
+# Scheduled jobs configuration
+# To activate: python manage.py rqscheduler (in separate terminal)
+from datetime import timedelta
+
+RQ_JOBS = {
+    'fetch_pending_weather': {
+        'func': 'measures.tasks.fetch_pending_weather',
+        'kwargs': {
+            'limit': 100,  # Process up to 100 entries per run
+            'max_attempts': 3,  # Skip entries with 3+ failed attempts
+        },
+        'interval': 60,  # Run every 60 seconds (1 minute for testing, use 3600 for production - 1 hour)
+        'repeat': None,  # Repeat indefinitely
+        'timeout': 300,  # 5 minute timeout
+        'result_ttl': 500,  # Keep results for 500 seconds
+    },
+}
+
+# ====================
+# Default Settings
+# ====================
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ====================
+# Logging Configuration (for performance testing)
+# ====================
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'measures.views': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.db.backends': {  # Log ALL SQL queries
+            'handlers': ['console'],
+            'level': 'DEBUG',  # Cambia a INFO para desactivar queries SQL
+            'propagate': False,
+        },
+    },
+}

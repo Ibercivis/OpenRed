@@ -26,14 +26,14 @@
                             <a class="nav-link" href="{% url 'add_device' %}">Asociar dispositivo</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'account_logout' %}?next=/">Salir ({{ user.get_full_name|default:user.username }})</a>
+                            <a class="nav-link" href="#" onclick="logout(); return false;">Salir ({{ user.get_full_name|default:user.username }})</a>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'account_login' %}">Iniciar sesión</a>
+                            <a class="nav-link" href="/login/">Iniciar sesión</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'account_signup' %}">Registrarse</a>
+                            <a class="nav-link" href="/register/">Registrarse</a>
                         </li>
                     {% endif %}
                 </ul>
@@ -55,6 +55,50 @@
         {% endif %}
 
         {% block base_content %}{% endblock %}
+    
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function logout() {
+            const csrftoken = getCookie('csrftoken');
+            
+            fetch('/dj-rest-auth/logout/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                credentials: 'include'
+            })
+            .then(response => {
+                if (response.ok || response.status === 200) {
+                    window.location.href = '/';
+                } else {
+                    console.error('Logout failed:', response);
+                    // Fallback: just redirect anyway
+                    window.location.href = '/';
+                }
+            })
+            .catch(error => {
+                console.error('Logout error:', error);
+                // Fallback: just redirect
+                window.location.href = '/';
+            });
+        }
+    </script>
     
     {% block extra_scripts %}{% endblock %}
 </body>

@@ -1,0 +1,94 @@
+{% extends 'frontend/base.html' %}
+
+{% block title %}Iniciar sesión - OpenRed{% endblock %}
+
+{% block base_content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Iniciar sesión</h3>
+                </div>
+                <div class="card-body">
+                    <div id="error-message" class="alert alert-danger d-none"></div>
+                    <div id="success-message" class="alert alert-success d-none"></div>
+                    
+                    <form id="login-form">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Iniciar sesión</button>
+                    </form>
+                    
+                    <div class="mt-3 text-center">
+                        <p>¿No tienes cuenta? <a href="/register/">Regístrate aquí</a></p>
+                        <p><a href="/password/reset/">¿Olvidaste tu contraseña?</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const csrftoken = getCookie('csrftoken');
+        
+        // Hide previous messages
+        document.getElementById('error-message').classList.add('d-none');
+        document.getElementById('success-message').classList.add('d-none');
+        
+        fetch('/dj-rest-auth/login/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                email: email,
+                password: password
+            })
+        })
+        .then(response => response.json().then(data => ({status: response.status, body: data})))
+        .then(result => {
+            if (result.status === 200) {
+                document.getElementById('success-message').textContent = '¡Inicio de sesión exitoso! Redirigiendo...';
+                document.getElementById('success-message').classList.remove('d-none');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+            } else {
+                let errorMessage = 'Error al iniciar sesión. ';
+                if (result.body.non_field_errors) {
+                    errorMessage += result.body.non_field_errors.join(' ');
+                } else if (result.body.email) {
+                    errorMessage += 'Email: ' + result.body.email.join(' ');
+                } else if (result.body.password) {
+                    errorMessage += 'Contraseña: ' + result.body.password.join(' ');
+                } else if (result.body.detail) {
+                    errorMessage += result.body.detail;
+                }
+                document.getElementById('error-message').textContent = errorMessage;
+                document.getElementById('error-message').classList.remove('d-none');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('error-message').textContent = 'Error de conexión. Por favor, inténtalo de nuevo.';
+            document.getElementById('error-message').classList.remove('d-none');
+        });
+    });
+</script>
+{% endblock %}

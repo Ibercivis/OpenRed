@@ -1,65 +1,453 @@
+"""
+Views for the measures app.
+
+This module provides API ViewSets for measurement data and track file uploads.
+Includes permission handling for public read access and authenticated write operations.
+
+ViewSets:
+    - RadiationMeasurementViewSet: CRUD for gamma radiation measurements with H3 aggregation
+    - LightPollutionMeasurementViewSet: CRUD for light pollution measurements with H3 aggregation
+    - TrackViewSet: Upload and manage measurement track files (CSV/GPX)
+"""
 from django.shortcuts import render
-from rest_framework import viewsets
+from rest_framework import viewsets, status
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.decorators import action
+from django.db.models import Q
+import csv
+import io
+import django_rq
+import h3
+import logging
+from datetime import datetime
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from django.core.paginator import Paginator
 from django.db import connection
-from .models import Project, RadiationMeasurement, LightPollutionMeasurement, Track
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from .models import RadiationMeasurement, LightPollutionMeasurement, Track
+from missions.models import Project
+from devices.models import Device
 from .serializers import (
-    ProjectSerializer, 
     RadiationMeasurementSerializer, 
     LightPollutionMeasurementSerializer, 
     TrackSerializer,
-    MeasurementSerializer  # Alias de compatibilidad
+    MeasurementSerializer  # Backward compatibility alias
 )
 
-# Create your views here.
+logger = logging.getLogger(__name__)
 
-class ProjectViewSet(viewsets.ModelViewSet):
-    queryset = Project.objects.all()
-    serializer_class = ProjectSerializer
-    
-    def get_queryset(self):
-        """
-        Optimizar queryset para incluir información relacionada
-        """
-        return Project.objects.all().order_by('name')
-    
-    def list(self, request, *args, **kwargs):
-        """
-        Override list para pre-calcular conteos de mediciones de manera eficiente
-        """
-        projects = self.get_queryset()
-        
-        # Pre-calcular conteos para todos los proyectos de una vez usando el ORM de Django
-        for project in projects:
-            if project.project_type == 'radiation':
-                project._measurements_count = RadiationMeasurement.objects.filter(project=project).count()
-                last_measurement = RadiationMeasurement.objects.filter(project=project).order_by('-dateTime').first()
-                project._last_measurement_date = last_measurement.dateTime if last_measurement else None
-            elif project.project_type == 'light_pollution':
-                project._measurements_count = LightPollutionMeasurement.objects.filter(project=project).count()
-                last_measurement = LightPollutionMeasurement.objects.filter(project=project).order_by('-dateTime').first()
-                project._last_measurement_date = last_measurement.dateTime if last_measurement else None
-            else:
-                project._measurements_count = 0
-                project._last_measurement_date = None
-        
-        # Usar el comportamiento estándar de DRF con los datos pre-calculados
-        return super().list(request, *args, **kwargs)
-    
-    @action(detail=False, methods=['get'])
-    def with_counts(self, request):
-        """
-        Endpoint específico para obtener proyectos con conteos de mediciones.
-        Usa el mismo método optimizado que list().
-        """
-        return self.list(request)
 
 class RadiationMeasurementViewSet(viewsets.ModelViewSet):
-    queryset = RadiationMeasurement.objects.all()
+    """
+    API ViewSet for gamma radiation measurements.
+    
+    Provides full CRUD operations with permission controls:
+    - GET (list/retrieve): Public access - anyone can view measurements
+    - POST (create): Requires authentication - auto-assigns current user
+    - PUT/PATCH (update): Requires authentication and ownership
+    - DELETE (destroy): Requires authentication and ownership
+    
+    Users can only modify/delete their own measurements.
+    
+    Endpoints:
+        GET /api/radiation-measurements/ - List all measurements
+        POST /api/radiation-measurements/ - Create new measurement (auth required)
+        GET /api/radiation-measurements/{id}/ - Retrieve specific measurement
+        PUT /api/radiation-measurements/{id}/ - Update measurement (auth + ownership)
+        PATCH /api/radiation-measurements/{id}/ - Partial update (auth + ownership)
+        DELETE /api/radiation-measurements/{id}/ - Delete measurement (auth + ownership)
+    
+    Attributes:
+        queryset: All RadiationMeasurement objects with weather_cache selected
+        serializer_class: RadiationMeasurementSerializer
+    """
+    queryset = RadiationMeasurement.objects.select_related('weather_cache').all()
     serializer_class = RadiationMeasurementSerializer
 
+    def get_permissions(self):
+        """
+        GET is public, write operations require authentication
+        """
+        if self.action in ['list', 'retrieve', 'h3_aggregation', 'count', 'paginated']:
+            return []
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        """
+        For write operations (update, partial_update, destroy), filter by user ownership.
+        This way users can only modify/delete their own measurements.
+        If a user tries to access another user's measurement, they'll get a 404.
+        
+        Queryset already includes select_related('weather_cache') for optimization.
+        """
+        queryset = super().get_queryset()
+        
+        # Detectar si es una vista falsa de Swagger
+        if getattr(self, 'swagger_fake_view', False):
+            return queryset.none()
+        
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return queryset.filter(user=self.request.user)
+        return queryset
+
+    def perform_create(self, serializer):
+        """
+        Auto-assign the current authenticated user when creating a measurement
+        """
+        serializer.save(user=self.request.user)
+
+    @swagger_auto_schema(
+        tags=['Measurements - Radiation'],
+        operation_description="List all radiation measurements (public access)",
+        manual_parameters=[
+            openapi.Parameter('track', openapi.IN_QUERY, description="Filter by track ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('project', openapi.IN_QUERY, description="Filter by project ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('mission', openapi.IN_QUERY, description="Filter by mission ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('campaign', openapi.IN_QUERY, description="Filter by campaign ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('device', openapi.IN_QUERY, description="Filter by device ID", type=openapi.TYPE_INTEGER),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        import time
+        start_time = time.time()
+        start_queries = len(connection.queries)
+        
+        queryset = self.get_queryset()
+        
+        # Apply filters from query parameters
+        track_id = request.query_params.get('track')
+        project_id = request.query_params.get('project')
+        mission_id = request.query_params.get('mission')
+        campaign_id = request.query_params.get('campaign')
+        device_id = request.query_params.get('device')
+        
+        if track_id:
+            queryset = queryset.filter(track_id=track_id)
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        if mission_id:
+            queryset = queryset.filter(campaign__mission_id=mission_id)
+        if campaign_id:
+            queryset = queryset.filter(campaign_id=campaign_id)
+        if device_id:
+            queryset = queryset.filter(device_id=device_id)
+        
+        # Apply pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            response = self.get_paginated_response(serializer.data)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+            response = Response(serializer.data)
+        
+        # Performance metrics
+        end_time = time.time()
+        total_queries = len(connection.queries) - start_queries
+        elapsed_ms = (end_time - start_time) * 1000
+        result_count = queryset.count()
+        
+        logger.info(f"📊 GET /api/radiation-measurements/ | "
+                   f"Time: {elapsed_ms:.2f}ms | "
+                   f"SQL Queries: {total_queries} | "
+                   f"Results: {result_count} | "
+                   f"Filters: track={track_id}, project={project_id}, device={device_id}")
+        
+        return response
+    
+    @swagger_auto_schema(
+        tags=['Measurements - Radiation'],
+        operation_description="Create a new radiation measurement (requires authentication)",
+        security=[{'Token': []}],
+        responses={
+            201: RadiationMeasurementSerializer,
+            400: 'Invalid data',
+            401: 'Not authenticated'
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        tags=['Measurements - Radiation'],
+        operation_description="Get details of a specific radiation measurement (public access)"
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        tags=['Measurements - Radiation'],
+        operation_description="Update a radiation measurement completely (requires authentication and ownership - users can only update their own measurements)",
+        security=[{'Token': []}],
+        responses={
+            200: RadiationMeasurementSerializer,
+            400: 'Invalid data',
+            401: 'Not authenticated',
+            404: 'Measurement not found or not owned by user'
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        tags=['Measurements - Radiation'],
+        operation_description="Partially update a radiation measurement (requires authentication and ownership - users can only update their own measurements)",
+        security=[{'Token': []}],
+        responses={
+            200: RadiationMeasurementSerializer,
+            400: 'Invalid data',
+            401: 'Not authenticated',
+            404: 'Measurement not found or not owned by user'
+        }
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        tags=['Measurements - Radiation'],
+        operation_description="Delete a radiation measurement (requires authentication and ownership - users can only delete their own measurements)",
+        security=[{'Token': []}],
+        responses={
+            204: 'Measurement deleted successfully',
+            401: 'Not authenticated',
+            404: 'Measurement not found or not owned by user'
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        tags=['Measurements - Radiation'],
+        operation_description="Aggregate radiation measurements by H3 hexagons with statistics",
+        manual_parameters=[
+            openapi.Parameter('resolution', openapi.IN_QUERY, description="H3 resolution (0-15, default: 8)", type=openapi.TYPE_INTEGER, default=8),
+            openapi.Parameter('project', openapi.IN_QUERY, description="Filter by project ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('campaign', openapi.IN_QUERY, description="Filter by campaign ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('track', openapi.IN_QUERY, description="Filter by track ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('min_count', openapi.IN_QUERY, description="Minimum measurements per hexagon (default: 1)", type=openapi.TYPE_INTEGER, default=1),
+            openapi.Parameter('start_date', openapi.IN_QUERY, description="Filter measurements from this date (format: YYYY-MM-DD, example: 2024-01-15)", type=openapi.TYPE_STRING),
+            openapi.Parameter('end_date', openapi.IN_QUERY, description="Filter measurements until this date (format: YYYY-MM-DD, example: 2024-12-31)", type=openapi.TYPE_STRING),
+        ],
+        responses={
+            200: openapi.Response(
+                description="H3 hexagon aggregation with statistics",
+                examples={
+                    "application/json": {
+                        "resolution": 8,
+                        "hexagons": [
+                            {
+                                "h3_index": "88283082b9fffff",
+                                "avg_value": 0.15,
+                                "min_value": 0.10,
+                                "max_value": 0.25,
+                                "std_value": 0.04,
+                                "measurement_count": 42
+                            }
+                        ],
+                        "total_hexagons": 156,
+                        "total_measurements": 1234,
+                        "statistics": {
+                            "global_avg": 0.15,
+                            "global_min": 0.05,
+                            "global_max": 0.85
+                        }
+                    }
+                }
+            ),
+            400: 'Invalid parameters'
+        }
+    )
+    @action(detail=False, methods=['get'], url_path='h3-aggregation')
+    def h3_aggregation(self, request):
+        """
+        Aggregate radiation measurements by H3 hexagons using PostgreSQL.
+        
+        This method delegates all H3 calculations to PostgreSQL for optimal performance.
+        Uses h3-pg extension for native H3 operations in the database.
+        
+        Query Parameters:
+            resolution (int): H3 resolution level (0-15). Default: 8
+                - 0: Very large hexagons (~1000km edge)
+                - 5: ~20km edge
+                - 8: ~500m edge (default)
+                - 10: ~60m edge
+                - 15: ~0.5m edge
+            
+            project (int): Filter by project ID (optional)
+            campaign (int): Filter by campaign ID (optional)
+            track (int): Filter by track ID (optional)
+            min_count (int): Minimum measurements per hexagon (default: 1)
+        
+        Returns:
+            Response: JSON with H3 aggregation data including hexagon boundaries
+        """
+        # Validate resolution parameter
+        try:
+            resolution = int(request.query_params.get('resolution', 8))
+            if not 0 <= resolution <= 15:
+                return Response(
+                    {'error': 'Resolution must be between 0 and 15'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except ValueError:
+            return Response(
+                {'error': 'Invalid resolution parameter'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate min_count parameter
+        try:
+            min_count = int(request.query_params.get('min_count', 1))
+        except ValueError:
+            min_count = 1
+        
+        # Build dynamic WHERE clause for filters
+        where_clauses = ["latitude IS NOT NULL", "longitude IS NOT NULL", "dose_rate IS NOT NULL"]
+        params = {'resolution': resolution, 'min_count': min_count}
+        
+        project_id = request.query_params.get('project')
+        mission_id = request.query_params.get('mission')
+        campaign_id = request.query_params.get('campaign')
+        track_id = request.query_params.get('track')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        
+        if project_id:
+            where_clauses.append("project_id = %(project_id)s")
+            params['project_id'] = project_id
+        
+        if mission_id:
+            # Filter by mission through campaign
+            where_clauses.append("campaign_id IN (SELECT id FROM missions_campaign WHERE mission_id = %(mission_id)s)")
+            params['mission_id'] = mission_id
+        
+        if campaign_id:
+            where_clauses.append("campaign_id = %(campaign_id)s")
+            params['campaign_id'] = campaign_id
+        
+        if track_id:
+            where_clauses.append("track_id = %(track_id)s")
+            params['track_id'] = track_id
+        
+        # Date filters (format: YYYY-MM-DD)
+        if start_date:
+            try:
+                from django.utils.dateparse import parse_date
+                # Parse date string (YYYY-MM-DD)
+                parsed_date = parse_date(start_date)
+                if parsed_date:
+                    # Start from 00:00:00 of the start date
+                    parsed_date = timezone.make_aware(datetime.combine(parsed_date, datetime.min.time()))
+                    where_clauses.append('"dateTime" >= %(start_date)s')
+                    params['start_date'] = parsed_date
+                else:
+                    return Response(
+                        {'error': 'Invalid start_date format. Use format: YYYY-MM-DD (example: 2024-01-15)'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except Exception as e:
+                return Response(
+                    {'error': f'Invalid start_date: {str(e)}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        if end_date:
+            try:
+                from django.utils.dateparse import parse_date
+                # Parse date string (YYYY-MM-DD)
+                parsed_date = parse_date(end_date)
+                if parsed_date:
+                    # End at 23:59:59.999999 of the end date
+                    parsed_date = timezone.make_aware(datetime.combine(parsed_date, datetime.max.time()))
+                    where_clauses.append('"dateTime" <= %(end_date)s')
+                    params['end_date'] = parsed_date
+                else:
+                    return Response(
+                        {'error': 'Invalid end_date format. Use format: YYYY-MM-DD (example: 2024-12-31)'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except Exception as e:
+                return Response(
+                    {'error': f'Invalid end_date: {str(e)}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        where_sql = " AND ".join(where_clauses)
+        
+        # SQL query that does ALL processing in PostgreSQL
+        # Uses h3-pg extension functions for native H3 operations
+        sql = f"""
+        WITH h3_cells AS (
+            -- Convert each measurement to its H3 cell
+            SELECT 
+                h3_lat_lng_to_cell(POINT(longitude, latitude), %(resolution)s) as h3_index,
+                dose_rate as value
+            FROM measures_radiation_measurement
+            WHERE {where_sql}
+        ),
+        aggregated AS (
+            SELECT 
+                h3_index,
+                COUNT(*)::int as measurement_count,
+                AVG(value)::float as avg_value,
+                MIN(value)::float as min_value,
+                MAX(value)::float as max_value,
+                STDDEV(value)::float as std_value
+            FROM h3_cells
+            GROUP BY h3_index
+            HAVING COUNT(*) >= %(min_count)s
+        )
+        SELECT 
+            h3_index,
+            measurement_count,
+            ROUND(avg_value::numeric, 6)::float as avg_value,
+            ROUND(min_value::numeric, 6)::float as min_value,
+            ROUND(max_value::numeric, 6)::float as max_value,
+            ROUND(COALESCE(std_value, 0)::numeric, 6)::float as std_value
+        FROM aggregated
+        ORDER BY measurement_count DESC, avg_value DESC;
+        """
+        
+        # Execute query using raw SQL
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            columns = [col[0] for col in cursor.description]
+            results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        
+        # Calculate global statistics
+        if results:
+            all_avg_values = [r['avg_value'] for r in results]
+            statistics = {
+                'global_avg': round(sum(all_avg_values) / len(all_avg_values), 6),
+                'global_min': round(min(r['min_value'] for r in results), 6),
+                'global_max': round(max(r['max_value'] for r in results), 6),
+            }
+            total_measurements = sum(r['measurement_count'] for r in results)
+        else:
+            statistics = None
+            total_measurements = 0
+        
+        logger.info(
+            f"H3 aggregation (PostgreSQL): resolution={resolution}, "
+            f"hexagons={len(results)}, measurements={total_measurements}"
+        )
+        
+        return Response({
+            'resolution': resolution,
+            'hexagons': results,
+            'total_hexagons': len(results),
+            'total_measurements': total_measurements,
+            'statistics': statistics
+        })
+
+    @swagger_auto_schema(
+        tags=['Measurements - Radiation'],
+        operation_description="Get the total count of radiation measurements (public access)"
+    )
     @action(detail=False, methods=['get'])
     def count(self, request):
         """
@@ -69,6 +457,14 @@ class RadiationMeasurementViewSet(viewsets.ModelViewSet):
         total = queryset.count()
         return Response({'total': total})
 
+    @swagger_auto_schema(
+        tags=['Measurements - Radiation'],
+        operation_description="Get paginated radiation measurements with progress metadata (public access)",
+        manual_parameters=[
+            openapi.Parameter('page', openapi.IN_QUERY, description="Page number", type=openapi.TYPE_INTEGER, default=1),
+            openapi.Parameter('page_size', openapi.IN_QUERY, description="Items per page (max 15000)", type=openapi.TYPE_INTEGER, default=1000),
+        ]
+    )
     @action(detail=False, methods=['get'])
     def paginated(self, request):
         """
@@ -123,9 +519,381 @@ class RadiationMeasurementViewSet(viewsets.ModelViewSet):
         })
 
 class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
-    queryset = LightPollutionMeasurement.objects.all()
+    """
+    ViewSet for light pollution measurements.
+    - GET: Public access (anyone can view all measurements)
+    - POST: Requires authentication (auto-assigns current user)
+    - PUT/PATCH/DELETE: Requires authentication and ownership (users can only modify/delete their own measurements)
+    """
+    queryset = LightPollutionMeasurement.objects.select_related('weather_cache').all()
     serializer_class = LightPollutionMeasurementSerializer
 
+    def get_permissions(self):
+        """
+        GET is public, write operations require authentication
+        """
+        if self.action in ['list', 'retrieve', 'h3_aggregation', 'count', 'paginated']:
+            return []
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        """
+        For write operations (update, partial_update, destroy), filter by user ownership.
+        This way users can only modify/delete their own measurements.
+        If a user tries to access another user's measurement, they'll get a 404.
+        
+        Queryset already includes select_related('weather_cache') for optimization.
+        """
+        queryset = super().get_queryset()
+        
+        # Detectar si es una vista falsa de Swagger
+        if getattr(self, 'swagger_fake_view', False):
+            return queryset.none()
+        
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return queryset.filter(user=self.request.user)
+        return queryset
+
+    def perform_create(self, serializer):
+        """
+        Auto-assign the current authenticated user when creating a measurement
+        """
+        serializer.save(user=self.request.user)
+
+    @swagger_auto_schema(
+        tags=['Measurements - Light Pollution'],
+        operation_description="List all light pollution measurements (public access)",
+        manual_parameters=[
+            openapi.Parameter('track', openapi.IN_QUERY, description="Filter by track ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('project', openapi.IN_QUERY, description="Filter by project ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('mission', openapi.IN_QUERY, description="Filter by mission ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('campaign', openapi.IN_QUERY, description="Filter by campaign ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('device', openapi.IN_QUERY, description="Filter by device ID", type=openapi.TYPE_INTEGER),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        
+        # Apply filters from query parameters
+        track_id = request.query_params.get('track')
+        project_id = request.query_params.get('project')
+        mission_id = request.query_params.get('mission')
+        campaign_id = request.query_params.get('campaign')
+        device_id = request.query_params.get('device')
+        
+        if track_id:
+            queryset = queryset.filter(track_id=track_id)
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        if mission_id:
+            queryset = queryset.filter(campaign__mission_id=mission_id)
+        if campaign_id:
+            queryset = queryset.filter(campaign_id=campaign_id)
+        if device_id:
+            queryset = queryset.filter(device_id=device_id)
+        
+        # Apply pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    @swagger_auto_schema(
+        tags=['Measurements - Light Pollution'],
+        operation_description="Create a new light pollution measurement (requires authentication)",
+        security=[{'Token': []}],
+        responses={
+            201: LightPollutionMeasurementSerializer,
+            400: 'Invalid data',
+            401: 'Not authenticated'
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        tags=['Measurements - Light Pollution'],
+        operation_description="Get details of a specific light pollution measurement (public access)"
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        tags=['Measurements - Light Pollution'],
+        operation_description="Update a light pollution measurement completely (requires authentication and ownership - users can only update their own measurements)",
+        security=[{'Token': []}],
+        responses={
+            200: LightPollutionMeasurementSerializer,
+            400: 'Invalid data',
+            401: 'Not authenticated',
+            404: 'Measurement not found or not owned by user'
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        tags=['Measurements - Light Pollution'],
+        operation_description="Partially update a light pollution measurement (requires authentication and ownership - users can only update their own measurements)",
+        security=[{'Token': []}],
+        responses={
+            200: LightPollutionMeasurementSerializer,
+            400: 'Invalid data',
+            401: 'Not authenticated',
+            404: 'Measurement not found or not owned by user'
+        }
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        tags=['Measurements - Light Pollution'],
+        operation_description="Delete a light pollution measurement (requires authentication and ownership - users can only delete their own measurements)",
+        security=[{'Token': []}],
+        responses={
+            204: 'Measurement deleted successfully',
+            401: 'Not authenticated',
+            404: 'Measurement not found or not owned by user'
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        tags=['Measurements - Light Pollution'],
+        operation_description="Aggregate light pollution measurements by H3 hexagons with statistics",
+        manual_parameters=[
+            openapi.Parameter('resolution', openapi.IN_QUERY, description="H3 resolution (0-15, default: 8)", type=openapi.TYPE_INTEGER, default=8),
+            openapi.Parameter('project', openapi.IN_QUERY, description="Filter by project ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('campaign', openapi.IN_QUERY, description="Filter by campaign ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('track', openapi.IN_QUERY, description="Filter by track ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('min_count', openapi.IN_QUERY, description="Minimum measurements per hexagon (default: 1)", type=openapi.TYPE_INTEGER, default=1),
+            openapi.Parameter('start_date', openapi.IN_QUERY, description="Filter measurements from this date (format: YYYY-MM-DD, example: 2024-01-15)", type=openapi.TYPE_STRING),
+            openapi.Parameter('end_date', openapi.IN_QUERY, description="Filter measurements until this date (format: YYYY-MM-DD, example: 2024-12-31)", type=openapi.TYPE_STRING),
+        ],
+        responses={
+            200: openapi.Response(
+                description="H3 hexagon aggregation with statistics",
+                examples={
+                    "application/json": {
+                        "resolution": 8,
+                        "hexagons": [
+                            {
+                                "h3_index": "88283082b9fffff",
+                                "avg_value": 21.5,
+                                "min_value": 20.0,
+                                "max_value": 23.0,
+                                "std_value": 0.8,
+                                "measurement_count": 42
+                            }
+                        ],
+                        "total_hexagons": 156,
+                        "total_measurements": 1234,
+                        "statistics": {
+                            "global_avg": 21.5,
+                            "global_min": 18.0,
+                            "global_max": 25.0
+                        }
+                    }
+                }
+            ),
+            400: 'Invalid parameters'
+        }
+    )
+    @action(detail=False, methods=['get'], url_path='h3-aggregation')
+    def h3_aggregation(self, request):
+        """
+        Aggregate light pollution measurements by H3 hexagons using PostgreSQL.
+        
+        This method delegates all H3 calculations to PostgreSQL for optimal performance.
+        Uses h3-pg extension for native H3 operations in the database.
+        
+        Query Parameters:
+            resolution (int): H3 resolution level (0-15). Default: 8
+                - 0: Very large hexagons (~1000km edge)
+                - 5: ~20km edge
+                - 8: ~500m edge (default)
+                - 10: ~60m edge
+                - 15: ~0.5m edge
+            
+            project (int): Filter by project ID (optional)
+            campaign (int): Filter by campaign ID (optional)
+            track (int): Filter by track ID (optional)
+            min_count (int): Minimum measurements per hexagon (default: 1)
+        
+        Returns:
+            Response: JSON with H3 aggregation data including hexagon boundaries
+        """
+        # Validate resolution parameter
+        try:
+            resolution = int(request.query_params.get('resolution', 8))
+            if not 0 <= resolution <= 15:
+                return Response(
+                    {'error': 'Resolution must be between 0 and 15'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except ValueError:
+            return Response(
+                {'error': 'Invalid resolution parameter'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate min_count parameter
+        try:
+            min_count = int(request.query_params.get('min_count', 1))
+        except ValueError:
+            min_count = 1
+        
+        # Build dynamic WHERE clause for filters
+        where_clauses = ["latitude IS NOT NULL", "longitude IS NOT NULL", "sky_brightness IS NOT NULL"]
+        params = {'resolution': resolution, 'min_count': min_count}
+        
+        project_id = request.query_params.get('project')
+        mission_id = request.query_params.get('mission')
+        campaign_id = request.query_params.get('campaign')
+        track_id = request.query_params.get('track')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        
+        if project_id:
+            where_clauses.append("project_id = %(project_id)s")
+            params['project_id'] = project_id
+        
+        if mission_id:
+            # Filter by mission through campaign
+            where_clauses.append("campaign_id IN (SELECT id FROM missions_campaign WHERE mission_id = %(mission_id)s)")
+            params['mission_id'] = mission_id
+        
+        if campaign_id:
+            where_clauses.append("campaign_id = %(campaign_id)s")
+            params['campaign_id'] = campaign_id
+        
+        if track_id:
+            where_clauses.append("track_id = %(track_id)s")
+            params['track_id'] = track_id
+        
+        # Date filters (format: YYYY-MM-DD)
+        if start_date:
+            try:
+                from django.utils.dateparse import parse_date
+                # Parse date string (YYYY-MM-DD)
+                parsed_date = parse_date(start_date)
+                if parsed_date:
+                    # Start from 00:00:00 of the start date
+                    parsed_date = timezone.make_aware(datetime.combine(parsed_date, datetime.min.time()))
+                    where_clauses.append('"dateTime" >= %(start_date)s')
+                    params['start_date'] = parsed_date
+                else:
+                    return Response(
+                        {'error': 'Invalid start_date format. Use format: YYYY-MM-DD (example: 2024-01-15)'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except Exception as e:
+                return Response(
+                    {'error': f'Invalid start_date: {str(e)}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        if end_date:
+            try:
+                from django.utils.dateparse import parse_date
+                # Parse date string (YYYY-MM-DD)
+                parsed_date = parse_date(end_date)
+                if parsed_date:
+                    # End at 23:59:59.999999 of the end date
+                    parsed_date = timezone.make_aware(datetime.combine(parsed_date, datetime.max.time()))
+                    where_clauses.append('"dateTime" <= %(end_date)s')
+                    params['end_date'] = parsed_date
+                else:
+                    return Response(
+                        {'error': 'Invalid end_date format. Use format: YYYY-MM-DD (example: 2024-12-31)'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except Exception as e:
+                return Response(
+                    {'error': f'Invalid end_date: {str(e)}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        where_sql = " AND ".join(where_clauses)
+        
+        # SQL query that does ALL processing in PostgreSQL
+        # Uses h3-pg extension functions for native H3 operations
+        sql = f"""
+        WITH h3_cells AS (
+            -- Convert each measurement to its H3 cell
+            SELECT 
+                h3_lat_lng_to_cell(
+                    POINT(longitude::float, latitude::float),
+                    %(resolution)s
+                ) as h3_index,
+                sky_brightness::float as value
+            FROM measures_light_pollution_measurement
+            WHERE {where_sql}
+        ),
+        aggregated AS (
+            -- Aggregate measurements by H3 cell
+            SELECT 
+                h3_index,
+                COUNT(*)::int as measurement_count,
+                AVG(value)::float as avg_value,
+                MIN(value)::float as min_value,
+                MAX(value)::float as max_value,
+                STDDEV(value)::float as std_value
+            FROM h3_cells
+            GROUP BY h3_index
+            HAVING COUNT(*) >= %(min_count)s
+        )
+        SELECT 
+            h3_index,
+            measurement_count,
+            ROUND(avg_value::numeric, 6)::float as avg_value,
+            ROUND(min_value::numeric, 6)::float as min_value,
+            ROUND(max_value::numeric, 6)::float as max_value,
+            ROUND(COALESCE(std_value, 0)::numeric, 6)::float as std_value
+        FROM aggregated
+        ORDER BY measurement_count DESC, avg_value DESC;
+        """
+        
+        # Execute query using raw SQL
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            columns = [col[0] for col in cursor.description]
+            results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        
+        # Calculate global statistics
+        if results:
+            all_avg_values = [r['avg_value'] for r in results]
+            statistics = {
+                'global_avg': round(sum(all_avg_values) / len(all_avg_values), 6),
+                'global_min': round(min(r['min_value'] for r in results), 6),
+                'global_max': round(max(r['max_value'] for r in results), 6),
+            }
+            total_measurements = sum(r['measurement_count'] for r in results)
+        else:
+            statistics = None
+            total_measurements = 0
+        
+        logger.info(
+            f"H3 aggregation (light pollution, PostgreSQL): resolution={resolution}, "
+            f"hexagons={len(results)}, measurements={total_measurements}"
+        )
+        
+        return Response({
+            'resolution': resolution,
+            'hexagons': results,
+            'total_hexagons': len(results),
+            'total_measurements': total_measurements,
+            'statistics': statistics
+        })
+
+    @swagger_auto_schema(
+        tags=['Measurements - Light Pollution'],
+        operation_description="Get the total count of light pollution measurements (public access)"
+    )
     @action(detail=False, methods=['get'])
     def count(self, request):
         """
@@ -135,6 +903,14 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
         total = queryset.count()
         return Response({'total': total})
 
+    @swagger_auto_schema(
+        tags=['Measurements - Light Pollution'],
+        operation_description="Get paginated light pollution measurements with progress metadata (public access)",
+        manual_parameters=[
+            openapi.Parameter('page', openapi.IN_QUERY, description="Page number", type=openapi.TYPE_INTEGER, default=1),
+            openapi.Parameter('page_size', openapi.IN_QUERY, description="Items per page (max 15000)", type=openapi.TYPE_INTEGER, default=1000),
+        ]
+    )
     @action(detail=False, methods=['get'])
     def paginated(self, request):
         """
@@ -187,8 +963,397 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
         })
 
 class TrackViewSet(viewsets.ModelViewSet):
-    queryset = Track.objects.all()
+    """
+    ViewSet for GPS tracks.
+    - GET: Public access for public projects, authenticated for user's own tracks
+    - POST: Requires authentication (upload CSV/GPX files), auto-assigns to current user
+    - PUT/PATCH/DELETE: Only creator can modify/delete their tracks
+    """
     serializer_class = TrackSerializer
+    parser_classes = [JSONParser, MultiPartParser, FormParser]  # Accept JSON and file uploads
+
+    def get_permissions(self):
+        """
+        Public read access for public projects, authenticated write access.
+        """
+        if self.action in ['list', 'retrieve']:
+            permission_classes = []  # Public can view public projects
+        else:
+            permission_classes = [IsAuthenticated]  # Auth required for write
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        """
+        Filter tracks based on project visibility and ownership.
+        """
+        if self.action in ['list', 'retrieve']:
+            # Show public project tracks + user's own tracks
+            if self.request.user.is_authenticated:
+                return Track.objects.filter(
+                    Q(project__is_public=True) | Q(created_by=self.request.user)
+                ).select_related('project', 'device', 'campaign', 'created_by')
+            else:
+                # Anonymous users only see public project tracks
+                return Track.objects.filter(
+                    project__is_public=True
+                ).select_related('project', 'device', 'campaign')
+        
+        if self.action in ['update', 'partial_update', 'destroy']:
+            # Only owner can modify/delete their tracks
+            if self.request.user.is_authenticated:
+                return Track.objects.filter(created_by=self.request.user)
+            return Track.objects.none()
+        
+        # For create and other actions
+        return Track.objects.all()
+
+    def perform_create(self, serializer):
+        """
+        Auto-assign the current user when creating a track.
+        """
+        print(f"DEBUG - Request data: {self.request.data}")
+        print(f"DEBUG - Serializer validated data: {serializer.validated_data}")
+        track = serializer.save(created_by=self.request.user)
+        print(f"DEBUG - Track saved: mission={track.mission}, campaign={track.campaign}")
+        return track
+    
+    def perform_update(self, serializer):
+        """
+        Update track and validate hierarchy consistency.
+        
+        When project, mission, or campaign are updated, all linked measurements
+        are automatically updated via the Track.save() method.
+        """
+        instance = serializer.save()
+        # Validation happens in model's clean() method
+        instance.full_clean()
+        instance.save()
+    
+    @swagger_auto_schema(
+        tags=['Tracks'],
+        operation_description="List all GPS tracks (public projects visible to all, private projects only to owners)"
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        tags=['Tracks'],
+        operation_description="Create a new GPS track (requires authentication)",
+        security=[{'Token': []}],
+        responses={
+            201: TrackSerializer,
+            400: 'Invalid data',
+            401: 'Not authenticated'
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        tags=['Tracks'],
+        operation_description="Get details of a specific GPS track"
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        tags=['Tracks'],
+        operation_description="Update a GPS track (requires authentication and ownership)",
+        security=[{'Token': []}],
+        responses={
+            200: TrackSerializer,
+            400: 'Invalid data',
+            401: 'Not authenticated',
+            404: 'Track not found or not owned by user'
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        tags=['Tracks'],
+        operation_description="Partially update a GPS track (requires authentication and ownership)",
+        security=[{'Token': []}],
+        responses={
+            200: TrackSerializer,
+            400: 'Invalid data',
+            401: 'Not authenticated',
+            404: 'Track not found or not owned by user'
+        }
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        tags=['Tracks'],
+        operation_description="Delete a GPS track (requires authentication and ownership)",
+        security=[{'Token': []}],
+        responses={
+            204: 'Track deleted successfully',
+            401: 'Not authenticated',
+            404: 'Track not found or not owned by user'
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        tags=['Tracks'],
+        operation_description="Get all tracks owned by the authenticated user",
+        security=[{'Token': []}],
+        manual_parameters=[
+            openapi.Parameter(
+                'project',
+                openapi.IN_QUERY,
+                description="Filter by project ID",
+                type=openapi.TYPE_INTEGER,
+                required=False
+            ),
+            openapi.Parameter(
+                'mission',
+                openapi.IN_QUERY,
+                description="Filter by mission ID",
+                type=openapi.TYPE_INTEGER,
+                required=False
+            ),
+            openapi.Parameter(
+                'campaign',
+                openapi.IN_QUERY,
+                description="Filter by campaign ID",
+                type=openapi.TYPE_INTEGER,
+                required=False
+            ),
+            openapi.Parameter(
+                'status',
+                openapi.IN_QUERY,
+                description="Filter by processing status (pending/processing/completed/failed)",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+        ],
+        responses={
+            200: TrackSerializer(many=True),
+            401: 'Not authenticated'
+        }
+    )
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def my_tracks(self, request):
+        """
+        Get all tracks created by the authenticated user.
+        
+        This endpoint returns only the tracks that belong to the current user.
+        Supports filtering by project, mission, campaign, and status.
+        
+        Query Parameters:
+            - project (int): Filter by project ID
+            - mission (int): Filter by mission ID
+            - campaign (int): Filter by campaign ID
+            - status (str): Filter by processing status
+            
+        Returns:
+            List of tracks owned by the user with their details
+        """
+        # Base queryset: only user's tracks
+        queryset = Track.objects.filter(created_by=request.user).select_related(
+            'project', 'device', 'mission', 'campaign', 'created_by'
+        ).order_by('-created_at')
+        
+        # Apply filters from query parameters
+        project_id = request.query_params.get('project')
+        mission_id = request.query_params.get('mission')
+        campaign_id = request.query_params.get('campaign')
+        status_filter = request.query_params.get('status')
+        
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        if mission_id:
+            queryset = queryset.filter(mission_id=mission_id)
+        if campaign_id:
+            queryset = queryset.filter(campaign_id=campaign_id)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        # Paginate results
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    @swagger_auto_schema(
+        tags=['Tracks'],
+        operation_description="Upload a track file (RCTRK format) and automatically create measurements",
+        security=[{'Token': []}],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'file': openapi.Schema(
+                    type=openapi.TYPE_FILE,
+                    description='Track file (RCTRK format only)'
+                ),
+                'device': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description='Device ID'
+                ),
+                'project': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description='Project ID'
+                ),
+                'mission': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description='Mission ID (optional)'
+                ),
+                'campaign': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description='Campaign ID (optional)'
+                ),
+            },
+            required=['file', 'device', 'project']
+        ),
+        responses={
+            202: openapi.Response(
+                description='Track upload accepted and queued for processing',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'track_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                        'job_id': openapi.Schema(type=openapi.TYPE_STRING),
+                        'status': openapi.Schema(type=openapi.TYPE_STRING),
+                        'message': openapi.Schema(type=openapi.TYPE_STRING),
+                        'status_url': openapi.Schema(type=openapi.TYPE_STRING)
+                    }
+                )
+            ),
+            400: 'Invalid file or data',
+            401: 'Not authenticated'
+        }
+    )
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def upload(self, request):
+        """
+        Upload a track file - processing happens asynchronously with RQ
+        
+        Only RCTRK format (RadiaCode) is supported:
+           Track: <name>\t<device>\t \tEC
+           Timestamp\tTime\tLatitude\tLongitude\tAccuracy\tDoseRate\tCountRate\tComment
+           134007603713620000\t2025-08-27 09:26:11\t41.2184571\t-1.1548868\t1.94\t6.52\t7.47\t 
+        """
+        file = request.FILES.get('file')
+        device_id = request.data.get('device')
+        project_id = request.data.get('project')
+        mission_id = request.data.get('mission')
+        campaign_id = request.data.get('campaign')
+        
+        if not file:
+            return Response(
+                {'error': 'No file provided'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not device_id:
+            return Response(
+                {'error': 'Device ID is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not project_id:
+            return Response(
+                {'error': 'Project ID is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verify device exists
+        try:
+            device = Device.objects.get(id=device_id)
+        except Device.DoesNotExist:
+            return Response(
+                {'error': f'Device with id {device_id} not found'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verify project exists
+        try:
+            project = Project.objects.get(id=project_id)
+        except Project.DoesNotExist:
+            return Response(
+                {'error': f'Project with id {project_id} not found'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Detect file type
+        file_extension = file.name.split('.')[-1].lower()
+        if file_extension != 'rctrk':
+            return Response(
+                {'error': f'Unsupported file type: {file_extension}. Only RCTRK files are supported.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create Track object with status='pending'
+        track = Track.objects.create(
+            created_by=request.user,
+            device=device,
+            project=project,
+            mission_id=mission_id if mission_id else None,
+            campaign_id=campaign_id if campaign_id else None,
+            file=file,
+            file_type=file_extension,
+            status='pending'  # ✅ Starts as pending
+        )
+        
+        # ✅ Enqueue processing task with RQ
+        queue = django_rq.get_queue('default')
+        job = queue.enqueue(
+            'measures.tasks.process_track_file',
+            track.id,
+            job_timeout='10m',  # 10 minutes timeout
+            result_ttl=86400,   # Keep result for 24 hours
+            job_id=f'track_{track.id}'  # Unique job ID
+        )
+        
+        return Response({
+            'track_id': track.id,
+            'job_id': job.id,
+            'status': 'pending',
+            'message': 'Track file uploaded successfully. Processing in background.'
+        }, status=status.HTTP_202_ACCEPTED)  # ✅ 202 Accepted
+    
+    @swagger_auto_schema(
+        tags=['Tracks'],
+        operation_description="Get the processing status of a track",
+        responses={
+            200: openapi.Response(
+                description='Track status',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'track_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                        'status': openapi.Schema(type=openapi.TYPE_STRING),
+                        'measurements_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+                        'error_message': openapi.Schema(type=openapi.TYPE_STRING),
+                        'start_time': openapi.Schema(type=openapi.TYPE_STRING),
+                        'end_time': openapi.Schema(type=openapi.TYPE_STRING),
+                    }
+                )
+            )
+        }
+    )
+    @action(detail=True, methods=['get'])
+    def status(self, request, pk=None):
+        """
+        Get the processing status of a track
+        """
+        track = self.get_object()
+        
+        return Response({
+            'track_id': track.id,
+            'status': track.status,
+            'measurements_count': track.total_measurements,
+            'error_message': track.error_message if track.status == 'failed' else None,
+            'start_time': track.start_time,
+            'end_time': track.end_time,
+        })
 
 # Para compatibilidad temporal con el frontend existente
 # El frontend sigue llamando a /measurements/, por lo que mantenemos este ViewSet

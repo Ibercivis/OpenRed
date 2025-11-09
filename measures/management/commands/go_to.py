@@ -18,9 +18,10 @@ class Command(BaseCommand):
         parser.add_argument('--project', type=int, default=1, help='Project ID to assign measurements to (default: 1)')
         parser.add_argument('--device', type=int, default=3, help='Device ID to use for measurements (default: 3)')
         parser.add_argument('--user', type=int, default=2, help='User ID to assign measurements to (default: 2)')
+        parser.add_argument('--token', type=str, help='Authentication token (Bearer token)')
     
     def handle(self, *args, **options):
-        from measures.models import Project  # Import here to avoid circular imports
+        from missions.models import Project  # Import here to avoid circular imports
         from devices.models import Device
         from django.contrib.auth.models import User
         
@@ -35,6 +36,7 @@ class Command(BaseCommand):
         project_id = options['project']
         device_id = options['device']
         user_id = options['user']
+        auth_token = options.get('token')
         
         try:
             project = Project.objects.get(id=project_id)
@@ -130,12 +132,10 @@ class Command(BaseCommand):
                     "latitude": lat2,
                     "longitude": lon2,
                     "altitude": round(random.uniform(100, 300), 1),  # Random altitude
-                    "radiation_value": measurement_value,  # Field name corrected for RadiationMeasurement
+                    "dose_rate": measurement_value,  # Main dose rate field
                     "radiation_unit": "nSv/h",  # Unit for radiation
-                    "detector_type": "gamma",  # Type of radiation measurement
                     "dateTime": timezone.now().isoformat(),
                     "accuracy": round(random.uniform(1.0, 5.0), 1),  # GPS accuracy
-                    "data_quality": "good",
                     "notes": f"Simulated gamma radiation measurement on route from {origin} to {destination}",
                 }
                 measurement_unit = "nSv/h"
@@ -157,12 +157,17 @@ class Command(BaseCommand):
                     "bortle_class": random.randint(1, 9),  # Bortle scale (1-9)
                     "dateTime": timezone.now().isoformat(),
                     "accuracy": round(random.uniform(1.0, 5.0), 1),  # GPS accuracy
-                    "data_quality": "good",
                     "notes": f"Simulated SQM light pollution measurement on route from {origin} to {destination}",
                 }
                 measurement_unit = "mag/arcsec²"
 
+            # Prepare headers with authentication
             headers = {'Content-Type': 'application/json'}
+            if auth_token:
+                # Clean token if it includes "Token:" prefix
+                clean_token = auth_token.replace('Token:', '').strip()
+                headers['Authorization'] = f'Token {clean_token}'
+            
             response = requests.post(api_url, json=data, headers=headers)
 
             if response.status_code == 201:
@@ -170,10 +175,7 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(self.style.ERROR(f'Failed to add measurement. Response: {response.text}'))
 
-            # Sleep to simulate travel time (assuming constant speed)
-            if i < len(route_coords) - 2:
-                distance = ((route_coords[i + 1][0] - route_coords[i][0])**2 + (route_coords[i + 1][1] - route_coords[i][1])**2) ** 0.5 * 111111
-                travel_time = distance / speed_mps
-                time.sleep(travel_time)
+            # Optional: Small delay to avoid overwhelming the API (0.1 seconds)
+            time.sleep(0.1)
         
         self.stdout.write(self.style.SUCCESS(f'Simulation completed successfully! Added {len(route_coords)-1} measurements to project "{project.name}"'))
