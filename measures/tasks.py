@@ -101,6 +101,23 @@ def process_track_file(track_id):
         track.status = 'completed'
         track.save(update_fields=['total_measurements', 'status'])
         
+        # ✅ Enqueue weather fetching task for this track's measurements
+        try:
+            import django_rq
+            queue = django_rq.get_queue('default')
+            weather_job = queue.enqueue(
+                'measures.tasks.fetch_pending_weather',
+                limit=measurements_count + 50,  # Fetch slightly more than measurements count
+                max_attempts=3,
+                job_timeout='30m',  # 30 minutes timeout for large tracks
+                result_ttl=3600,  # Keep result for 1 hour
+                job_id=f'weather_track_{track_id}_{timezone.now().timestamp()}'
+            )
+            print(f"✅ Weather task enqueued: {weather_job.id} for track {track_id}")
+        except Exception as weather_error:
+            print(f"⚠️ Failed to enqueue weather task for track {track_id}: {weather_error}")
+            # Don't fail the whole process if weather queueing fails
+        
         return {
             'success': True,
             'track_id': track_id,

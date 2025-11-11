@@ -212,5 +212,5 @@ ALTER USER openred_user CREATEDB;
 
 For production deployment, see:
 
-- **[Production Deployment Guide](../deployment/production.md)**
+- **[Production Deployment Guide](../deployment/production-setup.md)**
 - **[Docker Deployment](../deployment/docker.md)**

@@ -2,7 +2,7 @@ Hola,
 
 Gracias por registrarte en OpenRed. Para activar tu cuenta, haz clic en el siguiente enlace:
 
-http://localhost:3000/verify-email?key={{ key }}
+{{ activate_url }}
 
 Si no te registraste en OpenRed, puedes ignorar este email.
 

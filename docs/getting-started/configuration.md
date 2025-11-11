@@ -365,5 +365,5 @@ OPENWEATHER_API_KEY=abcdef1234567890
 ## Next Steps
 
 - **[Quick Start Guide](quick-start.md)** - Create your first project
-- **[Production Deployment](../deployment/production.md)** - Deploy to production
+- **[Production Deployment](../deployment/production-setup.md)** - Deploy to production
 - **[Docker Deployment](../deployment/docker.md)** - Use Docker containers

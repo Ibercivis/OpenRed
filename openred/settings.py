@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
-from decouple import config
+from decouple import config, Csv
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,12 +22,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-j4%fow6!6o+e35fnjd&hpvvfhsud!llj=jlej5@mpcqkzdj7lg'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+
+# Frontend URL configuration
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 
 SITE_ID = 1
 
@@ -64,7 +67,7 @@ INSTALLED_APPS = [
 
     # Other apps
     'rest_framework',
-    'drf_yasg',
+    'drf_spectacular',  # OpenAPI 3.0 schema generation
     'django_bootstrap5',
     'django_rq',  # RQ for background tasks
 
@@ -125,11 +128,11 @@ WSGI_APPLICATION = 'openred.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',  # PostGIS backend for spatial support
-        'NAME': 'openred_db',
-        'USER': 'openred_user',
-        'PASSWORD': 'openred',
-        'HOST': 'localhost',
-        'PORT': '5434',
+        'NAME': config('DB_NAME', default='openred_db'),
+        'USER': config('DB_USER', default='openred_user'),
+        'PASSWORD': config('DB_PASSWORD', default='openred'),
+        'HOST': config('DB_HOST', default='localhost'),
+        'PORT': config('DB_PORT', default='5434'),
     }
 }
 
@@ -194,13 +197,13 @@ SOCIALACCOUNT_QUERY_EMAIL = True
 # ACCOUNT_LOGOUT_ON_GET = True  # No necesario para API
 
 # Amazon SES Email Configuration
-EMAIL_BACKEND = 'django_ses.SESBackend'
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 
 # AWS Credentials (mejor usar IAM roles en producción)
 AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default='')
 AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default='')
-AWS_SES_REGION_NAME = config('AWS_SES_REGION_NAME', default='us-east-1')  # Región donde está configurado SES
-AWS_SES_REGION_ENDPOINT = f'email.{AWS_SES_REGION_NAME}.amazonaws.com'
+AWS_SES_REGION_NAME = config('AWS_SES_REGION_NAME', default='eu-central-1')  # Región donde está configurado SES
+AWS_SES_REGION_ENDPOINT = config('AWS_SES_REGION_ENDPOINT', default=f'email.{AWS_SES_REGION_NAME}.amazonaws.com')
 
 # Configuración adicional de SES
 AWS_SES_AUTO_THROTTLE = 0.5  # Limitar el envío para evitar rate limits
@@ -208,15 +211,12 @@ AWS_SES_CONFIGURATION_SET = config('AWS_SES_CONFIGURATION_SET', default=None)  #
 
 # Email settings
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@ibercivis.es')
-SERVER_EMAIL = DEFAULT_FROM_EMAIL  # Para emails de error del servidor
-
-# Fallback a console para desarrollo
-if DEBUG and not AWS_ACCESS_KEY_ID:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+SERVER_EMAIL = config('SERVER_EMAIL', default='noreply@ibercivis.es')
 
 # Configuración de dj-rest-auth
 REST_AUTH = {
     'REGISTER_SERIALIZER': 'users.serializers.CustomRegisterSerializer',
+    'PASSWORD_RESET_SERIALIZER': 'users.serializers.CustomPasswordResetSerializer',
     'USER_DETAILS_SERIALIZER': 'users.serializers.UserSerializer',
     'SESSION_LOGIN': False,  # Para API pura sin cookies de sesión
 }
@@ -233,24 +233,37 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',  # Para el browsable API
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # Por defecto público, cada ViewSet controla sus permisos
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',  # Lectura pública, escritura requiere autenticación
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',  # Use drf-spectacular for schema generation
 }
 
 # ====================
-# Swagger Configuration
+# API Documentation (drf-spectacular)
 # ====================
-SWAGGER_SETTINGS = {
-    'SECURITY_DEFINITIONS': {
-        'Token': {
-            'type': 'apiKey',
-            'name': 'Authorization',
-            'in': 'header',
-            'description': 'Token authentication using the format: Token <your_token>'
-        }
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'OpenRed API',
+    'DESCRIPTION': 'API for managing environmental measurement data collection - radiation, light pollution, and more.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'CONTACT': {
+        'name': 'Ibercivis - OpenRed Team',
+        'email': 'frasanz@ibercivis.es',
+        'url': 'https://github.com/Ibercivis/OpenRed',
     },
-    'USE_SESSION_AUTH': True,
-    'PERSIST_AUTH': True,
+    'LICENSE': {
+        'name': 'EUPL 1.2',
+        'url': 'https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12',
+    },
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': r'/api/',
+    'SECURITY': [{
+        'tokenAuth': [],
+    }],
+    'SERVERS': [
+        {'url': 'http://development.ibercivis.es:8000', 'description': 'Development server'},
+        {'url': 'https://api.open-red.es', 'description': 'Production server'},
+    ],
 }
 
 # ====================
@@ -261,12 +274,8 @@ if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOW_CREDENTIALS = True
 else:
-    # Producción: solo dominios específicos
-    CORS_ALLOWED_ORIGINS = [
-        "https://openred.es",
-        "https://www.openred.es",
-        "https://app.openred.es",
-    ]
+    # Producción: solo FRONTEND_URL
+    CORS_ALLOWED_ORIGINS = [config('FRONTEND_URL')]
     CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = [
@@ -300,15 +309,12 @@ if DEBUG:
         'http://127.0.0.1:8001',
         'http://192.168.1.2:8001',
         'http://localhost:3000',
+        'http://127.0.0.1:3000',
         'http://192.168.1.2:3000',
     ]
 else:
-    # Producción: solo dominios verificados
-    CSRF_TRUSTED_ORIGINS = [
-        'https://openred.es',
-        'https://www.openred.es',
-        'https://app.openred.es',
-    ]
+    # Producción: solo FRONTEND_URL
+    CSRF_TRUSTED_ORIGINS = [config('FRONTEND_URL')]
 
 # ====================
 # Social Auth Configuration
@@ -325,6 +331,17 @@ SOCIALACCOUNT_PROVIDERS = {
 # Mapbox
 MAPBOX_ACCESS_TOKEN = config('MAPBOX_ACCESS_TOKEN', default='') # Fetch from environment variable
 OSR_API_KEY = config('OSR_API_KEY', default='') # Fetch from environment variable
+
+# ====================
+# Security Settings (HTTPS/SSL - Production Only)
+# ====================
+if not DEBUG:
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True, cast=bool)
+    SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=True, cast=bool)
+    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
+    CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
 
 
 
@@ -372,21 +389,21 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 RQ_QUEUES = {
     'default': {
-        'HOST': 'localhost',
-        'PORT': 6379,
-        'DB': 0,
+        'HOST': config('REDIS_HOST', default='localhost'),
+        'PORT': config('REDIS_PORT', default=6379, cast=int),
+        'DB': config('REDIS_DB', default=0, cast=int),
         'DEFAULT_TIMEOUT': '10m',  # 10 minutes timeout
     },
     'high': {
-        'HOST': 'localhost',
-        'PORT': 6379,
-        'DB': 0,
+        'HOST': config('REDIS_HOST', default='localhost'),
+        'PORT': config('REDIS_PORT', default=6379, cast=int),
+        'DB': config('REDIS_DB', default=0, cast=int),
         'DEFAULT_TIMEOUT': '5m',
     },
     'low': {
-        'HOST': 'localhost',
-        'PORT': 6379,
-        'DB': 0,
+        'HOST': config('REDIS_HOST', default='localhost'),
+        'PORT': config('REDIS_PORT', default=6379, cast=int),
+        'DB': config('REDIS_DB', default=0, cast=int),
         'DEFAULT_TIMEOUT': '30m',
     },
 }

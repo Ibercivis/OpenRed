@@ -43,10 +43,13 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f'Using project: {project.name} ({project.project_type})'))
             
             # Determine API endpoint based on project type
+            # Use localhost for local testing, or get from environment
+            base_url = os.environ.get('API_BASE_URL', 'http://localhost:8000')
+            
             if project.project_type == 'radiation':
-                api_url = 'http://localhost:8000/api/radiation-measurements/'
+                api_url = f'{base_url}/api/radiation-measurements/'
             elif project.project_type == 'light_pollution':
-                api_url = 'http://localhost:8000/api/light-pollution-measurements/'
+                api_url = f'{base_url}/api/light-pollution-measurements/'
             else:
                 self.stdout.write(self.style.ERROR(f'Unsupported project type: {project.project_type}'))
                 return

@@ -364,7 +364,50 @@ class BaseMeasurement(models.Model):
 
 class RadiationMeasurement(BaseMeasurement):
     """
-    Mediciones de radiación gamma
+    Gamma radiation measurements from environmental sensors.
+    
+    This model stores radiation readings collected by devices like RadiationD-Cajal,
+    including dose rate (μSv/h), counts per minute (CPM), and associated metadata.
+    Each measurement is linked to a device, project, and optionally a mission/campaign.
+    
+    Attributes:
+        radiation_unit (str): Unit of measurement, typically "μSv/h" (microsieverts per hour)
+        cpm (int): Counts per minute from the Geiger-Müller tube
+        dose_rate (float): Equivalent dose rate (radiation intensity)
+        speed (float): GPS-calculated speed in m/s at time of measurement
+        detector_type (str): Type of radiation detector used (e.g., "SBM-20")
+        calibration_factor (float): Device-specific calibration multiplier
+        background_subtracted (bool): Whether background radiation has been subtracted
+        raw_data (JSON): Complete raw data from device for debugging/analysis
+        location (Point): PostGIS geographic point for spatial queries (auto-generated)
+        
+    Relationships (inherited from BaseMeasurement):
+        device (Device): Sensor that captured this measurement
+        project (Project): Parent project (required)
+        campaign (Campaign): Optional campaign grouping
+        track (Track): Optional track file this measurement came from
+        weather_cache (WeatherCache): Cached weather data for this spatiotemporal location
+        
+    Spatial Features:
+        - PostGIS point field enables radius queries, nearest-neighbor searches
+        - H3 cell association (via weather_cache) for hexagonal binning
+        - Automatic location field population from latitude/longitude
+        
+    Example:
+        >>> measurement = RadiationMeasurement.objects.create(
+        ...     project=project,
+        ...     device=device,
+        ...     latitude=40.4168,
+        ...     longitude=-3.7038,
+        ...     dateTime=timezone.now(),
+        ...     dose_rate=0.12,
+        ...     cpm=42,
+        ...     radiation_unit="μSv/h"
+        ... )
+        >>> # Spatial query: find measurements within 1km
+        >>> nearby = RadiationMeasurement.objects.filter(
+        ...     location__distance_lte=(measurement.location, 1000)
+        ... )
     """
     # Datos de radiación
     radiation_unit = models.CharField(
@@ -451,7 +494,54 @@ class RadiationMeasurement(BaseMeasurement):
 
 class LightPollutionMeasurement(BaseMeasurement):
     """
-    Mediciones de contaminación lumínica
+    Sky brightness measurements for light pollution monitoring.
+    
+    This model stores night sky quality data from Sky Quality Meters (SQM) and similar
+    devices that measure artificial light at night. Measurements include sky brightness,
+    astronomical conditions (moon phase, observation angle), and derived metrics like
+    Bortle Scale classification and Naked Eye Limiting Magnitude.
+    
+    Attributes:
+        sky_brightness (float): Sky brightness measurement value
+        brightness_unit (str): Unit of measurement, typically "mag/arcsec²" (magnitudes per square arcsecond)
+        sqm_reading (float): Direct reading from Sky Quality Meter (higher = darker sky)
+        nelm (float): Naked Eye Limiting Magnitude - faintest star visible (higher = darker)
+        bortle_class (int): Bortle Dark Sky Scale classification (1=pristine, 9=inner city)
+        moon_phase (float): Moon phase at time of measurement (0.0=new moon, 1.0=full moon)
+        moon_altitude (float): Moon's altitude above horizon in degrees
+        observation_angle (float): Angle from zenith where measurement was taken (degrees)
+        observation_direction (str): Cardinal direction (N, NE, E, SE, S, SW, W, NW, Z=zenith)
+        measurement_data (JSON): Additional device-specific data
+        location (Point): PostGIS geographic point for spatial queries (auto-generated)
+        
+    Relationships (inherited from BaseMeasurement):
+        device (Device): Sky quality meter that captured this measurement
+        project (Project): Parent project (required)
+        campaign (Campaign): Optional campaign grouping (e.g., "Urban Light Mapping 2024")
+        track (Track): Optional track file this measurement came from
+        weather_cache (WeatherCache): Cached weather data (clouds affect readings!)
+        
+    Spatial Features:
+        - PostGIS point field enables light pollution mapping and heatmaps
+        - H3 hexagonal binning for aggregation (via weather_cache)
+        - Automatic location field population from latitude/longitude
+        
+    Example:
+        >>> measurement = LightPollutionMeasurement.objects.create(
+        ...     project=project,
+        ...     device=device,
+        ...     latitude=42.3601,
+        ...     longitude=-71.0589,
+        ...     dateTime=timezone.now(),
+        ...     sky_brightness=18.5,  # mag/arcsec²
+        ...     brightness_unit="mag/arcsec²",
+        ...     bortle_class=7,  # Suburban/urban transition
+        ...     observation_direction='Z'  # Zenith
+        ... )
+        >>> # Find darkest skies in region
+        >>> dark_sites = LightPollutionMeasurement.objects.filter(
+        ...     sqm_reading__gte=21.0  # Bortle 3-4 or better
+        ... )
     """
     # Datos principales de luminosidad
     sky_brightness = models.FloatField(

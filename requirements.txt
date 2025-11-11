@@ -67,7 +67,6 @@ django-rated-reviews==1.0.1
 django-ratelimit==4.1.0
 django-recaptcha==4.0.0
 django-redis==5.4.0
-django-rest-swagger==2.2.0
 django-rq==3.0.0
 django-select2==8.2.1
 django-ses==4.2.0
@@ -78,7 +77,6 @@ djangorestframework==3.15.2
 djangorestframework-simplejwt==5.3.1
 djoser==2.2.3
 drf-spectacular==0.28.0
-drf-yasg==1.21.8
 easy-thumbnails==2.9
 exceptiongroup==1.2.2
 executing==2.1.0

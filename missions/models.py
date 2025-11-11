@@ -3,7 +3,52 @@ from django.contrib.auth.models import User
 
 class Project(models.Model):
     """
-    Proyecto que define el tipo de mediciones y agrupa dispositivos
+    Top-level organizational unit for measurement data collection.
+    
+    A Project defines the type of measurements (radiation or light pollution) and
+    serves as the root of the organizational hierarchy. Each project can have
+    multiple missions, campaigns, and measurements associated with it.
+    
+    Hierarchy:
+        Project (you are here) → Mission → Campaign → Track/Measurements
+    
+    Attributes:
+        name (str): Project name (e.g., "Global Radiation Monitoring")
+        description (str): Detailed project description and objectives
+        project_type (str): Type of measurements - 'radiation' or 'light_pollution'
+        is_active (bool): Whether project accepts new data (default: True)
+        is_public (bool): Whether project data is publicly visible (default: False)
+        created_by (User): User who created this project (nullable)
+        created_at (datetime): Project creation timestamp
+        updated_at (datetime): Last modification timestamp
+        project_settings (JSON): Flexible JSON field for project-specific configuration
+        
+    Project Types:
+        - 'radiation': Gamma radiation measurements (μSv/h, CPM)
+        - 'light_pollution': Sky brightness measurements (mag/arcsec²)
+        
+    Access Control:
+        - is_public=True: Anyone can view measurements
+        - is_public=False: Only project members can access data
+        
+    Example:
+        >>> project = Project.objects.create(
+        ...     name="European Radiation Survey 2024",
+        ...     description="Comprehensive radiation mapping across EU",
+        ...     project_type='radiation',
+        ...     is_active=True,
+        ...     is_public=False,
+        ...     created_by=user,
+        ...     project_settings={'alert_threshold': 0.5}  # Custom μSv/h threshold
+        ... )
+        >>> project.missions.count()
+        3
+        >>> project.get_project_type_display()
+        'Radiación Gamma'
+    
+    Methods:
+        __str__(): Returns "ProjectName (ProjectType)"
+        get_project_type_display(): Returns human-readable project type
     """
     PROJECT_TYPES = [
         ('radiation', 'Radiación Gamma'),

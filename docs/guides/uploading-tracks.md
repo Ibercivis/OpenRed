@@ -560,7 +560,7 @@ Example:
 media/tracks/2024/11/20/measurements_abc123.csv
 ```
 
-For production deployments, configure S3 storage (see [Deployment Guide](../deployment/production.md)).
+For production deployments, configure S3 storage (see [Deployment Guide](../deployment/production-setup.md)).
 
 ---
 

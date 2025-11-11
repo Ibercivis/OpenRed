@@ -108,11 +108,17 @@ nav:
       - Apps Structure: architecture/apps-structure.md
       - Background Jobs: architecture/background-jobs.md
   - API Reference:
-      - Missions API: api-reference/missions.md
-      - Measurements API: api-reference/measures.md
+      - Users & Authentication: api-reference/users.md
+      - Devices: api-reference/devices.md
+      - Missions & Projects: api-reference/missions.md
+      - Measurements: api-reference/measures.md
   - User Guides:
       - Uploading Tracks: guides/uploading-tracks.md
       - DateTime Fields: guides/datetime-fields.md
+  - Deployment:
+      - Production Setup: deployment/production-setup.md
+      - Environment Variables: deployment/environment-variables.md
+      - Email Configuration: deployment/email-setup.md
 
 extra:
   social:

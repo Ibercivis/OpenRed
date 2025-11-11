@@ -13,6 +13,18 @@ from django.shortcuts import render
 from rest_framework import viewsets, status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from django.contrib.gis.geos import Point
+from django.contrib.gis.db.models.functions import Distance
+from django.contrib.gis.measure import D
+from django.db.models import Q, Avg, Min, Max, Count
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from datetime import datetime, timedelta
+from django.utils import timezone
+import django_rq
+import h3
 from django.db.models import Q
 import csv
 import io
@@ -96,9 +108,27 @@ class RadiationMeasurementViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """
-        Auto-assign the current authenticated user when creating a measurement
+        Auto-assign the current authenticated user when creating a radiation measurement.
+        Also enqueue weather fetching task for this measurement.
         """
-        serializer.save(user=self.request.user)
+        instance = serializer.save(user=self.request.user)
+        
+        # ✅ Enqueue weather fetching for this single measurement
+        try:
+            queue = django_rq.get_queue('default')
+            queue.enqueue(
+                'measures.tasks.fetch_pending_weather',
+                limit=10,  # Process a small batch including this measurement
+                max_attempts=3,
+                job_timeout='5m',
+                result_ttl=3600,
+                job_id=f'weather_single_rad_{instance.id}_{int(timezone.now().timestamp())}'
+            )
+        except Exception as e:
+            # Don't fail the measurement creation if weather queueing fails
+            print(f"⚠️ Failed to enqueue weather task for radiation measurement {instance.id}: {e}")
+        
+        return instance
 
     @swagger_auto_schema(
         tags=['Measurements - Radiation'],
@@ -556,9 +586,27 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """
-        Auto-assign the current authenticated user when creating a measurement
+        Auto-assign the current authenticated user when creating a light pollution measurement.
+        Also enqueue weather fetching task for this measurement.
         """
-        serializer.save(user=self.request.user)
+        instance = serializer.save(user=self.request.user)
+        
+        # ✅ Enqueue weather fetching for this single measurement
+        try:
+            queue = django_rq.get_queue('default')
+            queue.enqueue(
+                'measures.tasks.fetch_pending_weather',
+                limit=10,  # Process a small batch including this measurement
+                max_attempts=3,
+                job_timeout='5m',
+                result_ttl=3600,
+                job_id=f'weather_single_light_{instance.id}_{int(timezone.now().timestamp())}'
+            )
+        except Exception as e:
+            # Don't fail the measurement creation if weather queueing fails
+            print(f"⚠️ Failed to enqueue weather task for light pollution measurement {instance.id}: {e}")
+        
+        return instance
 
     @swagger_auto_schema(
         tags=['Measurements - Light Pollution'],

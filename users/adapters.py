@@ -86,27 +86,38 @@ class EmailUsernameAdapter(DefaultAccountAdapter):
     
     def get_email_confirmation_url(self, request, emailconfirmation):
         """
-        Generar URL que apunte directamente a React para verificar email.
+        Generar URL que apunte al frontend para verificar email.
+        Usa FRONTEND_URL de settings (configurado via .env)
+        
+        Development: http://localhost:3000/verify-email?key=...
+        Production: https://map.open-red.es/verify-email?key=...
         """
-        # URL que apunta directamente a React con la key de verificación
-        return f"http://localhost:3000/verify-email?key={emailconfirmation.key}"
+        return f"{settings.FRONTEND_URL}/verify-email?key={emailconfirmation.key}"
     
     def get_email_verification_redirect_url(self, email_address):
         """
         Redirección después de confirmar email exitosamente (nuevo método).
+        Usa FRONTEND_URL de settings (configurado via .env)
+        
+        Development: http://localhost:3000/email-confirmed?status=success
+        Production: https://map.open-red.es/email-confirmed?status=success
         """
         # pylint: disable=unused-argument
         return getattr(settings, 'ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL', 
-                      'http://localhost:3000/email-confirmed?status=success')
+                      f"{settings.FRONTEND_URL}/email-confirmed?status=success")
 
     def get_email_confirmation_redirect_url(self, request):
         """
         URL de redirección después de confirmar email (método legacy).
+        Usa FRONTEND_URL de settings (configurado via .env)
+        
+        Development: http://localhost:3000/email-confirmed?status=success&message=...
+        Production: https://map.open-red.es/email-confirmed?status=success&message=...
         """
         # pylint: disable=unused-argument
         # Construir URL con parámetros
         base_url = getattr(settings, 'ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL', 
-                          'http://localhost:3000/email-confirmed')
+                          f"{settings.FRONTEND_URL}/email-confirmed")
         
         # Agregar parámetros de éxito
         params = {
