@@ -56,7 +56,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        scheduler = get_scheduler('default')
+        scheduler = get_scheduler('openred-weather')
         
         # List scheduled jobs
         if options['list']:
@@ -148,7 +148,7 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 f'\n💡 Monitor the scheduler:\n'
                 f'   python manage.py setup_weather_scheduler --list\n'
-                f'   python manage.py rqworker default  (in another terminal)\n'
+                f'   python manage.py rqworker openred-weather  (in another terminal)\n'
                 f'\n💡 Clear the scheduler:\n'
                 f'   python manage.py setup_weather_scheduler --clear\n'
             )

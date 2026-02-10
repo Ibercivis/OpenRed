@@ -23,6 +23,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.conf import settings
 import django_rq
 import h3
 from django.db.models import Q
@@ -115,7 +116,7 @@ class RadiationMeasurementViewSet(viewsets.ModelViewSet):
         
         # ✅ Enqueue weather fetching for this single measurement
         try:
-            queue = django_rq.get_queue('default')
+            queue = django_rq.get_queue('openred-weather')
             queue.enqueue(
                 'measures.tasks.fetch_pending_weather',
                 limit=10,  # Process a small batch including this measurement
@@ -154,6 +155,14 @@ class RadiationMeasurementViewSet(viewsets.ModelViewSet):
         mission_id = request.query_params.get('mission')
         campaign_id = request.query_params.get('campaign')
         device_id = request.query_params.get('device')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        
+        # Bounding box filters
+        north = request.query_params.get('north')
+        south = request.query_params.get('south')
+        east = request.query_params.get('east')
+        west = request.query_params.get('west')
         
         if track_id:
             queryset = queryset.filter(track_id=track_id)
@@ -165,6 +174,44 @@ class RadiationMeasurementViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(campaign_id=campaign_id)
         if device_id:
             queryset = queryset.filter(device_id=device_id)
+        
+        # Date range filters
+        if start_date:
+            from django.utils.dateparse import parse_date
+            parsed_date = parse_date(start_date)
+            if parsed_date:
+                queryset = queryset.filter(dateTime__gte=timezone.make_aware(datetime.combine(parsed_date, datetime.min.time())))
+        
+        if end_date:
+            from django.utils.dateparse import parse_date
+            parsed_date = parse_date(end_date)
+            if parsed_date:
+                queryset = queryset.filter(dateTime__lte=timezone.make_aware(datetime.combine(parsed_date, datetime.max.time())))
+        
+        # Bounding box filters
+        if north:
+            try:
+                queryset = queryset.filter(latitude__lte=float(north))
+            except ValueError:
+                pass
+        
+        if south:
+            try:
+                queryset = queryset.filter(latitude__gte=float(south))
+            except ValueError:
+                pass
+        
+        if east:
+            try:
+                queryset = queryset.filter(longitude__lte=float(east))
+            except ValueError:
+                pass
+        
+        if west:
+            try:
+                queryset = queryset.filter(longitude__gte=float(west))
+            except ValueError:
+                pass
         
         # Apply pagination
         page = self.paginate_queryset(queryset)
@@ -346,6 +393,12 @@ class RadiationMeasurementViewSet(viewsets.ModelViewSet):
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
         
+        # Bounding box filters
+        north = request.query_params.get('north')
+        south = request.query_params.get('south')
+        east = request.query_params.get('east')
+        west = request.query_params.get('west')
+        
         if project_id:
             where_clauses.append("project_id = %(project_id)s")
             params['project_id'] = project_id
@@ -362,6 +415,51 @@ class RadiationMeasurementViewSet(viewsets.ModelViewSet):
         if track_id:
             where_clauses.append("track_id = %(track_id)s")
             params['track_id'] = track_id
+        
+        # Bounding box filters (north, south, east, west)
+        if north is not None:
+            try:
+                north_val = float(north)
+                where_clauses.append("latitude <= %(north)s")
+                params['north'] = north_val
+            except ValueError:
+                return Response(
+                    {'error': 'Invalid north parameter. Must be a valid latitude.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        if south is not None:
+            try:
+                south_val = float(south)
+                where_clauses.append("latitude >= %(south)s")
+                params['south'] = south_val
+            except ValueError:
+                return Response(
+                    {'error': 'Invalid south parameter. Must be a valid latitude.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        if east is not None:
+            try:
+                east_val = float(east)
+                where_clauses.append("longitude <= %(east)s")
+                params['east'] = east_val
+            except ValueError:
+                return Response(
+                    {'error': 'Invalid east parameter. Must be a valid longitude.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        if west is not None:
+            try:
+                west_val = float(west)
+                where_clauses.append("longitude >= %(west)s")
+                params['west'] = west_val
+            except ValueError:
+                return Response(
+                    {'error': 'Invalid west parameter. Must be a valid longitude.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         
         # Date filters (format: YYYY-MM-DD)
         if start_date:
@@ -473,6 +571,42 @@ class RadiationMeasurementViewSet(viewsets.ModelViewSet):
             'total_measurements': total_measurements,
             'statistics': statistics
         })
+
+    @action(detail=False, methods=['get'], url_path='h3-aggregation-vertex')
+    def h3_aggregation_vertex(self, request):
+        """
+        Aggregate radiation measurements by H3 hexagons with vertex coordinates.
+        
+        Same as h3_aggregation but includes hexagon boundary vertices for rendering.
+        
+        Query Parameters:
+            Same as h3_aggregation endpoint
+        
+        Returns:
+            Response: JSON with H3 aggregation data plus vertex coordinates for each hexagon
+        """
+        # Reuse the same logic as h3_aggregation
+        response = self.h3_aggregation(request)
+        
+        if response.status_code != 200:
+            return response
+        
+        data = response.data
+        hexagons = data.get('hexagons', [])
+        
+        # Add vertices to each hexagon using h3-py
+        for hexagon in hexagons:
+            h3_index = hexagon['h3_index']
+            try:
+                # Get vertices as lat/lng coordinates
+                vertices = h3.cell_to_boundary(h3_index)
+                # Convert to list of [lat, lng] pairs
+                hexagon['vertices'] = [[lat, lng] for lat, lng in vertices]
+            except Exception as e:
+                logger.warning(f"Failed to get vertices for H3 cell {h3_index}: {e}")
+                hexagon['vertices'] = []
+        
+        return Response(data)
 
     @swagger_auto_schema(
         tags=['Measurements - Radiation'],
@@ -593,7 +727,7 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
         
         # ✅ Enqueue weather fetching for this single measurement
         try:
-            queue = django_rq.get_queue('default')
+            queue = django_rq.get_queue('openred-weather')
             queue.enqueue(
                 'measures.tasks.fetch_pending_weather',
                 limit=10,  # Process a small batch including this measurement
@@ -628,6 +762,14 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
         mission_id = request.query_params.get('mission')
         campaign_id = request.query_params.get('campaign')
         device_id = request.query_params.get('device')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        
+        # Bounding box filters
+        north = request.query_params.get('north')
+        south = request.query_params.get('south')
+        east = request.query_params.get('east')
+        west = request.query_params.get('west')
         
         if track_id:
             queryset = queryset.filter(track_id=track_id)
@@ -639,6 +781,44 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(campaign_id=campaign_id)
         if device_id:
             queryset = queryset.filter(device_id=device_id)
+        
+        # Date range filters
+        if start_date:
+            from django.utils.dateparse import parse_date
+            parsed_date = parse_date(start_date)
+            if parsed_date:
+                queryset = queryset.filter(dateTime__gte=timezone.make_aware(datetime.combine(parsed_date, datetime.min.time())))
+        
+        if end_date:
+            from django.utils.dateparse import parse_date
+            parsed_date = parse_date(end_date)
+            if parsed_date:
+                queryset = queryset.filter(dateTime__lte=timezone.make_aware(datetime.combine(parsed_date, datetime.max.time())))
+        
+        # Bounding box filters
+        if north:
+            try:
+                queryset = queryset.filter(latitude__lte=float(north))
+            except ValueError:
+                pass
+        
+        if south:
+            try:
+                queryset = queryset.filter(latitude__gte=float(south))
+            except ValueError:
+                pass
+        
+        if east:
+            try:
+                queryset = queryset.filter(longitude__lte=float(east))
+            except ValueError:
+                pass
+        
+        if west:
+            try:
+                queryset = queryset.filter(longitude__gte=float(west))
+            except ValueError:
+                pass
         
         # Apply pagination
         page = self.paginate_queryset(queryset)
@@ -796,7 +976,7 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
             min_count = 1
         
         # Build dynamic WHERE clause for filters
-        where_clauses = ["latitude IS NOT NULL", "longitude IS NOT NULL", "sky_brightness IS NOT NULL"]
+        where_clauses = ["latitude IS NOT NULL", "longitude IS NOT NULL", "lux IS NOT NULL"]
         params = {'resolution': resolution, 'min_count': min_count}
         
         project_id = request.query_params.get('project')
@@ -805,6 +985,12 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
         track_id = request.query_params.get('track')
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
+        
+        # Bounding box filters
+        north = request.query_params.get('north')
+        south = request.query_params.get('south')
+        east = request.query_params.get('east')
+        west = request.query_params.get('west')
         
         if project_id:
             where_clauses.append("project_id = %(project_id)s")
@@ -822,6 +1008,51 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
         if track_id:
             where_clauses.append("track_id = %(track_id)s")
             params['track_id'] = track_id
+        
+        # Bounding box filters (north, south, east, west)
+        if north is not None:
+            try:
+                north_val = float(north)
+                where_clauses.append("latitude <= %(north)s")
+                params['north'] = north_val
+            except ValueError:
+                return Response(
+                    {'error': 'Invalid north parameter. Must be a valid latitude.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        if south is not None:
+            try:
+                south_val = float(south)
+                where_clauses.append("latitude >= %(south)s")
+                params['south'] = south_val
+            except ValueError:
+                return Response(
+                    {'error': 'Invalid south parameter. Must be a valid latitude.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        if east is not None:
+            try:
+                east_val = float(east)
+                where_clauses.append("longitude <= %(east)s")
+                params['east'] = east_val
+            except ValueError:
+                return Response(
+                    {'error': 'Invalid east parameter. Must be a valid longitude.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        if west is not None:
+            try:
+                west_val = float(west)
+                where_clauses.append("longitude >= %(west)s")
+                params['west'] = west_val
+            except ValueError:
+                return Response(
+                    {'error': 'Invalid west parameter. Must be a valid longitude.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         
         # Date filters (format: YYYY-MM-DD)
         if start_date:
@@ -878,7 +1109,7 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
                     POINT(longitude::float, latitude::float),
                     %(resolution)s
                 ) as h3_index,
-                sky_brightness::float as value
+                lux::float as value
             FROM measures_light_pollution_measurement
             WHERE {where_sql}
         ),
@@ -937,6 +1168,36 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
             'total_measurements': total_measurements,
             'statistics': statistics
         })
+
+    @action(detail=False, methods=['get'], url_path='h3-aggregation-vertex')
+    def h3_aggregation_vertex(self, request):
+        """
+        Aggregate light pollution measurements by H3 hexagons with vertex coordinates.
+
+        Same as h3_aggregation but includes hexagon boundary vertices for rendering.
+        """
+        response = self.h3_aggregation(request)
+
+        if response.status_code != 200:
+            return response
+
+        data = response.data
+        hexagons = data.get('hexagons', [])
+
+        for hexagon in hexagons:
+            h3_index = hexagon.get('h3_index')
+            if not h3_index:
+                hexagon['vertices'] = []
+                continue
+
+            try:
+                vertices = h3.cell_to_boundary(h3_index)
+                hexagon['vertices'] = [[lat, lng] for lat, lng in vertices]
+            except Exception as e:
+                logger.warning(f"Failed to get vertices for H3 cell {h3_index}: {e}")
+                hexagon['vertices'] = []
+
+        return Response(data)
 
     @swagger_auto_schema(
         tags=['Measurements - Light Pollution'],
@@ -1022,38 +1283,19 @@ class TrackViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """
-        Public read access for public projects, authenticated write access.
+        Requires authentication for all actions.
         """
-        if self.action in ['list', 'retrieve']:
-            permission_classes = []  # Public can view public projects
-        else:
-            permission_classes = [IsAuthenticated]  # Auth required for write
-        return [permission() for permission in permission_classes]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         """
-        Filter tracks based on project visibility and ownership.
+        Filter tracks to show only the authenticated user's tracks.
         """
-        if self.action in ['list', 'retrieve']:
-            # Show public project tracks + user's own tracks
-            if self.request.user.is_authenticated:
-                return Track.objects.filter(
-                    Q(project__is_public=True) | Q(created_by=self.request.user)
-                ).select_related('project', 'device', 'campaign', 'created_by')
-            else:
-                # Anonymous users only see public project tracks
-                return Track.objects.filter(
-                    project__is_public=True
-                ).select_related('project', 'device', 'campaign')
-        
-        if self.action in ['update', 'partial_update', 'destroy']:
-            # Only owner can modify/delete their tracks
-            if self.request.user.is_authenticated:
-                return Track.objects.filter(created_by=self.request.user)
-            return Track.objects.none()
-        
-        # For create and other actions
-        return Track.objects.all()
+        if self.request.user.is_authenticated:
+            return Track.objects.filter(
+                created_by=self.request.user
+            ).select_related('project', 'device', 'campaign', 'created_by')
+        return Track.objects.none()
 
     def perform_create(self, serializer):
         """
@@ -1299,6 +1541,13 @@ class TrackViewSet(viewsets.ModelViewSet):
                 {'error': 'No file provided'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        max_bytes = getattr(settings, 'TRACK_UPLOAD_MAX_BYTES', 10 * 1024 * 1024)
+        if getattr(file, 'size', None) and file.size > max_bytes:
+            return Response(
+                {'error': f'File too large. Maximum is {max_bytes} bytes.'},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
         
         if not device_id:
             return Response(
@@ -1351,7 +1600,7 @@ class TrackViewSet(viewsets.ModelViewSet):
         )
         
         # ✅ Enqueue processing task with RQ
-        queue = django_rq.get_queue('default')
+        queue = django_rq.get_queue('openred-tracks')
         job = queue.enqueue(
             'measures.tasks.process_track_file',
             track.id,
@@ -1402,6 +1651,276 @@ class TrackViewSet(viewsets.ModelViewSet):
             'start_time': track.start_time,
             'end_time': track.end_time,
         })
+    
+    @swagger_auto_schema(
+        tags=['Tracks'],
+        operation_description="Upload track data as JSON (RadiaCode mobile app format)",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['device', 'startedAt', 'points', 'project', 'mission', 'campaign'],
+            properties={
+                'name': openapi.Schema(type=openapi.TYPE_STRING, description='Track name'),
+                'description': openapi.Schema(type=openapi.TYPE_STRING, description='Track description'),
+                'synced': openapi.Schema(type=openapi.TYPE_BOOLEAN, description='Synced status'),
+                'syncedAt': openapi.Schema(type=openapi.TYPE_STRING, format='date-time', description='When synced'),
+                'cloudTrackId': openapi.Schema(type=openapi.TYPE_STRING, description='Cloud track identifier'),
+                'device': openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    required=['id'],
+                    properties={
+                        'name': openapi.Schema(type=openapi.TYPE_STRING, description='Device name'),
+                        'id': openapi.Schema(type=openapi.TYPE_STRING, description='Device serial/MAC address'),
+                    }
+                ),
+                'startedAt': openapi.Schema(type=openapi.TYPE_STRING, format='date-time', description='Track start time'),
+                'endedAt': openapi.Schema(type=openapi.TYPE_STRING, format='date-time', description='Track end time'),
+                'requiredGpsAccuracyMeters': openapi.Schema(type=openapi.TYPE_NUMBER, description='Required GPS accuracy'),
+                'points': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        required=['timestamp', 'latitude', 'longitude'],
+                        properties={
+                            'timestamp': openapi.Schema(type=openapi.TYPE_STRING, format='date-time'),
+                            'latitude': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'longitude': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'altitude': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'speed': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'accuracyMeters': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'cpm': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'doseMicroSvPerHour': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'lux': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'cct': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'cieX': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'cieY': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'cieU': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'cieV': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'duv': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'tint': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'mode': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'channels': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_NUMBER)),
+                            'temperature': openapi.Schema(type=openapi.TYPE_NUMBER),
+                            'batteryMv': openapi.Schema(type=openapi.TYPE_INTEGER),
+                        }
+                    )
+                ),
+                'trackType': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='Track type (defaults to radiation if omitted)',
+                    enum=['radiation', 'light'],
+                ),
+                'project': openapi.Schema(type=openapi.TYPE_INTEGER, description='Project ID (required)'),
+                'mission': openapi.Schema(type=openapi.TYPE_INTEGER, description='Mission ID (required)'),
+                'campaign': openapi.Schema(type=openapi.TYPE_INTEGER, description='Campaign ID (required)'),
+                'campaign_password': openapi.Schema(type=openapi.TYPE_STRING, description='Campaign password (required only if campaign is protected)'),
+            }
+        ),
+        responses={
+            202: openapi.Response(
+                description='Track processing enqueued',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'track_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                        'job_id': openapi.Schema(type=openapi.TYPE_STRING),
+                        'status': openapi.Schema(type=openapi.TYPE_STRING),
+                        'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    }
+                )
+            ),
+            400: 'Invalid data',
+            401: 'Not authenticated'
+        }
+    )
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def upload_json(self, request):
+        """
+        Upload track data as JSON from RadiaCode mobile app.
+        
+        Accepts JSON with device info, track metadata, and measurement points.
+        Processing happens asynchronously with RQ.
+        """
+        import json
+        import tempfile
+        from django.core.files.base import ContentFile
+        
+        data = request.data
+
+        max_bytes = getattr(settings, 'TRACK_UPLOAD_MAX_BYTES', 10 * 1024 * 1024)
+        content_length = request.META.get('CONTENT_LENGTH')
+        if content_length:
+            try:
+                if int(content_length) > max_bytes:
+                    return Response(
+                        {'error': f'Request too large. Maximum is {max_bytes} bytes.'},
+                        status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    )
+            except (TypeError, ValueError):
+                pass
+        
+        # Validate required fields
+        if not data.get('device') or not data.get('device', {}).get('id'):
+            return Response(
+                {'error': 'Device ID is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        mission_id = data.get('mission')
+        campaign_id = data.get('campaign')
+        project_id = data.get('project')
+
+        if not project_id:
+            return Response({'error': 'Project ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not mission_id:
+            return Response({'error': 'Mission ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not campaign_id:
+            return Response({'error': 'Campaign ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        points = data.get('points', [])
+        if not points:
+            return Response(
+                {'error': 'At least one measurement point is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        max_points = getattr(settings, 'TRACK_UPLOAD_MAX_POINTS', 20000)
+        if len(points) > max_points:
+            return Response(
+                {'error': f'Too many points. Maximum is {max_points}.'},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+        
+        # Get or create device by serial number (MAC address)
+        device_serial = data['device']['id']
+        device_name = data['device'].get('name', 'RadiaCode Device')
+        
+        try:
+            device = Device.objects.get(serial_number=device_serial)
+        except Device.DoesNotExist:
+            # Auto-create device if not exists
+            # Try to find or create a default RadiaCode device model
+            from devices.models import DeviceModel
+            
+            device_model, _ = DeviceModel.objects.get_or_create(
+                name="RadiaCode",
+                defaults={
+                    'manufacturer': 'Scan Electronics',
+                    'technology': 'Geiger-Müller tube',
+                    'max_radiation_range': 1000.0,
+                    'validatedByOpenRed': False,
+                    'description': 'RadiaCode radiation detector (auto-registered from mobile app)'
+                }
+            )
+            
+            # Create the device associated to the current user
+            device = Device.objects.create(
+                device_model=device_model,
+                serial_number=device_serial,
+                owner=request.user,
+                is_active=True
+            )
+            
+            logger.info(f"Auto-created device {device_serial} for user {request.user.username}")
+        
+        # Validate mission/campaign and derive project
+        from missions.models import Mission, Campaign
+
+        try:
+            mission = Mission.objects.get(id=mission_id)
+        except Mission.DoesNotExist:
+            return Response({'error': f'Mission with id {mission_id} not found'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            campaign = Campaign.objects.get(id=campaign_id)
+        except Campaign.DoesNotExist:
+            return Response({'error': f'Campaign with id {campaign_id} not found'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if campaign.mission_id != mission.id:
+            return Response(
+                {'error': 'Campaign does not belong to the provided mission'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        project = mission.project
+        if project_id and str(project.id) != str(project_id):
+            return Response(
+                {'error': 'Project does not match mission.project'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate campaign password if campaign is protected
+        if campaign.password:
+            campaign_password = data.get('campaign_password')
+
+            if not campaign_password:
+                return Response(
+                    {'error': 'Esta campaña requiere contraseña para subir tracks.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if campaign_password != campaign.password:
+                return Response(
+                    {'error': 'Contraseña de campaña incorrecta.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # Save JSON data as a file
+        # Use the name from JSON, fallback to timestamp if not provided
+        track_name = data.get('name', f"track_{timezone.now().strftime('%Y%m%d_%H%M%S')}")
+        # Sanitize filename (remove invalid characters)
+        import re
+        safe_name = re.sub(r'[^\w\s-]', '', track_name).strip().replace(' ', '_')
+        json_filename = safe_name if safe_name else f"track_{timezone.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        # Store compact JSON to reduce disk usage
+        json_content = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
+        json_bytes = json_content.encode('utf-8')
+        if len(json_bytes) > max_bytes:
+            return Response(
+                {'error': f'Payload too large after encoding. Maximum is {max_bytes} bytes.'},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+        json_file = ContentFile(json_bytes, name=json_filename)
+        
+        # Create Track object with status='pending' and validate model integrity
+        track = Track(
+            created_by=request.user,
+            device=device,
+            project=project,
+            mission=mission,
+            campaign=campaign,
+            file=json_file,
+            file_type='json',
+            description=data.get('description', ''),
+            status='pending',
+            # Additional JSON metadata
+            synced=data.get('synced', False),
+            synced_at=parse_datetime(data['syncedAt']) if data.get('syncedAt') else None,
+            cloud_track_id=data.get('cloudTrackId'),
+            required_gps_accuracy_meters=data.get('requiredGpsAccuracyMeters'),
+        )
+
+        track.full_clean()
+        track.save()
+        
+        # Enqueue processing task with RQ
+        queue = django_rq.get_queue('openred-tracks')
+        job = queue.enqueue(
+            'measures.tasks.process_track_file',
+            track.id,
+            job_timeout='10m',
+            result_ttl=86400,
+            job_id=f'track_{track.id}'
+        )
+        
+        return Response({
+            'id': track.id,
+            'job_id': job.id,
+            'status': 'pending',
+            'message': 'Track data uploaded successfully. Processing in background.'
+        }, status=status.HTTP_202_ACCEPTED)
 
 # Para compatibilidad temporal con el frontend existente
 # El frontend sigue llamando a /measurements/, por lo que mantenemos este ViewSet

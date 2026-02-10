@@ -12,3 +12,4 @@ Classes:
 class MeasuresConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'measures'
+    verbose_name = '02-Measures'

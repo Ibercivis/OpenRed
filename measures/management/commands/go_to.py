@@ -144,8 +144,8 @@ class Command(BaseCommand):
                 measurement_unit = "nSv/h"
                 
             elif project.project_type == 'light_pollution':
-                # Generate random SQM (Sky Quality Meter) value between 15 and 22 mag/arcsec²
-                measurement_value = round(random.uniform(15.0, 22.0), 2)
+                # Generate random lux value (illustrative)
+                measurement_value = round(random.uniform(0.0, 500.0), 2)
                 
                 data = {
                     "device": device_id,  # Device ID (required)
@@ -154,15 +154,12 @@ class Command(BaseCommand):
                     "latitude": lat2,
                     "longitude": lon2,
                     "altitude": round(random.uniform(100, 300), 1),  # Random altitude
-                    "sky_brightness": measurement_value,  # Main field for light pollution
-                    "brightness_unit": "mag/arcsec²",  # Unit for sky brightness
-                    "sqm_reading": measurement_value,  # Sky Quality Meter reading
-                    "bortle_class": random.randint(1, 9),  # Bortle scale (1-9)
+                    "lux": measurement_value,
                     "dateTime": timezone.now().isoformat(),
                     "accuracy": round(random.uniform(1.0, 5.0), 1),  # GPS accuracy
-                    "notes": f"Simulated SQM light pollution measurement on route from {origin} to {destination}",
+                    "notes": f"Simulated lux light pollution measurement on route from {origin} to {destination}",
                 }
-                measurement_unit = "mag/arcsec²"
+                measurement_unit = "lux"
 
             # Prepare headers with authentication
             headers = {'Content-Type': 'application/json'}

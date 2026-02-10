@@ -1,4 +1,5 @@
 from allauth.account.adapter import DefaultAccountAdapter
+from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.utils.http import urlencode
@@ -127,3 +128,40 @@ class EmailUsernameAdapter(DefaultAccountAdapter):
         
         url_with_params = f"{base_url}?{urlencode(params)}"
         return url_with_params
+
+
+class AutoConnectSocialAccountAdapter(DefaultSocialAccountAdapter):
+    """
+    Adapter personalizado que vincula automáticamente cuentas sociales
+    con cuentas existentes si el email coincide.
+    """
+    
+    def pre_social_login(self, request, sociallogin):
+        """
+        Invocado justo después de que un usuario se autentica con éxito 
+        mediante un proveedor social, pero antes de que la cuenta se conecte.
+        
+        Si ya existe una cuenta con el mismo email verificado, la vincula automáticamente.
+        """
+        # Si el usuario ya está autenticado, no hacer nada
+        if sociallogin.is_existing:
+            return
+        
+        # Si el social login no tiene email, no podemos vincular
+        if not sociallogin.email_addresses:
+            return
+        
+        # Obtener el email del social login
+        email = sociallogin.email_addresses[0].email
+        
+        try:
+            # Buscar usuario existente con ese email
+            user = User.objects.get(email=email)
+            
+            # Vincular la cuenta social con el usuario existente
+            sociallogin.connect(request, user)
+            
+        except User.DoesNotExist:
+            # No existe usuario, se creará uno nuevo (comportamiento por defecto)
+            pass
+

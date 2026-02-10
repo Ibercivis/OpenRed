@@ -134,7 +134,17 @@ class CampaignSerializer(serializers.ModelSerializer):
         - devices (ManyToMany IDs)
         - start_date, end_date
         - created_at, created_by
+        - has_password (bool): Indicates if campaign requires password for track uploads
     """
+    has_password = serializers.SerializerMethodField()
+    
     class Meta:
         model = Campaign
         fields = '__all__'
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
+    
+    def get_has_password(self, obj):
+        """Return True if campaign has a password, False otherwise."""
+        return bool(obj.password)

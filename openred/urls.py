@@ -19,6 +19,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+from users.views_social import GoogleLogin
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -29,7 +30,7 @@ urlpatterns = [
          name='password_reset_confirm'),
     
     # Solo APIs - no vistas HTML de allauth
-    # path('accounts/', include('allauth.urls')),  # ELIMINADO - solo usamos API
+    path('accounts/', include('allauth.urls')),  # Necesario para social auth
     
     path('api/', include('devices.urls')),
     path('api/', include('measures.urls')),
@@ -43,9 +44,8 @@ urlpatterns = [
     
     path('dj-rest-auth/', include('dj_rest_auth.urls')),
     path('dj-rest-auth/registration/', include('dj_rest_auth.registration.urls')),
+    path('dj-rest-auth/google/', GoogleLogin.as_view(), name='google_login'),
     path('django-rq/', include('django_rq.urls')),  # RQ dashboard
-
-    path('', include('frontend.urls')),
 ]
 
 # Serve media files in development

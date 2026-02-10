@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',  # Necesario para sites framework
     'django.contrib.gis',  # GeoDjango para soporte PostGIS
-    #'django_extensions', for model.png
+    'django_extensions', #for model.png
     
     # CORS headers
     'corsheaders',
@@ -75,7 +75,6 @@ INSTALLED_APPS = [
     'devices',
     'measures',
     'missions',
-    'frontend',
     'users',  # Agregamos la app users
 ]
 
@@ -167,34 +166,24 @@ AUTHENTICATION_BACKENDS = [
 # LOGIN_REDIRECT_URL = '/'  # No necesario para API
 # LOGOUT_REDIRECT_URL = '/'  # No necesario para API
 
-# Email confirmation settings
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # Options: "none", "optional", "mandatory"
+# Account settings
 ACCOUNT_EMAIL_REQUIRED = True
-
-# Username behavior
-ACCOUNT_USERNAME_REQUIRED = False  # If you want to log in with email only
-ACCOUNT_AUTHENTICATION_METHOD = 'email'  # 'username' or 'username_email'
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None  # No usar username
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # Para registro tradicional
+ACCOUNT_USERNAME_REQUIRED = False  # Login solo con email
+ACCOUNT_AUTHENTICATION_METHOD = 'email'  # Login con email, no username
+ACCOUNT_USER_MODEL_USERNAME_FIELD = 'username'  # Usar username
+ACCOUNT_CONFIRM_EMAIL_ON_GET = False  # No confirmar automáticamente con GET
+ACCOUNT_EMAIL_CONFIRMATION_HMAC = False  # Usar formato de key simple
 
 # Generar username automáticamente basado en email
 ACCOUNT_ADAPTER = 'users.adapters.EmailUsernameAdapter'
+SOCIALACCOUNT_ADAPTER = 'users.adapters.AutoConnectSocialAccountAdapter'
 ACCOUNT_USERNAME_VALIDATORS = []  # Eliminar validadores de username
 
-# Desactivar redirecciones automáticas - usaremos React
-# ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = 'http://localhost:3000/verify-email?key={key}'
-# ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = 'http://localhost:3000/verify-email?key={key}'
-
-# Configuración de URL personalizada para confirmación de email
-ACCOUNT_CONFIRM_EMAIL_ON_GET = False  # No confirmar automáticamente con GET
-ACCOUNT_EMAIL_CONFIRMATION_HMAC = False  # Usar el formato de key simple
-
-# Social account settings - solo para API
+# Social account settings (Google OAuth)
 SOCIALACCOUNT_QUERY_EMAIL = True
-# SOCIALACCOUNT_LOGIN_ON_GET = True  # No necesario para API
-# ACCOUNT_LOGOUT_REDIRECT_URL = "/"  # No necesario para API
-# ACCOUNT_LOGOUT_ON_GET = True  # No necesario para API
+SOCIALACCOUNT_AUTO_SIGNUP = True  # Login/registro automático con Google
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # Google ya verificó el email
 
 # Amazon SES Email Configuration
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
@@ -219,6 +208,8 @@ REST_AUTH = {
     'PASSWORD_RESET_SERIALIZER': 'users.serializers.CustomPasswordResetSerializer',
     'USER_DETAILS_SERIALIZER': 'users.serializers.UserSerializer',
     'SESSION_LOGIN': False,  # Para API pura sin cookies de sesión
+    'USE_JWT': False,  # Usar tokens en lugar de JWT
+    'TOKEN_MODEL': 'rest_framework.authtoken.models.Token',
 }
 
 # Configuración para password reset
@@ -321,10 +312,14 @@ else:
 # ====================
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
-        'SCOPE': ['profile', 'email'],
-        'AUTH_PARAMS': {'access_type': 'online'},
-        'CLIENT_ID': config('GOOGLE_CLIENT_ID', default=''),  # Fetch from environment variable
-        'SECRET': config('GOOGLE_CLIENT_SECRET', default=''),  # Fetch from environment variable
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'VERIFIED_EMAIL': True,  # Asumir que los emails de Google están verificados
     }
 }
 
@@ -388,23 +383,17 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # ====================
 
 RQ_QUEUES = {
-    'default': {
+    'openred-tracks': {
         'HOST': config('REDIS_HOST', default='localhost'),
         'PORT': config('REDIS_PORT', default=6379, cast=int),
         'DB': config('REDIS_DB', default=0, cast=int),
-        'DEFAULT_TIMEOUT': '10m',  # 10 minutes timeout
+        'DEFAULT_TIMEOUT': '10m',  # 10 minutes timeout for track processing
     },
-    'high': {
+    'openred-weather': {
         'HOST': config('REDIS_HOST', default='localhost'),
         'PORT': config('REDIS_PORT', default=6379, cast=int),
         'DB': config('REDIS_DB', default=0, cast=int),
-        'DEFAULT_TIMEOUT': '5m',
-    },
-    'low': {
-        'HOST': config('REDIS_HOST', default='localhost'),
-        'PORT': config('REDIS_PORT', default=6379, cast=int),
-        'DB': config('REDIS_DB', default=0, cast=int),
-        'DEFAULT_TIMEOUT': '30m',
+        'DEFAULT_TIMEOUT': '30m',  # 30 minutes timeout for weather fetching
     },
 }
 
@@ -436,6 +425,39 @@ RQ_JOBS = {
 # ====================
 # Default Settings
 # ====================
+
+# ====================
+# Upload Limits
+# ====================
+
+_DEFAULT_TRACK_UPLOAD_MAX_POINTS = 20000
+_DEFAULT_TRACK_UPLOAD_MAX_BYTES = 10 * 1024 * 1024  # 10 MiB
+
+# Max number of points accepted in JSON track uploads
+TRACK_UPLOAD_MAX_POINTS = config(
+    'TRACK_UPLOAD_MAX_POINTS',
+    default=_DEFAULT_TRACK_UPLOAD_MAX_POINTS,
+    cast=int,
+)
+
+# Max request/file size accepted for track uploads
+TRACK_UPLOAD_MAX_BYTES = config(
+    'TRACK_UPLOAD_MAX_BYTES',
+    default=_DEFAULT_TRACK_UPLOAD_MAX_BYTES,
+    cast=int,
+)
+
+# Django global request upload limits (applies to all endpoints)
+DATA_UPLOAD_MAX_MEMORY_SIZE = config(
+    'DATA_UPLOAD_MAX_MEMORY_SIZE',
+    default=TRACK_UPLOAD_MAX_BYTES,
+    cast=int,
+)
+FILE_UPLOAD_MAX_MEMORY_SIZE = config(
+    'FILE_UPLOAD_MAX_MEMORY_SIZE',
+    default=TRACK_UPLOAD_MAX_BYTES,
+    cast=int,
+)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field

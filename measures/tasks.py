@@ -93,8 +93,10 @@ def process_track_file(track_id):
         # Parse based on file type (only RCTRK is supported)
         if track.file_type == 'rctrk':
             measurements_count = parse_rctrk_track(track, file_content)
+        elif track.file_type == 'json':
+            measurements_count = parse_json_track(track, file_content)
         else:
-            raise ValueError(f'Unsupported file type: {track.file_type}. Only RCTRK format is supported.')
+            raise ValueError(f'Unsupported file type: {track.file_type}. Only RCTRK and JSON formats are supported.')
         
         # Update track status
         track.total_measurements = measurements_count
@@ -104,7 +106,7 @@ def process_track_file(track_id):
         # ✅ Enqueue weather fetching task for this track's measurements
         try:
             import django_rq
-            queue = django_rq.get_queue('default')
+            queue = django_rq.get_queue('openred-weather')
             weather_job = queue.enqueue(
                 'measures.tasks.fetch_pending_weather',
                 limit=measurements_count + 50,  # Fetch slightly more than measurements count
@@ -616,6 +618,366 @@ def parse_rctrk_track(track, file_content):
     return len(measurements)
 
 
+def parse_json_track(track, file_content):
+    """
+    Parse JSON file (RadiaCode mobile app format) and create RadiationMeasurement objects in bulk.
+    
+    JSON Format:
+        {
+            "name": "track name",
+            "description": "track description",
+            "device": {"name": "RadiaCode-102#RC-102-007300", "id": "52:43:06:60:1C:84"},
+            "startedAt": "2025-12-24T18:26:00.360054",
+            "endedAt": "2025-12-24T18:57:56.225290",
+            "requiredGpsAccuracyMeters": 10.0,
+            "points": [
+                {
+                    "timestamp": "2025-12-24T18:26:05.360471",
+                    "latitude": 41.74599,
+                    "longitude": -1.0734704,
+                    "altitude": 264.8056169088939,
+                    "accuracyMeters": 2.7869999408721924,
+                    "cpm": 335.390625,
+                    "doseMicroSvPerHour": 0.07213783192128176
+                },
+                ...
+            ]
+        }
+    
+    Args:
+        track (Track): Track instance that owns these measurements
+        file_content (bytes | str): JSON file content to parse
+        
+    Returns:
+        int: Number of measurements successfully created
+    """
+    import json
+    from .models import RadiationMeasurement, LightPollutionMeasurement, WeatherCache
+    from math import radians, sin, cos, sqrt, atan2
+    
+    def haversine_distance(lat1, lon1, lat2, lon2):
+        """Calculate distance between two GPS coordinates using Haversine formula. Returns distance in meters."""
+        R = 6371000  # Earth radius in meters
+        phi1, phi2 = radians(lat1), radians(lat2)
+        dphi = radians(lat2 - lat1)
+        dlambda = radians(lon2 - lon1)
+        
+        a = sin(dphi/2)**2 + cos(phi1) * cos(phi2) * sin(dlambda/2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1-a))
+        
+        return R * c
+    
+    # Decode if bytes
+    if isinstance(file_content, bytes):
+        file_content = file_content.decode('utf-8')
+    
+    # Parse JSON
+    try:
+        data = json.loads(file_content)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON format: {e}")
+    
+    track_type = data.get('trackType') or 'radiation'
+    points = data.get('points', [])
+    if not points:
+        raise ValueError("No measurement points found in JSON")
+    
+    print(f"Parsing JSON track with {len(points)} points...")
+    
+    # Update Track metadata from JSON if present
+    if isinstance(data.get('requiredGpsAccuracyMeters'), (int, float)):
+        track.required_gps_accuracy_meters = float(data['requiredGpsAccuracyMeters'])
+    if isinstance(data.get('synced'), bool):
+        track.synced = data['synced']
+    if data.get('syncedAt'):
+        synced_at = parse_datetime(str(data['syncedAt']))
+        if synced_at and timezone.is_naive(synced_at):
+            synced_at = timezone.make_aware(synced_at)
+        track.synced_at = synced_at
+    if data.get('id'):
+        track.cloud_track_id = str(data['id'])
+    if data.get('description'):
+        track.description = str(data['description'])
+
+    # Phase 1: Create measurement objects (not saved yet)
+    measurements = []
+    timestamps = []
+    
+    for point in points:
+        try:
+            # Parse timestamp
+            timestamp_str = point.get('timestamp')
+            if not timestamp_str:
+                continue
+            
+            dt = parse_datetime(timestamp_str)
+            if dt and timezone.is_naive(dt):
+                dt = timezone.make_aware(dt)
+            elif not dt:
+                continue
+            
+            timestamps.append(dt)
+            
+            # Extract shared fields
+            latitude = float(point['latitude'])
+            longitude = float(point['longitude'])
+            altitude = point.get('altitude')
+            accuracy = point.get('accuracyMeters')
+
+            if track_type == 'light':
+                measurement = LightPollutionMeasurement(
+                    user=track.created_by,
+                    device=track.device,
+                    project=track.project,
+                    campaign=track.campaign,
+                    track=track,
+                    latitude=latitude,
+                    longitude=longitude,
+                    altitude=altitude,
+                    accuracy=accuracy,
+                    speed=point.get('speed'),
+                    lux=point.get('lux'),
+                    cct=point.get('cct'),
+                    cieX=point.get('cieX'),
+                    cieY=point.get('cieY'),
+                    cieU=point.get('cieU'),
+                    cieV=point.get('cieV'),
+                    duv=point.get('duv'),
+                    tint=point.get('tint'),
+                    mode=point.get('mode'),
+                    channels=point.get('channels'),
+                    temperature=point.get('temperature'),
+                    batteryMv=point.get('batteryMv'),
+                    dateTime=dt
+                )
+            else:
+                cpm = point.get('cpm')
+                cpm_error = point.get('cpmErr')
+                dose_rate = point.get('doseMicroSvPerHour')
+                dose_rate_error = point.get('doseMicroSvPerHourErr')
+                measurement = RadiationMeasurement(
+                    user=track.created_by,
+                    device=track.device,
+                    project=track.project,
+                    campaign=track.campaign,
+                    track=track,
+                    latitude=latitude,
+                    longitude=longitude,
+                    altitude=altitude,
+                    accuracy=accuracy,
+                    dose_rate=dose_rate,
+                    dose_rate_error=dose_rate_error,
+                    radiation_unit="μSv/h",
+                    cpm=int(cpm) if cpm is not None else None,
+                    cpm_error=cpm_error,
+                    speed=None,  # Will be calculated later
+                    dateTime=dt
+                )
+            measurements.append(measurement)
+            
+        except (ValueError, KeyError, TypeError) as e:
+            print(f"  Warning: Skipping invalid point: {e}")
+            continue
+    
+    if not measurements:
+        raise ValueError("No valid measurements could be parsed from JSON")
+    
+    print(f"  Parsed {len(measurements)} valid measurements")
+    
+    # Phase 2: Bulk create measurements
+    print(f"Phase 2: Bulk creating measurements...")
+    if track_type == 'light':
+        LightPollutionMeasurement.objects.bulk_create(measurements, batch_size=1000)
+    else:
+        RadiationMeasurement.objects.bulk_create(measurements, batch_size=1000)
+    print(f"  Created {len(measurements)} measurements")
+    
+    # Phase 3: Calculate speed (same logic as RCTRK) for radiation tracks
+    if track_type != 'light':
+        print(f"Phase 3: Calculating speeds...")
+        WINDOW_SIZE = 5
+        MAX_ACCURACY_FOR_SPEED = 15.0
+        
+        for i, measurement in enumerate(measurements):
+            window_start = max(0, i - WINDOW_SIZE // 2)
+            window_end = min(len(measurements), i + WINDOW_SIZE // 2 + 1)
+            
+            window_points = []
+            for m in measurements[window_start:window_end]:
+                if m.accuracy is not None and m.accuracy < MAX_ACCURACY_FOR_SPEED:
+                    window_points.append(m)
+            
+            if len(window_points) < 2:
+                continue
+            
+            first_point = window_points[0]
+            last_point = window_points[-1]
+            
+            total_distance = 0
+            for j in range(len(window_points) - 1):
+                p1 = window_points[j]
+                p2 = window_points[j + 1]
+                total_distance += haversine_distance(
+                    p1.latitude, p1.longitude,
+                    p2.latitude, p2.longitude
+                )
+            
+            time_diff = (last_point.dateTime - first_point.dateTime).total_seconds()
+            
+            if time_diff > 0:
+                speed = total_distance / time_diff
+                if speed < 50.0:  # Sanity check
+                    measurement.speed = speed
+        
+        # Filter by acceleration
+        MAX_ACCELERATION = 10.0
+        for i, measurement in enumerate(measurements):
+            if measurement.speed is None:
+                continue
+            
+            prev_with_speed = None
+            for j in range(i - 1, -1, -1):
+                if measurements[j].speed is not None:
+                    prev_with_speed = measurements[j]
+                    break
+            
+            if prev_with_speed:
+                speed_diff = abs(measurement.speed - prev_with_speed.speed)
+                time_diff = (measurement.dateTime - prev_with_speed.dateTime).total_seconds()
+                
+                if time_diff > 0:
+                    acceleration = speed_diff / time_diff
+                    if acceleration > MAX_ACCELERATION:
+                        measurement.speed = None
+        
+        # Bulk update speeds
+        RadiationMeasurement.objects.bulk_update(measurements, ['speed'], batch_size=1000)
+    
+    # Phase 4: Calculate track statistics
+    print(f"Phase 4: Calculating track statistics...")
+    
+    # Total distance
+    total_distance = 0.0
+    MAX_ACCURACY_FOR_DISTANCE = 15.0
+    prev_point = None
+    
+    for measurement in measurements:
+        if measurement.accuracy is not None and measurement.accuracy < MAX_ACCURACY_FOR_DISTANCE:
+            if prev_point is not None:
+                distance = haversine_distance(
+                    prev_point['lat'], prev_point['lon'],
+                    measurement.latitude, measurement.longitude
+                )
+                if distance < 500.0:
+                    total_distance += distance
+            prev_point = {'lat': measurement.latitude, 'lon': measurement.longitude}
+    
+    # Average speed
+    speeds = [m.speed for m in measurements if m.speed is not None]
+    average_speed = statistics.mean(speeds) if speeds else None
+    
+    # Radiation statistics (only for radiation tracks)
+    if track_type != 'light':
+        dose_rates = [m.dose_rate for m in measurements if m.dose_rate is not None]
+        if dose_rates:
+            min_dose_rate = min(dose_rates)
+            max_dose_rate = max(dose_rates)
+            avg_dose_rate = statistics.mean(dose_rates)
+            std_dose_rate = statistics.stdev(dose_rates) if len(dose_rates) > 1 else 0.0
+        else:
+            min_dose_rate = None
+            max_dose_rate = None
+            avg_dose_rate = None
+            std_dose_rate = None
+    
+    # Update track metadata
+    track.start_time = min(timestamps)
+    track.end_time = max(timestamps)
+    track.average_speed = average_speed
+    track.total_distance = total_distance
+
+    base_update_fields = [
+        'description',
+        'required_gps_accuracy_meters',
+        'synced',
+        'synced_at',
+        'cloud_track_id',
+        'start_time',
+        'end_time',
+        'average_speed',
+        'total_distance',
+    ]
+
+    if track_type != 'light':
+        track.min_dose_rate = min_dose_rate
+        track.max_dose_rate = max_dose_rate
+        track.avg_dose_rate = avg_dose_rate
+        track.std_dose_rate = std_dose_rate
+        base_update_fields.extend(['min_dose_rate', 'max_dose_rate', 'avg_dose_rate', 'std_dose_rate'])
+
+    track.save(update_fields=base_update_fields)
+    
+    # Phase 5: Create WeatherCache entries
+    print(f"Phase 5: Creating weather cache entries...")
+    weather_groups = {}
+    
+    for measurement in measurements:
+        try:
+            h3_cell = h3.latlng_to_cell(
+                float(measurement.latitude),
+                float(measurement.longitude),
+                8
+            )
+            
+            dt_utc = measurement.dateTime
+            if dt_utc.tzinfo is None:
+                dt_utc = timezone.make_aware(dt_utc, timezone.utc)
+            else:
+                dt_utc = dt_utc.astimezone(timezone.utc)
+            
+            timestamp_hour = dt_utc.replace(minute=0, second=0, microsecond=0)
+            key = (h3_cell, timestamp_hour)
+            
+            if key not in weather_groups:
+                weather_groups[key] = []
+            weather_groups[key].append(measurement)
+            
+        except Exception as e:
+            print(f"  Warning: Could not calculate H3 cell for measurement: {e}")
+            continue
+    
+    print(f"  Found {len(weather_groups)} unique H3 cell + hour combinations")
+    
+    # Create or get WeatherCache entries
+    for (h3_cell, timestamp_hour), group_measurements in weather_groups.items():
+        representative = group_measurements[0]
+        
+        cache, created = WeatherCache.objects.get_or_create(
+            h3_cell=h3_cell,
+            timestamp_hour=timestamp_hour,
+            defaults={
+                'latitude': representative.latitude,
+                'longitude': representative.longitude,
+                'fetched': False,
+                'fetch_attempts': 0
+            }
+        )
+        
+        for measurement in group_measurements:
+            measurement.weather_cache = cache
+    
+    # Bulk update weather_cache associations
+    if track_type == 'light':
+        LightPollutionMeasurement.objects.bulk_update(measurements, ['weather_cache'], batch_size=1000)
+    else:
+        RadiationMeasurement.objects.bulk_update(measurements, ['weather_cache'], batch_size=1000)
+    
+    print(f"  Associated {len(measurements)} measurements with {len(weather_groups)} weather cache entries")
+    print(f"  Weather data will be fetched by scheduler task")
+    
+    return len(measurements)
+
+
 def parse_gpx_track(track, file_content):
     """
     Parse GPX file and create measurements
@@ -647,7 +1009,7 @@ def fetch_pending_weather(limit=100, max_attempts=3):
     Usage:
         As RQ scheduled task (e.g., every hour):
         >>> from django_rq import get_scheduler
-        >>> scheduler = get_scheduler('default')
+        >>> scheduler = get_scheduler('openred-weather')
         >>> scheduler.schedule(
         ...     scheduled_time=datetime.utcnow(),
         ...     func=fetch_pending_weather,
@@ -850,6 +1212,7 @@ def fetch_weather_batch(caches):
                 'start_date': min_date.isoformat(),
                 'end_date': max_date.isoformat(),
                 'hourly': 'temperature_2m,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_direction_10m,cloud_cover',
+                'daily': 'rain_sum',
                 'timezone': 'UTC'
             }
             
@@ -862,6 +1225,14 @@ def fetch_weather_batch(caches):
                 continue
             
             hourly = data['hourly']
+            daily = data.get('daily', {})
+            
+            # Create a mapping of date -> daily rain sum for fast lookup
+            rain_by_date = {}
+            if 'time' in daily and 'rain_sum' in daily:
+                for i, date_str in enumerate(daily['time']):
+                    date_obj = datetime.fromisoformat(date_str).date()
+                    rain_by_date[date_obj] = daily['rain_sum'][i]
             
             # Create a mapping of hour -> weather data for fast lookup
             weather_by_hour = {}
@@ -891,6 +1262,9 @@ def fetch_weather_batch(caches):
                     cache.wind_speed = weather['wind_speed']
                     cache.wind_direction = weather['wind_direction']
                     cache.cloud_cover = weather['cloud_cover']
+                    # Add daily rain sum for this date
+                    cache_date = cache_time.date()
+                    cache.rain_sum = rain_by_date.get(cache_date)
                     cache.weather_data = data  # Store complete response
                     cache.fetched = True
                     cache.fetch_attempts += 1

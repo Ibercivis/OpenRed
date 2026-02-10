@@ -314,8 +314,7 @@ class LightPollutionMeasurementPermissionTests(TestCase):
             project=self.project,
             latitude=0.0,
             longitude=0.0,
-            sky_brightness=21.5,
-            sqm_reading=21.5,
+            lux=21.5,
             dateTime=timezone.now()
         )
         
@@ -325,8 +324,7 @@ class LightPollutionMeasurementPermissionTests(TestCase):
             project=self.project,
             latitude=1.0,
             longitude=1.0,
-            sky_brightness=20.5,
-            sqm_reading=20.5,
+            lux=20.5,
             dateTime=timezone.now()
         )
     

@@ -24,6 +24,7 @@ class WeatherCacheSerializer(serializers.ModelSerializer):
             'id', 'h3_cell', 'timestamp_hour',
             'temperature', 'humidity', 'pressure',
             'wind_speed', 'wind_direction', 'cloud_cover',
+            'rain_sum',
             'fetched', 'fetch_attempts'
         ]
         read_only_fields = fields
@@ -53,7 +54,12 @@ class RadiationMeasurementSerializer(serializers.ModelSerializer):
         - user, campaign, and track are optional
     """
     device = serializers.PrimaryKeyRelatedField(queryset=Device.objects.all())
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), allow_null=True, required=False)
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), 
+        allow_null=True, 
+        required=False,
+        write_only=True  # No exponer user_id en respuestas GET
+    )
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
     weather_cache = WeatherCacheSerializer(read_only=True)
 
@@ -73,7 +79,7 @@ class LightPollutionMeasurementSerializer(serializers.ModelSerializer):
         All LightPollutionMeasurement model fields including:
         - device, user, project, campaign, track (relationships)
         - dateTime, latitude, longitude, altitude (location/time)
-        - mpsas, nelm, sky_temperature (light pollution readings)
+        - lux, cct, cieX/cieY/cieU/cieV, duv, tint (light pollution readings)
         - data_quality, notes (metadata)
         - weather_cache (weather data via FK)
     
@@ -86,7 +92,12 @@ class LightPollutionMeasurementSerializer(serializers.ModelSerializer):
         - user, campaign, and track are optional
     """
     device = serializers.PrimaryKeyRelatedField(queryset=Device.objects.all())
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), allow_null=True, required=False)
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), 
+        allow_null=True, 
+        required=False,
+        write_only=True  # No exponer user_id en respuestas GET
+    )
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
     weather_cache = WeatherCacheSerializer(read_only=True)
 
@@ -134,14 +145,20 @@ class TrackSerializer(serializers.ModelSerializer):
     # Computed fields with names
     mission_name = serializers.CharField(source='mission.name', read_only=True)
     campaign_name = serializers.CharField(source='campaign.name', read_only=True)
+    campaign_has_password = serializers.SerializerMethodField()
+    
+    # Password field for protected campaigns (write-only)
+    campaign_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     
     class Meta:
         model = Track
         fields = [
             'id', 'name', 'project', 'device', 'mission', 'mission_name', 'campaign', 'campaign_name',
+            'campaign_has_password', 'campaign_password',
             'file', 'file_type', 'description',
             'start_time', 'end_time', 'total_distance', 'average_speed', 'measurements_count',
             'min_dose_rate', 'max_dose_rate', 'avg_dose_rate', 'std_dose_rate',
+            'synced', 'synced_at', 'cloud_track_id', 'required_gps_accuracy_meters',
             'status', 'error_message',
             'created_at', 'created_by', 'updated_at'
         ]
@@ -149,8 +166,34 @@ class TrackSerializer(serializers.ModelSerializer):
             'created_by', 'status', 'error_message', 'start_time', 'end_time', 
             'total_distance', 'average_speed', 'min_dose_rate', 'max_dose_rate', 
             'avg_dose_rate', 'std_dose_rate', 'created_at', 'updated_at', 
-            'name', 'mission_name', 'campaign_name'
+            'name', 'mission_name', 'campaign_name', 'campaign_has_password'
         ]
+    
+    def get_campaign_has_password(self, obj):
+        """Return True if campaign has a password, False otherwise."""
+        return bool(obj.campaign and obj.campaign.password) if obj.campaign else False
+    
+    def validate(self, data):
+        """
+        Validate campaign password if campaign is protected.
+        """
+        campaign = data.get('campaign')
+        campaign_password = data.pop('campaign_password', None)
+        
+        if campaign and campaign.password:
+            # Campaign is protected, password is required
+            if not campaign_password:
+                raise serializers.ValidationError({
+                    'campaign_password': 'Esta campaña requiere contraseña para subir tracks.'
+                })
+            
+            # Verify password
+            if campaign_password != campaign.password:
+                raise serializers.ValidationError({
+                    'campaign_password': 'Contraseña incorrecta.'
+                })
+        
+        return data
 
 
 # Backward compatibility alias for frontend

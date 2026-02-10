@@ -134,10 +134,10 @@ You need to run three services:
 python manage.py runserver 0.0.0.0:8000
 ```
 
-### Terminal 2: RQ Worker
+### Terminal 2: RQ Worker (Tracks)
 
 ```bash
-python manage.py rqworker default
+python manage.py rqworker openred-tracks
 ```
 
 ### Terminal 3: Redis Server
@@ -151,7 +151,8 @@ redis-server
     
     ```bash
     tmux new-session -d -s django 'python manage.py runserver'
-    tmux new-session -d -s rqworker 'python manage.py rqworker default'
+    tmux new-session -d -s rqworker-tracks 'python manage.py rqworker openred-tracks'
+    tmux new-session -d -s rqworker-weather 'python manage.py rqworker openred-weather'
     ```
 
 ## Verify Installation

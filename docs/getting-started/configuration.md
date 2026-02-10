@@ -229,14 +229,14 @@ DATABASES['default']['OPTIONS'] = {
 Run multiple workers for better throughput:
 
 ```bash
-# Terminal 1
-python manage.py rqworker default
+# Terminal 1: Track processing (critical)
+python manage.py rqworker openred-tracks
 
-# Terminal 2
-python manage.py rqworker default
+# Terminal 2: Track processing (additional worker)
+python manage.py rqworker openred-tracks
 
-# Terminal 3
-python manage.py rqworker default
+# Terminal 3: Weather data (secondary)
+python manage.py rqworker openred-weather
 ```
 
 ### Caching

@@ -125,18 +125,17 @@ class LightPollutionMeasurementAdmin(admin.ModelAdmin):
     from citizen science campaigns and research projects.
     
     Features:
-        - List view with key fields (device, project, track, date, brightness, location)
-        - Filtering by project, device, track, Bortle class
+        - List view with key fields (device, project, track, date, lux/CCT, location)
+        - Filtering by project, device, track, mode
         - Search by device name, project name, track name, measurement ID
         - Date hierarchy navigation
-        - Organized fieldsets for basic info, location, and light pollution data
+        - Organized fieldsets for basic info, location, and sensor data
     
     Display Fields:
-        device, project, track, dateTime, sky_brightness, bortle_class,
-        latitude, longitude
+        device, project, track, dateTime, lux, cct, mode, latitude, longitude
     
     Filter Options:
-        project, device, track, bortle_class, dateTime
+        project, device, track, mode, dateTime
     
     Search Fields:
         device name, project name, track name, measurement_id
@@ -144,8 +143,8 @@ class LightPollutionMeasurementAdmin(admin.ModelAdmin):
     Methods:
         get_track(obj): Display track name or "Sin track"
     """
-    list_display = ('device', 'project', 'get_track', 'dateTime', 'sky_brightness', 'bortle_class', 'latitude', 'longitude')
-    list_filter = ('project', 'device', 'track', 'bortle_class', 'dateTime')
+    list_display = ('device', 'project', 'get_track', 'dateTime', 'lux', 'cct', 'mode', 'latitude', 'longitude')
+    list_filter = ('project', 'device', 'track', 'mode', 'dateTime')
     search_fields = ('device__name', 'project__name', 'track__name', 'measurement_id')
     readonly_fields = ('measurement_id', 'timestamp', 'created_at')
     date_hierarchy = 'dateTime'
@@ -158,7 +157,11 @@ class LightPollutionMeasurementAdmin(admin.ModelAdmin):
             'fields': ('latitude', 'longitude', 'altitude', 'accuracy')
         }),
         ('Datos de Contaminación Lumínica', {
-            'fields': ('sky_brightness', 'bortle_class', 'nelm', 'sqm_value')
+            'fields': (
+                'lux', 'cct', 'cieX', 'cieY', 'cieU', 'cieV',
+                'duv', 'tint', 'mode', 'channels', 'temperature', 'batteryMv',
+                'legacy_data'
+            )
         })
     )
     
@@ -212,9 +215,9 @@ class TrackAdmin(admin.ModelAdmin):
             Iterates through selected tracks and calls update_measurement_count()
             on each, then displays success message with count.
     """
-    list_display = ('name', 'project', 'device', 'campaign', 'total_measurements', 'total_distance', 'avg_dose_rate', 'average_speed', 'created_at')
-    list_filter = ('project', 'device', 'campaign', 'created_at')
-    search_fields = ('name', 'description', 'device__name', 'project__name')
+    list_display = ('name', 'project', 'get_mission', 'campaign', 'device', 'total_measurements', 'total_distance', 'avg_dose_rate', 'average_speed', 'created_at')
+    list_filter = ('project', 'mission', 'campaign', 'device', 'created_at')
+    search_fields = ('name', 'description', 'device__name', 'project__name', 'mission__name', 'campaign__name')
     readonly_fields = (
         'total_measurements', 'total_distance', 'average_speed', 
         'min_dose_rate', 'max_dose_rate', 'avg_dose_rate', 'std_dose_rate',
@@ -222,6 +225,24 @@ class TrackAdmin(admin.ModelAdmin):
     )
     
     actions = ['update_measurement_counts']
+    
+    def get_mission(self, obj):
+        """
+        Display the mission name if available through campaign.
+        
+        Args:
+            obj (Track): The track instance
+            
+        Returns:
+            str: Mission name or "-"
+        """
+        if obj.campaign:
+            return obj.campaign.mission.name
+        elif obj.mission:
+            return obj.mission.name
+        return "-"
+    get_mission.short_description = 'Misión'
+    get_mission.admin_order_field = 'campaign__mission'
     
     def update_measurement_counts(self, request, queryset):
         for track in queryset:

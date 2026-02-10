@@ -4,7 +4,27 @@ Understanding OpenRed's asynchronous task processing system.
 
 ## Overview
 
-OpenRed uses **RQ (Redis Queue)** for background job processing. This allows time-consuming tasks like CSV parsing to run asynchronously without blocking HTTP requests.
+OpenRed uses **RQ (Redis Queue)** for background job processing with **two separate queues** for better performance and reliability.
+
+### Queue Architecture
+
+**1. `openred-tracks` (Critical Queue)**
+- **Purpose:** Process uploaded track files (CSV, GPX, JSON)
+- **Priority:** HIGH - User is waiting for results
+- **Workers:** 2-3 workers recommended
+- **Timeout:** 10 minutes per job
+
+**2. `openred-weather` (Secondary Queue)**
+- **Purpose:** Fetch weather data from Open-Meteo API
+- **Priority:** LOW - Background enrichment
+- **Workers:** 1 worker sufficient
+- **Timeout:** 5-30 minutes per job
+
+**Why separate queues?**
+- ✅ Prioritization: Track uploads are user-facing, weather is background
+- ✅ Independent scaling: More workers for tracks, fewer for weather
+- ✅ Fault isolation: Weather API issues don't block track processing
+- ✅ Resource optimization: Different timeout and retry policies
 
 ```mermaid
 sequenceDiagram
@@ -92,8 +112,11 @@ RQ_QUEUES = {
 **Purpose:** Execute background tasks
 
 ```bash
-# Start RQ worker
-python manage.py rqworker default
+# Start RQ worker for tracks (critical)
+python manage.py rqworker openred-tracks
+
+# Start RQ worker for weather (secondary)
+python manage.py rqworker openred-weather
 ```
 
 **Worker process:**
@@ -106,13 +129,16 @@ python manage.py rqworker default
 
 **Multiple workers:**
 ```bash
-# Terminal 1
-python manage.py rqworker default
+# Terminal 1: Track processing
+python manage.py rqworker openred-tracks
 
-# Terminal 2
-python manage.py rqworker default
+# Terminal 2: Track processing (additional)
+python manage.py rqworker openred-tracks
 
-# Jobs distributed automatically
+# Terminal 3: Weather data
+python manage.py rqworker openred-weather
+
+# Jobs distributed automatically within each queue
 ```
 
 ### 3. Django Integration - Job Enqueueing
@@ -286,8 +312,13 @@ default      |████████████░░░░░░░░░░
 ```python
 from django_rq import get_queue
 
-queue = get_queue('default')
-print(f"Jobs in queue: {len(queue)}")
+# Check tracks queue (critical)
+tracks_queue = get_queue('openred-tracks')
+print(f"Track jobs in queue: {len(tracks_queue)}")
+
+# Check weather queue (secondary)
+weather_queue = get_queue('openred-weather')
+print(f"Weather jobs in queue: {len(weather_queue)}")
 
 # Get job details
 job = queue.fetch_job('job-id')
@@ -319,7 +350,8 @@ for job in failed_queue.jobs:
 from django_rq import get_failed_queue
 from rq.registry import FailedJobRegistry
 
-queue = get_queue('default')
+# For tracks queue
+queue = get_queue('openred-tracks')
 registry = FailedJobRegistry(queue=queue)
 
 # Requeue specific job
@@ -388,10 +420,13 @@ for i in range(0, len(parsed_data), batch_size):
 
 **Multiple workers:**
 ```bash
-# Start 4 workers
-for i in {1..4}; do
-    python manage.py rqworker default &
+# Start 3 workers for tracks (high priority)
+for i in {1..3}; do
+    python manage.py rqworker openred-tracks &
 done
+
+# Start 1 worker for weather (secondary)
+python manage.py rqworker openred-weather &
 ```
 
 - Processes jobs in parallel
@@ -522,7 +557,7 @@ After=network.target redis.service
 Type=simple
 User=openred
 WorkingDirectory=/opt/openred
-ExecStart=/opt/openred/venv/bin/python manage.py rqworker default
+ExecStart=/opt/openred/venv/bin/python manage.py rqworker openred-tracks
 Restart=always
 RestartSec=5
 
@@ -546,8 +581,11 @@ from django.core.management.base import BaseCommand
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        queue = get_queue('default')
-        workers = queue.workers
+        tracks_queue = get_queue('openred-tracks')
+        weather_queue = get_queue('openred-weather')
+        
+        tracks_workers = tracks_queue.workers
+        weather_workers = weather_queue.workers
         
         if len(workers) == 0:
             # Alert: No workers running!
@@ -566,9 +604,14 @@ queue_length = Gauge('openred_rq_queue_length', 'Number of jobs in RQ queue')
 worker_count = Gauge('openred_rq_worker_count', 'Number of active RQ workers')
 
 def update_metrics():
-    queue = get_queue('default')
-    queue_length.set(len(queue))
-    worker_count.set(len(queue.workers))
+    tracks_queue = get_queue('openred-tracks')
+    weather_queue = get_queue('openred-weather')
+    
+    queue_length.labels(queue='tracks').set(len(tracks_queue))
+    queue_length.labels(queue='weather').set(len(weather_queue))
+    
+    worker_count.labels(queue='tracks').set(len(tracks_queue.workers))
+    worker_count.labels(queue='weather').set(len(weather_queue.workers))
 ```
 
 ## Future Enhancements
@@ -637,9 +680,16 @@ conn.ping()  # Should return True
 **Check queue:**
 ```python
 from django_rq import get_queue
-queue = get_queue('default')
-print(f"Jobs in queue: {len(queue)}")
-print(f"Workers: {len(queue.workers)}")
+
+# Check tracks queue
+tracks_queue = get_queue('openred-tracks')
+print(f"Track jobs: {len(tracks_queue)}")
+print(f"Track workers: {len(tracks_queue.workers)}")
+
+# Check weather queue
+weather_queue = get_queue('openred-weather')
+print(f"Weather jobs: {len(weather_queue)}")
+print(f"Weather workers: {len(weather_queue.workers)}")
 ```
 
 ### Jobs Timing Out

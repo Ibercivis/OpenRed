@@ -337,7 +337,7 @@ class H3LightPollutionAggregationTestCase(TestCase):
                 device=self.device,
                 latitude=Decimal(str(data['lat'])),
                 longitude=Decimal(str(data['lng'])),
-                sky_brightness=Decimal(str(data['value'])),
+                lux=Decimal(str(data['value'])),
                 dateTime='2024-01-01T12:00:00Z'
             )
     

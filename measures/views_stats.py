@@ -132,7 +132,7 @@ class StatsViewSet(viewsets.ViewSet):
             value_field = 'dose_rate'
         else:
             MeasurementModel = LightPollutionMeasurement
-            value_field = 'sky_brightness'
+            value_field = 'lux'
         
         # Count measurements
         total_measurements = MeasurementModel.objects.count()
@@ -324,7 +324,7 @@ class StatsViewSet(viewsets.ViewSet):
                                 "h3": "88754e64ddbffff",
                                 "count": 1255,
                                 "avg_dose_rate": 0.12,
-                                "avg_sky_brightness": 19.1,
+                                "avg_lux": 19.1,
                                 "center": {"lat": 40.4168, "lon": -3.7038}
                             }
                         ]
@@ -389,13 +389,11 @@ class StatsViewSet(viewsets.ViewSet):
                     {"error": "Invalid bbox format. Use: min_lon,min_lat,max_lon,max_lat"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-        
-        # Apply project filter
+
         if project_id:
             radiation_qs = radiation_qs.filter(project_id=project_id)
             light_pollution_qs = light_pollution_qs.filter(project_id=project_id)
-        
-        # Apply date filters
+
         if start_date:
             radiation_qs = radiation_qs.filter(dateTime__gte=start_date)
             light_pollution_qs = light_pollution_qs.filter(dateTime__gte=start_date)
@@ -420,10 +418,10 @@ class StatsViewSet(viewsets.ViewSet):
                         'count': 0,
                         'dose_rate_sum': 0,
                         'dose_rate_count': 0,
-                        'sky_brightness_sum': 0,
-                        'sky_brightness_count': 0
+                        'lux_sum': 0,
+                        'lux_count': 0
                     }
-                
+
                 cells[h3_cell]['count'] += 1
                 if measurement['dose_rate'] is not None:
                     cells[h3_cell]['dose_rate_sum'] += float(measurement['dose_rate'])
@@ -433,7 +431,7 @@ class StatsViewSet(viewsets.ViewSet):
                 continue
         
         # Process light pollution measurements
-        for measurement in light_pollution_qs.values('latitude', 'longitude', 'sky_brightness'):
+        for measurement in light_pollution_qs.values('latitude', 'longitude', 'lux'):
             try:
                 h3_cell = h3.latlng_to_cell(
                     float(measurement['latitude']),
@@ -446,14 +444,14 @@ class StatsViewSet(viewsets.ViewSet):
                         'count': 0,
                         'dose_rate_sum': 0,
                         'dose_rate_count': 0,
-                        'sky_brightness_sum': 0,
-                        'sky_brightness_count': 0
+                        'lux_sum': 0,
+                        'lux_count': 0
                     }
                 
                 cells[h3_cell]['count'] += 1
-                if measurement['sky_brightness'] is not None:
-                    cells[h3_cell]['sky_brightness_sum'] += float(measurement['sky_brightness'])
-                    cells[h3_cell]['sky_brightness_count'] += 1
+                if measurement['lux'] is not None:
+                    cells[h3_cell]['lux_sum'] += float(measurement['lux'])
+                    cells[h3_cell]['lux_count'] += 1
             except Exception as e:
                 logger.warning(f"Error processing light pollution measurement: {e}")
                 continue
@@ -479,9 +477,9 @@ class StatsViewSet(viewsets.ViewSet):
             if data['dose_rate_count'] > 0:
                 cell_info['avg_dose_rate'] = round(data['dose_rate_sum'] / data['dose_rate_count'], 3)
             
-            # Add average sky_brightness if available
-            if data['sky_brightness_count'] > 0:
-                cell_info['avg_sky_brightness'] = round(data['sky_brightness_sum'] / data['sky_brightness_count'], 2)
+            # Add average lux if available
+            if data['lux_count'] > 0:
+                cell_info['avg_lux'] = round(data['lux_sum'] / data['lux_count'], 2)
             
             cell_data.append(cell_info)
             total_measurements += data['count']

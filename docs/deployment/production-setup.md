@@ -241,7 +241,7 @@ User=openred
 Group=openred
 WorkingDirectory=/home/openred/openred-api
 Environment="PATH=/home/openred/openred-api/.venv/bin"
-ExecStart=/home/openred/openred-api/.venv/bin/python manage.py rqworker default
+ExecStart=/home/openred/openred-api/.venv/bin/python manage.py rqworker openred-tracks
 Restart=on-failure
 RestartSec=10
 

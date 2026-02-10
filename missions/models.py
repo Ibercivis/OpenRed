@@ -231,6 +231,13 @@ class Campaign(models.Model):
         related_name='created_campaigns',
         verbose_name="Created By"
     )
+    password = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Password",
+        help_text="Optional password to protect track uploads to this campaign"
+    )
 
     class Meta:
         verbose_name = "Campaign"

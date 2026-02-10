@@ -21,15 +21,57 @@ class UserViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """
-        For write operations (update, partial_update, destroy), 
-        users can only modify/delete their own account.
+        Block access to other users' data.
+        Users can only access their own account via /api/users/me/
         """
         queryset = super().get_queryset()
         
-        if self.action in ['update', 'partial_update', 'destroy']:
-            # Only allow users to modify/delete their own account
-            return queryset.filter(id=self.request.user.id)
-        return queryset
+        # Only allow access to own account
+        return queryset.filter(id=self.request.user.id)
+    
+    def list(self, request, *args, **kwargs):
+        """
+        Block listing all users. Use /api/users/me/ instead.
+        """
+        return Response(
+            {'detail': 'Listing users is not allowed. Use /api/users/me/ to get your profile.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Block retrieving specific user by ID. Use /api/users/me/ instead.
+        """
+        # Only allow if requesting own user via special 'me' endpoint
+        if kwargs.get('pk') == 'me':
+            return super().retrieve(request, *args, **kwargs)
+        
+        return Response(
+            {'detail': 'Access to user profiles is not allowed. Use /api/users/me/ to get your own profile.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    @action(detail=False, methods=['get'], url_path='me')
+    def me(self, request):
+        """
+        Get the authenticated user's profile.
+        
+        Returns:
+            Response: JSON with user data (id, username, email, date_joined)
+        """
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path='me')
+    def me(self, request):
+        """
+        Get the authenticated user's profile.
+        
+        Returns:
+            Response: JSON with user data (id, username, email, date_joined)
+        """
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
     
     @action(detail=False, methods=['get'], url_path='me/stats')
     def my_stats(self, request):

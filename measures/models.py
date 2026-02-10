@@ -119,6 +119,12 @@ class WeatherCache(models.Model):
         verbose_name="Cloud Cover (%)",
         help_text="Total cloud cover percentage"
     )
+    rain_sum = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name="Rain Sum (mm)",
+        help_text="Total daily precipitation sum (rain_sum)"
+    )
     
     # Fetch metadata
     fetch_attempts = models.IntegerField(
@@ -373,7 +379,9 @@ class RadiationMeasurement(BaseMeasurement):
     Attributes:
         radiation_unit (str): Unit of measurement, typically "μSv/h" (microsieverts per hour)
         cpm (int): Counts per minute from the Geiger-Müller tube
+        cpm_error (float): Absolute error of CPM measurement (optional)
         dose_rate (float): Equivalent dose rate (radiation intensity)
+        dose_rate_error (float): Absolute error of dose rate measurement (optional)
         speed (float): GPS-calculated speed in m/s at time of measurement
         detector_type (str): Type of radiation detector used (e.g., "SBM-20")
         calibration_factor (float): Device-specific calibration multiplier
@@ -424,11 +432,23 @@ class RadiationMeasurement(BaseMeasurement):
         verbose_name="CPM",
         help_text="Counts per minute"
     )
+    cpm_error = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name="CPM Error",
+        help_text="Absolute error of CPM measurement"
+    )
     dose_rate = models.FloatField(
         null=True, 
         blank=True,
         verbose_name="Tasa de Dosis",
         help_text="Tasa de dosis equivalente"
+    )
+    dose_rate_error = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name="Dose Rate Error",
+        help_text="Absolute error of dose rate measurement"
     )
     
     # Speed data (calculated from GPS track)
@@ -494,25 +514,26 @@ class RadiationMeasurement(BaseMeasurement):
 
 class LightPollutionMeasurement(BaseMeasurement):
     """
-    Sky brightness measurements for light pollution monitoring.
-    
-    This model stores night sky quality data from Sky Quality Meters (SQM) and similar
-    devices that measure artificial light at night. Measurements include sky brightness,
-    astronomical conditions (moon phase, observation angle), and derived metrics like
-    Bortle Scale classification and Naked Eye Limiting Magnitude.
-    
-    Attributes:
-        sky_brightness (float): Sky brightness measurement value
-        brightness_unit (str): Unit of measurement, typically "mag/arcsec²" (magnitudes per square arcsecond)
-        sqm_reading (float): Direct reading from Sky Quality Meter (higher = darker sky)
-        nelm (float): Naked Eye Limiting Magnitude - faintest star visible (higher = darker)
-        bortle_class (int): Bortle Dark Sky Scale classification (1=pristine, 9=inner city)
-        moon_phase (float): Moon phase at time of measurement (0.0=new moon, 1.0=full moon)
-        moon_altitude (float): Moon's altitude above horizon in degrees
-        observation_angle (float): Angle from zenith where measurement was taken (degrees)
-        observation_direction (str): Cardinal direction (N, NE, E, SE, S, SW, W, NW, Z=zenith)
-        measurement_data (JSON): Additional device-specific data
-        location (Point): PostGIS geographic point for spatial queries (auto-generated)
+    Light sensor measurements for light pollution monitoring.
+
+    This model is designed to match the JSON payload uploaded by the mobile client
+    for `trackType="light"` points. Field names intentionally mirror the JSON keys
+    (camelCase) to keep API <-> client mapping 1:1.
+
+    Point-level attributes (as received in JSON):
+        lux (float): Illuminance
+        cct (float): Correlated color temperature
+        cieX/cieY/cieU/cieV (float): CIE chromaticity coordinates
+        duv (float): Duv
+        tint (float): Tint
+        mode (int): Measurement mode
+        channels (JSON): Raw channel values array
+        temperature (float): Sensor temperature
+        batteryMv (int): Battery voltage in millivolts
+
+    Note:
+        Common fields like `dateTime`, `latitude`, `longitude`, `altitude`, and
+        `accuracy` are inherited from BaseMeasurement.
         
     Relationships (inherited from BaseMeasurement):
         device (Device): Sky quality meter that captured this measurement
@@ -530,87 +551,37 @@ class LightPollutionMeasurement(BaseMeasurement):
         >>> measurement = LightPollutionMeasurement.objects.create(
         ...     project=project,
         ...     device=device,
-        ...     latitude=42.3601,
-        ...     longitude=-71.0589,
+        ...     latitude=40.4168,
+        ...     longitude=-3.7038,
         ...     dateTime=timezone.now(),
-        ...     sky_brightness=18.5,  # mag/arcsec²
-        ...     brightness_unit="mag/arcsec²",
-        ...     bortle_class=7,  # Suburban/urban transition
-        ...     observation_direction='Z'  # Zenith
-        ... )
-        >>> # Find darkest skies in region
-        >>> dark_sites = LightPollutionMeasurement.objects.filter(
-        ...     sqm_reading__gte=21.0  # Bortle 3-4 or better
+        ...     lux=12.3,
+        ...     cct=3200.0,
+        ...     cieX=0.42,
+        ...     cieY=0.41,
+        ...     mode=3,
         ... )
     """
-    # Datos principales de luminosidad
-    sky_brightness = models.FloatField(
-        verbose_name="Brillo del Cielo",
-        help_text="Brillo del cielo medido"
-    )
-    brightness_unit = models.CharField(
-        max_length=20, 
-        default="mag/arcsec²",
-        verbose_name="Unidad de Brillo"
-    )
-    
-    # Mediciones específicas
-    sqm_reading = models.FloatField(
-        null=True, 
+    # Optional legacy payload holder for previous schema / migrations
+    legacy_data = models.JSONField(
+        default=dict,
         blank=True,
-        verbose_name="Lectura SQM",
-        help_text="Sky Quality Meter reading"
+        help_text="Legacy fields preserved during schema migrations"
     )
-    nelm = models.FloatField(
-        null=True, 
-        blank=True,
-        verbose_name="NELM",
-        help_text="Naked Eye Limiting Magnitude"
-    )
-    bortle_class = models.IntegerField(
-        null=True, 
-        blank=True,
-        choices=[(i, f"Clase {i}") for i in range(1, 10)],
-        verbose_name="Clase Bortle",
-        help_text="Escala Bortle de Calidad del Cielo (1-9)"
-    )
-    
-    # Condiciones de observación
-    moon_phase = models.FloatField(
-        null=True, 
-        blank=True,
-        verbose_name="Fase Lunar",
-        help_text="Fase lunar (0.0 = Luna nueva, 1.0 = Luna llena)"
-    )
-    moon_altitude = models.FloatField(
-        null=True, 
-        blank=True,
-        verbose_name="Altitud Lunar",
-        help_text="Altitud de la luna sobre el horizonte (grados)"
-    )
-    observation_angle = models.FloatField(
-        null=True, 
-        blank=True,
-        verbose_name="Ángulo de Observación",
-        help_text="Ángulo de observación desde el cenit (grados)"
-    )
-    observation_direction = models.CharField(
-        max_length=10,
-        blank=True,
-        choices=[
-            ('N', 'Norte'), ('NE', 'Noreste'), ('E', 'Este'), ('SE', 'Sureste'),
-            ('S', 'Sur'), ('SW', 'Suroeste'), ('W', 'Oeste'), ('NW', 'Noroeste'),
-            ('Z', 'Cenit')
-        ],
-        verbose_name="Dirección de Observación"
-    )
-    
-    # Datos adicionales en JSON
-    measurement_data = models.JSONField(
-        blank=True, 
-        null=True,
-        help_text="Datos adicionales específicos de contaminación lumínica"
-    )
+
+    # JSON-aligned point fields (camelCase)
+    lux = models.FloatField(null=True, blank=True, verbose_name="Lux")
+    cct = models.FloatField(null=True, blank=True, verbose_name="CCT")
+    cieX = models.FloatField(null=True, blank=True, verbose_name="CIE x")
+    cieY = models.FloatField(null=True, blank=True, verbose_name="CIE y")
+    cieU = models.FloatField(null=True, blank=True, verbose_name="CIE u")
+    cieV = models.FloatField(null=True, blank=True, verbose_name="CIE v")
+    duv = models.FloatField(null=True, blank=True, verbose_name="Duv")
+    tint = models.FloatField(null=True, blank=True, verbose_name="Tint")
+    mode = models.IntegerField(null=True, blank=True, verbose_name="Mode")
+    channels = models.JSONField(null=True, blank=True, verbose_name="Channels")
+    temperature = models.FloatField(null=True, blank=True, verbose_name="Temperature")
+    batteryMv = models.IntegerField(null=True, blank=True, verbose_name="Battery (mV)")
+    speed = models.FloatField(null=True, blank=True, verbose_name="Speed")
     
     # Campo geoespacial para consultas PostGIS y H3
     location = gis_models.PointField(
@@ -742,6 +713,7 @@ class Track(models.Model):
         max_length=10,
         choices=[
             ('rctrk', 'RCTRK'),
+            ('json', 'JSON'),
         ],
         default='rctrk',
         verbose_name="Tipo de Archivo"
@@ -752,6 +724,34 @@ class Track(models.Model):
     start_time = models.DateTimeField(null=True, blank=True, verbose_name="Hora de Inicio")
     end_time = models.DateTimeField(null=True, blank=True, verbose_name="Hora de Fin")
     total_measurements = models.IntegerField(default=0, verbose_name="Total de Mediciones")
+    
+    # Campos adicionales para JSON de RadiaCode
+    synced = models.BooleanField(
+        default=False,
+        null=True,
+        blank=True,
+        verbose_name="Synced",
+        help_text="Track synced status from mobile app"
+    )
+    synced_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Synced At",
+        help_text="When track was synced to cloud"
+    )
+    cloud_track_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        verbose_name="Cloud Track ID",
+        help_text="Track ID from cloud/mobile app"
+    )
+    required_gps_accuracy_meters = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name="Required GPS Accuracy",
+        help_text="Required GPS accuracy in meters for this track"
+    )
     total_distance = models.FloatField(
         null=True,
         blank=True,

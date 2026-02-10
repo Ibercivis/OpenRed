@@ -10,6 +10,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .models import Project, Mission, Campaign
@@ -165,14 +166,33 @@ class MissionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Mission.objects.all()
     serializer_class = MissionSerializer
     permission_classes = []  # Public read access
+
+    def get_queryset(self):
+        """
+        Return missions queryset.
+
+        Note: The list endpoint requires a `project` query parameter and will
+        apply filtering/validation in `list()`. Other actions (e.g. retrieve)
+        should work without requiring query parameters.
+        """
+        queryset = Mission.objects.all()
+
+        # Only the list endpoint needs to be scoped to a project.
+        if getattr(self, 'action', None) == 'list':
+            project_id = self.kwargs.get('project_pk')
+            if not project_id:
+                raise ValidationError({'project': 'Project context is required.'})
+            return queryset.filter(project_id=project_id)
+
+        return queryset
     
     @swagger_auto_schema(
         tags=['Missions'],
-        operation_description="List all missions (public access)"
+        operation_description="List missions filtered by project (public access)",
     )
     def list(self, request, *args, **kwargs):
         """
-        List all missions.
+        List missions filtered by project.
         
         Args:
             request: HTTP request object
@@ -180,7 +200,7 @@ class MissionViewSet(viewsets.ReadOnlyModelViewSet):
             **kwargs: Additional keyword arguments
             
         Returns:
-            Response: JSON list of all missions
+            Response: JSON list of missions for the given project
         """
         return super().list(request, *args, **kwargs)
     
@@ -230,29 +250,20 @@ class CampaignViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         """
-        Filter campaigns by project and/or mission query parameters.
-        
-        Query Parameters:
-            project (int): Filter campaigns by project (via mission.project)
-            mission (int): Filter campaigns by mission
-            
-        Examples:
-            /api/campaigns/ - All campaigns
-            /api/campaigns/?project=1 - Campaigns whose mission belongs to project 1
-            /api/campaigns/?mission=1 - Campaigns of mission 1
-            /api/campaigns/?project=1&mission=1 - Campaigns of mission 1 in project 1
+        Filter campaigns by mission context (nested endpoint).
+
+        This ViewSet is exposed as:
+            /api/missions/{mission_id}/campaigns/ (list)
+            /api/campaigns/{id}/ (retrieve)
         """
         queryset = Campaign.objects.all()
-        project_id = self.request.query_params.get('project')
-        mission_id = self.request.query_params.get('mission')
-        
-        if mission_id:
-            queryset = queryset.filter(mission_id=mission_id)
-        
-        if project_id:
-            # Filter by project through the mission relationship
-            queryset = queryset.filter(mission__project_id=project_id)
-        
+
+        if getattr(self, 'action', None) == 'list':
+            mission_id = self.kwargs.get('mission_pk')
+            if not mission_id:
+                raise ValidationError({'mission': 'Mission context is required.'})
+            return queryset.filter(mission_id=mission_id)
+
         return queryset
 
     @swagger_auto_schema(

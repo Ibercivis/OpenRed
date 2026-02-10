@@ -18,7 +18,7 @@ class Command(BaseCommand):
     help = 'Initialize RQ scheduled jobs from settings.RQ_JOBS'
 
     def handle(self, *args, **options):
-        scheduler = get_scheduler('default')
+        scheduler = get_scheduler('openred-weather')
         
         self.stdout.write(
             self.style.SUCCESS('\n⚙️  Initializing RQ scheduled jobs from settings...\n')
@@ -108,7 +108,8 @@ class Command(BaseCommand):
                     f'\n💡 To run the scheduler:\n'
                     f'   python manage.py rqscheduler\n'
                     f'\n💡 To run workers:\n'
-                    f'   python manage.py rqworker default\n'
+                    f'   python manage.py rqworker openred-tracks  (for track processing)\n'
+                    f'   python manage.py rqworker openred-weather  (for weather data)\n'
                     f'\n💡 To view scheduled jobs:\n'
                     f'   python manage.py rqstats\n'
                 )
