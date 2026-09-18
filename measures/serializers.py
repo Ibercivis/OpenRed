@@ -6,7 +6,7 @@ Provides API serialization for radiation measurements, light pollution measureme
 and uploaded track files (CSV/GPX).
 """
 from rest_framework import serializers
-from .models import RadiationMeasurement, LightPollutionMeasurement, Track, WeatherCache
+from .models import RadiationMeasurement, LightPollutionMeasurement, Track, WeatherCache, Spectrum, Station
 from missions.models import Project, Mission, Campaign
 from devices.models import Device
 from django.contrib.auth.models import User
@@ -155,6 +155,7 @@ class TrackSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'project', 'device', 'mission', 'mission_name', 'campaign', 'campaign_name',
             'campaign_has_password', 'campaign_password',
+            'track_type',
             'file', 'file_type', 'description',
             'start_time', 'end_time', 'total_distance', 'average_speed', 'measurements_count',
             'min_dose_rate', 'max_dose_rate', 'avg_dose_rate', 'std_dose_rate',
@@ -194,6 +195,81 @@ class TrackSerializer(serializers.ModelSerializer):
                 })
         
         return data
+
+
+class SpectrumSerializer(serializers.ModelSerializer):
+    """
+    Read serializer for Spectrum (gamma spectra integrated over track segments).
+
+    Outputs camelCase keys to mirror the upload_json contract (the client
+    normalizes both camelCase and snake_case). Includes `id` and the full
+    `counts` array — this endpoint is only called when opening a single track,
+    not in list views, so returning counts here is intentional.
+    """
+    startedAt = serializers.DateTimeField(source='started_at')
+    endedAt = serializers.DateTimeField(source='ended_at')
+    durationSec = serializers.IntegerField(source='duration_sec')
+    channelCount = serializers.IntegerField(source='channel_count')
+    startLat = serializers.FloatField(source='start_lat', allow_null=True)
+    startLon = serializers.FloatField(source='start_lon', allow_null=True)
+    startAlt = serializers.FloatField(source='start_alt', allow_null=True)
+    endLat = serializers.FloatField(source='end_lat', allow_null=True)
+    endLon = serializers.FloatField(source='end_lon', allow_null=True)
+
+    class Meta:
+        model = Spectrum
+        fields = [
+            'id', 'name', 'index',
+            'startedAt', 'endedAt', 'durationSec',
+            'a0', 'a1', 'a2', 'channelCount', 'counts',
+            'startLat', 'startLon', 'startAlt', 'endLat', 'endLon',
+        ]
+        read_only_fields = fields
+
+
+class StationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for static base stations (radiation only).
+
+    The station is bound 1:1 to a device the user owns and files all readings
+    under a fixed radiation project (campaign stays NULL). Location, project and
+    interval are set here once; incoming static measurements derive everything
+    from the device token, so the firmware never sends them.
+
+    Watchdog fields (``status``, ``last_measurement_at``) are read-only — they are
+    maintained server-side by the gap-detection job.
+    """
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Station
+        fields = [
+            'id', 'name', 'device', 'project', 'user',
+            'latitude', 'longitude', 'altitude',
+            'expected_interval_seconds',
+            'last_measurement_at', 'status', 'is_active',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = [
+            'user', 'last_measurement_at', 'status', 'created_at', 'updated_at',
+        ]
+
+    def validate_device(self, device):
+        """The device must belong to the requesting user and not already be a station."""
+        request = self.context.get('request')
+        if request is not None and device.owner_id != request.user.id:
+            raise serializers.ValidationError("Este dispositivo no te pertenece.")
+        existing = Station.objects.filter(device=device)
+        if self.instance is not None:
+            existing = existing.exclude(pk=self.instance.pk)
+        if existing.exists():
+            raise serializers.ValidationError("Este dispositivo ya tiene una estación asociada.")
+        return device
+
+    def validate_project(self, project):
+        if project.project_type != 'radiation':
+            raise serializers.ValidationError("Una estación solo puede asociarse a un proyecto de radiación.")
+        return project
 
 
 # Backward compatibility alias for frontend

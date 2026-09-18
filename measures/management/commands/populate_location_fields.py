@@ -10,7 +10,6 @@ Usage:
 from django.core.management.base import BaseCommand
 from django.contrib.gis.geos import Point
 from measures.models import RadiationMeasurement, LightPollutionMeasurement
-from django.db import transaction
 
 
 class Command(BaseCommand):
@@ -20,8 +19,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--batch-size',
             type=int,
-            default=1000,
-            help='Number of records to process per batch (default: 1000)',
+            default=5000,
+            help='Number of records to process per batch (default: 5000)',
         )
         parser.add_argument(
             '--dry-run',
@@ -36,104 +35,42 @@ class Command(BaseCommand):
         if dry_run:
             self.stdout.write(self.style.WARNING('DRY RUN MODE - No changes will be made'))
 
-        # Process RadiationMeasurement
-        self.stdout.write('\n' + '='*60)
-        self.stdout.write('Processing RadiationMeasurement records...')
-        self.stdout.write('='*60)
-        
-        radiation_qs = RadiationMeasurement.objects.filter(
-            latitude__isnull=False,
-            longitude__isnull=False,
-            location__isnull=True
-        )
-        
-        total_radiation = radiation_qs.count()
-        self.stdout.write(f'Found {total_radiation} records to update')
-        
-        if not dry_run and total_radiation > 0:
-            updated_radiation = 0
-            for i in range(0, total_radiation, batch_size):
-                batch = radiation_qs[i:i + batch_size]
-                with transaction.atomic():
-                    for measurement in batch:
-                        measurement.location = Point(
-                            float(measurement.longitude),
-                            float(measurement.latitude)
-                        )
-                        measurement.save(update_fields=['location'])
-                        updated_radiation += 1
-                
-                self.stdout.write(
-                    f'  Processed {min(i + batch_size, total_radiation)}/{total_radiation} '
-                    f'({int((updated_radiation/total_radiation)*100)}%)'
-                )
-            
-            self.stdout.write(
-                self.style.SUCCESS(f'✓ Updated {updated_radiation} RadiationMeasurement records')
-            )
-        elif dry_run:
-            self.stdout.write(
-                self.style.WARNING(f'Would update {total_radiation} RadiationMeasurement records')
-            )
-        else:
-            self.stdout.write(self.style.SUCCESS('No RadiationMeasurement records to update'))
+        for model, label in [
+            (RadiationMeasurement, 'RadiationMeasurement'),
+            (LightPollutionMeasurement, 'LightPollutionMeasurement'),
+        ]:
+            self.stdout.write(f'\n{"="*60}')
+            self.stdout.write(f'Processing {label}...')
+            self.stdout.write('='*60)
 
-        # Process LightPollutionMeasurement
-        self.stdout.write('\n' + '='*60)
-        self.stdout.write('Processing LightPollutionMeasurement records...')
-        self.stdout.write('='*60)
-        
-        light_qs = LightPollutionMeasurement.objects.filter(
-            latitude__isnull=False,
-            longitude__isnull=False,
-            location__isnull=True
-        )
-        
-        total_light = light_qs.count()
-        self.stdout.write(f'Found {total_light} records to update')
-        
-        if not dry_run and total_light > 0:
-            updated_light = 0
-            for i in range(0, total_light, batch_size):
-                batch = light_qs[i:i + batch_size]
-                with transaction.atomic():
-                    for measurement in batch:
-                        measurement.location = Point(
-                            float(measurement.longitude),
-                            float(measurement.latitude)
-                        )
-                        measurement.save(update_fields=['location'])
-                        updated_light += 1
-                
-                self.stdout.write(
-                    f'  Processed {min(i + batch_size, total_light)}/{total_light} '
-                    f'({int((updated_light/total_light)*100)}%)'
-                )
-            
-            self.stdout.write(
-                self.style.SUCCESS(f'✓ Updated {updated_light} LightPollutionMeasurement records')
-            )
-        elif dry_run:
-            self.stdout.write(
-                self.style.WARNING(f'Would update {total_light} LightPollutionMeasurement records')
-            )
-        else:
-            self.stdout.write(self.style.SUCCESS('No LightPollutionMeasurement records to update'))
+            qs = model.objects.filter(
+                latitude__isnull=False,
+                longitude__isnull=False,
+                location__isnull=True
+            ).only('id', 'latitude', 'longitude')
 
-        # Summary
-        self.stdout.write('\n' + '='*60)
-        self.stdout.write('SUMMARY')
-        self.stdout.write('='*60)
-        
-        total_records = total_radiation + total_light
-        
-        if dry_run:
-            self.stdout.write(
-                self.style.WARNING(f'Would update {total_records} total records')
-            )
-            self.stdout.write('\nRun without --dry-run to apply changes')
-        else:
-            self.stdout.write(
-                self.style.SUCCESS(f'✓ Successfully updated {total_records} total records')
-            )
-            self.stdout.write('\nLocation fields are now populated and spatial indexes can be used!')
+            total = qs.count()
+            self.stdout.write(f'Found {total} records to update')
+
+            if dry_run or total == 0:
+                if dry_run:
+                    self.stdout.write(self.style.WARNING(f'Would update {total} records'))
+                else:
+                    self.stdout.write(self.style.SUCCESS('Nothing to update'))
+                continue
+
+            # Collect all IDs upfront to avoid queryset shifting during update
+            all_ids = list(qs.values_list('id', flat=True))
+            updated = 0
+            for i in range(0, len(all_ids), batch_size):
+                chunk_ids = all_ids[i:i + batch_size]
+                batch = list(model.objects.filter(id__in=chunk_ids).only('id', 'latitude', 'longitude'))
+                for m in batch:
+                    m.location = Point(float(m.longitude), float(m.latitude))
+                model.objects.bulk_update(batch, ['location'], batch_size=batch_size)
+                updated += len(batch)
+                self.stdout.write(f'  {updated}/{total} ({int(updated/total*100)}%)')
+
+            self.stdout.write(self.style.SUCCESS(f'✓ Updated {updated} {label} records'))
+
+        self.stdout.write(self.style.SUCCESS('\nDone. Spatial index (GIST) is now usable for bbox filters.'))

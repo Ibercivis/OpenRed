@@ -9,8 +9,12 @@ ViewSets:
     - DeviceViewSet: Full CRUD for individual devices with auth control
 """
 from django.shortcuts import render
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
+from django.db.models import Max, ProtectedError
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .models import DeviceModel, Device
@@ -146,6 +150,72 @@ class DeviceViewSet(viewsets.ModelViewSet):
         Auto-assign the current user as owner when creating a device
         """
         serializer.save(owner=self.request.user)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def mine(self, request):
+        """
+        List the devices relevant to the authenticated user (the "my devices" screen).
+
+        GET /api/devices/mine/           - devices the user owns *and* devices the
+                                           user has measured with (shared/borrowed
+                                           hardware, e.g. a RadiaCode lent out).
+        GET /api/devices/mine/?owned=true - only the devices the user owns.
+
+        Each device carries ``is_owner`` so the client can hide owner-only actions
+        (rotating the ingest token, editing) on borrowed devices. The ingest token
+        plaintext is never included.
+        """
+        from measures.models import RadiationMeasurement, LightPollutionMeasurement
+
+        owned_only = request.query_params.get('owned', '').lower() in ('true', '1')
+
+        device_ids = set(
+            Device.objects.filter(owner=request.user).values_list('id', flat=True)
+        )
+        if not owned_only:
+            for model in (RadiationMeasurement, LightPollutionMeasurement):
+                device_ids.update(
+                    model.objects.filter(user=request.user)
+                    .values_list('device_id', flat=True)
+                    .distinct()
+                )
+
+        queryset = Device.objects.filter(id__in=device_ids).select_related('device_model')
+
+        # Latest measurement per device, in two aggregate queries instead of two
+        # per device.
+        last_measurement = {}
+        for model in (RadiationMeasurement, LightPollutionMeasurement):
+            rows = (model.objects.filter(device_id__in=device_ids)
+                    .values('device_id')
+                    .annotate(last=Max('dateTime')))
+            for row in rows:
+                current = last_measurement.get(row['device_id'])
+                if current is None or row['last'] > current:
+                    last_measurement[row['device_id']] = row['last']
+
+        context = self.get_serializer_context()
+        context['last_measurement_by_device'] = last_measurement
+        serializer = self.get_serializer(queryset, many=True, context=context)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def regenerate_token(self, request, pk=None):
+        """
+        Rotate the device's ingest token (owner only).
+
+        POST /api/devices/{id}/regenerate_token/
+        Returns the new plaintext token exactly once; the previous token is
+        invalidated immediately.
+        """
+        device = self.get_object()
+        if device.owner_id != request.user.id:
+            raise PermissionDenied('Solo el propietario puede rotar el token.')
+        raw_token = device.issue_ingest_token()
+        return Response({
+            'ingest_token': raw_token,
+            'ingest_token_created_at': device.ingest_token_created_at,
+        })
     
     @swagger_auto_schema(
         tags=['Devices'],
@@ -165,8 +235,17 @@ class DeviceViewSet(viewsets.ModelViewSet):
         }
     )
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
-    
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)  # sets owner = request.user
+        device = serializer.instance
+        # Issue the ingest token now and return the plaintext exactly once.
+        raw_token = device.issue_ingest_token()
+        headers = self.get_success_headers(serializer.data)
+        data = dict(serializer.data)
+        data['ingest_token'] = raw_token
+        return Response(data, status=status.HTTP_201_CREATED, headers=headers)
+
     @swagger_auto_schema(
         tags=['Devices'],
         operation_description="Get details of a specific device (public access)"
@@ -213,4 +292,11 @@ class DeviceViewSet(viewsets.ModelViewSet):
         }
     )
     def destroy(self, request, *args, **kwargs):
-        return super().destroy(request, *args, **kwargs)
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {'error': 'No se puede borrar el dispositivo: tiene medidas o tracks asociados. '
+                          'Elimina o reasigna esos datos primero.'},
+                status=status.HTTP_409_CONFLICT,
+            )

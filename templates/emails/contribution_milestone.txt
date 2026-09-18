@@ -1,0 +1,32 @@
+{% extends "emails/base.txt" %}
+{% block content %}¡GRACIAS! OpenRed ha superado las {{ threshold_es }} contribuciones
+--------------------------------------------------------
+
+OpenRed acaba de superar las {{ threshold_es }} contribuciones: medidas de
+radiación tomadas por personas como tú, con sus propios sensores, en sus
+calles, en sus paseos y en sus viajes.
+
+Cada medida que subes hace un poco más completo el mapa abierto de OpenRed y
+lo convierte en un dato público, reutilizable por cualquiera. Este hito no es
+nuestro: es de la comunidad.
+
+Gracias por formar parte del proyecto. Seguimos midiendo.
+
+
+THANK YOU! OpenRed has passed {{ threshold_en }} contributions
+--------------------------------------------------------
+
+OpenRed has just passed {{ threshold_en }} contributions: radiation
+measurements taken by people like you, with their own sensors, on their
+streets, on their walks and on their travels.
+
+Every measurement you upload makes the OpenRed open map a little more complete
+and turns it into public data anyone can reuse. This milestone is not ours: it
+belongs to the community.
+
+Thank you for being part of the project. Let's keep measuring.
+
+Ver el mapa · View the map: {{ site_url }}
+
+El equipo de OpenRed · The OpenRed team
+Ibercivis — https://ibercivis.es{% endblock %}

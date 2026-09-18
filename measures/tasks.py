@@ -22,14 +22,19 @@ Task Workflow:
 """
 import csv
 import io
+import json
 import math
+import logging
 import statistics
 import requests
 import h3
+from django.contrib.gis.geos import Point
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 from collections import defaultdict
+
+logger = logging.getLogger(__name__)
 
 
 def process_track_file(track_id):
@@ -103,22 +108,26 @@ def process_track_file(track_id):
         track.status = 'completed'
         track.save(update_fields=['total_measurements', 'status'])
         
-        # ✅ Enqueue weather fetching task for this track's measurements
+        # Promptly bucket this track's points via the SHARED sweeper (no bucketing
+        # logic lives in the parsers anymore). The scheduled fetch_pending_weather
+        # then fills the buckets. Enqueue is best-effort: if it fails, the periodic
+        # sweeper still picks the measurements up on its next pass.
         try:
             import django_rq
             queue = django_rq.get_queue('openred-weather')
             weather_job = queue.enqueue(
-                'measures.tasks.fetch_pending_weather',
-                limit=measurements_count + 50,  # Fetch slightly more than measurements count
-                max_attempts=3,
-                job_timeout='30m',  # 30 minutes timeout for large tracks
-                result_ttl=3600,  # Keep result for 1 hour
-                job_id=f'weather_track_{track_id}_{timezone.now().timestamp()}'
+                'measures.tasks.assign_pending_weather_buckets',
+                limit=measurements_count + 50,
+                job_timeout='30m',
+                result_ttl=3600,
+                job_id=f'weather_buckets_track_{track_id}_{timezone.now().timestamp()}'
             )
-            print(f"✅ Weather task enqueued: {weather_job.id} for track {track_id}")
+            print(f"✅ Weather bucketing enqueued: {weather_job.id} for track {track_id}")
         except Exception as weather_error:
-            print(f"⚠️ Failed to enqueue weather task for track {track_id}: {weather_error}")
+            print(f"⚠️ Failed to enqueue weather bucketing for track {track_id}: {weather_error}")
             # Don't fail the whole process if weather queueing fails
+        
+        _enqueue_track_notification(track_id)
         
         return {
             'success': True,
@@ -142,11 +151,129 @@ def process_track_file(track_id):
         except:
             pass
         
+        _enqueue_track_notification(track_id)
+        
         return {
             'success': False,
             'error': str(e),
             'track_id': track_id
         }
+
+
+def _enqueue_track_notification(track_id):
+    """
+    Enqueue (best-effort) the email notification for a processed track.
+
+    Runs as a separate job on the 'openred-tracks' queue so that an SES
+    outage can never mark a track as failed nor block its processing.
+    """
+    try:
+        import django_rq
+        queue = django_rq.get_queue('openred-tracks')
+        queue.enqueue(
+            'measures.tasks.notify_track_processed',
+            track_id,
+            job_timeout='2m',
+            result_ttl=3600,
+            job_id=f'track_notify_{track_id}',
+        )
+    except Exception as notify_error:
+        logger.warning(f"Failed to enqueue notification for track {track_id}: {notify_error}")
+
+
+def notify_track_processed(track_id):
+    """
+    Send an email to settings.TRACK_UPLOAD_NOTIFY_EMAILS when a track has
+    finished processing (status 'completed' or 'failed').
+
+    Tracks belonging to projects listed in
+    settings.TRACK_UPLOAD_NOTIFY_EXCLUDE_PROJECTS (e.g. the test project)
+    are silently skipped.
+
+    Returns:
+        dict: {'sent': bool, 'reason': str|None, 'track_id': int}
+    """
+    from django.conf import settings
+    from django.core.mail import send_mail
+    from django.utils import timezone as tz
+    from .models import Track
+
+    recipients = getattr(settings, 'TRACK_UPLOAD_NOTIFY_EMAILS', [])
+    if not recipients:
+        return {'sent': False, 'reason': 'no recipients configured', 'track_id': track_id}
+
+    try:
+        track = (Track.objects
+                 .select_related('project', 'campaign', 'mission', 'device',
+                                 'device__device_model', 'created_by')
+                 .get(id=track_id))
+    except Track.DoesNotExist:
+        return {'sent': False, 'reason': 'track not found', 'track_id': track_id}
+
+    excluded = getattr(settings, 'TRACK_UPLOAD_NOTIFY_EXCLUDE_PROJECTS', [])
+    if track.project and track.project.name in excluded:
+        return {'sent': False, 'reason': f'project {track.project.name} excluded', 'track_id': track_id}
+
+    user = track.created_by
+    user_str = user_short = 'desconocido'
+    if user:
+        user_str = user_short = user.username
+        if user.email:
+            user_str += f' <{user.email}>'
+        full_name = f'{user.first_name} {user.last_name}'.strip()
+        if full_name:
+            user_short = full_name
+            user_str = f'{full_name} ({user_str})'
+
+    device = track.device
+    device_str = 'desconocido'
+    if device:
+        device_str = device.serial_number
+        if getattr(device, 'device_model', None):
+            device_str += f' ({device.device_model.name})'
+
+    status_label = {'completed': 'COMPLETADO', 'failed': 'FALLIDO'}.get(track.status, track.status.upper())
+    track_type = dict(Track.TRACK_TYPE_CHOICES).get(track.track_type, track.track_type)
+    campaign_str = track.campaign.name if track.campaign else '-'
+    mission_str = track.mission.name if track.mission else '-'
+    project_str = track.project.name if track.project else '-'
+    created_local = tz.localtime(track.created_at).strftime('%Y-%m-%d %H:%M') if track.created_at else '-'
+
+    subject = f'[OpenRed] Track #{track.id} {status_label}: {user_short} - {campaign_str}'
+
+    lines = [
+        f'Se ha procesado un track en OpenRed con estado {status_label}.',
+        '',
+        f'Track ID:      {track.id}',
+        f'Estado:        {status_label}',
+        f'Usuario:       {user_str}',
+        f'Proyecto:      {project_str}',
+        f'Campaña:       {campaign_str}',
+        f'Misión:        {mission_str}',
+        f'Dispositivo:   {device_str}',
+        f'Tipo:          {track_type}',
+        f'Fichero:       {track.file.name if track.file else "-"} ({track.file_type})',
+        f'Medidas:       {track.total_measurements}',
+        f'Subido:        {created_local}',
+    ]
+    if track.status == 'failed':
+        lines += ['', 'Error:', track.error_message or '(sin mensaje)']
+    lines += ['', 'Admin: https://api.open-red.es/admin/measures/track/%d/change/' % track.id]
+
+    try:
+        send_mail(
+            subject=subject,
+            message='\n'.join(lines),
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+            recipient_list=list(recipients),
+            fail_silently=False,
+        )
+    except Exception as mail_error:
+        logger.error(f"Failed to send track notification for track {track_id}: {mail_error}")
+        return {'sent': False, 'reason': str(mail_error), 'track_id': track_id}
+
+    logger.info(f"Track notification sent for track {track_id} to {recipients}")
+    return {'sent': True, 'reason': None, 'track_id': track_id}
 
 
 def parse_csv_track(track, file_content):
@@ -242,13 +369,16 @@ def parse_csv_track(track, file_content):
         timestamps.append(dt)
         
         # Create measurement object (not saved yet)
+        lat = float(row.get('latitude', 0))
+        lon = float(row.get('longitude', 0))
         measurement = RadiationMeasurement(
             user=track.created_by,
             device=track.device,
             project=track.project,
             track=track,
-            latitude=float(row.get('latitude', 0)),
-            longitude=float(row.get('longitude', 0)),
+            latitude=lat,
+            longitude=lon,
+            location=Point(lon, lat),
             cpm=int(row.get('cpm', 0)) if row.get('cpm') else None,
             dose_rate=float(row.get('dose_rate', 0)),
             altitude=float(row.get('altitude')) if row.get('altitude') else None,
@@ -271,38 +401,245 @@ def parse_csv_track(track, file_content):
     return len(measurements)
 
 
+def detect_rctrk_format(file_content):
+    """
+    Detect which RadiaCode export format a .rctrk file uses.
+
+    The RadiaCode app exports different formats depending on the platform:
+        - Android: tab-separated text ("Track: ..." header line + column header + rows)
+        - iOS: a JSON document ({"title", "devices", "start", "periods", "markers": [...]})
+
+    Args:
+        file_content (bytes | str): Raw file content
+
+    Returns:
+        str: 'ios' if the content is a JSON object, 'android' otherwise
+    """
+    if isinstance(file_content, bytes):
+        file_content = file_content.decode('utf-8', errors='replace')
+    stripped = file_content.lstrip('\ufeff \t\r\n')
+    return 'ios' if stripped.startswith('{') else 'android'
+
+
+# Column names used by the RadiaCode Android export, lower-cased. The app has
+# changed the layout over time (2026 builds add Altitude and Temperature, and
+# not always in the same position), so rows are mapped by header name.
+_RCTRK_COLUMN_ALIASES = {
+    'time': 'time',
+    'latitude': 'latitude',
+    'longitude': 'longitude',
+    'accuracy': 'accuracy',
+    'altitude': 'altitude',
+    'doserate': 'dose_rate',
+    'countrate': 'count_rate',
+}
+_RCTRK_REQUIRED_COLUMNS = ('time', 'latitude', 'longitude', 'dose_rate', 'count_rate')
+# Layout of the original (2025) export, used only when the header line is unusable.
+_RCTRK_LEGACY_COLUMNS = {'time': 1, 'latitude': 2, 'longitude': 3, 'accuracy': 4, 'dose_rate': 5, 'count_rate': 6}
+
+
+def _rctrk_column_map(header_line):
+    """
+    Build {field: column_index} from the tab-separated header line of an Android export.
+
+    Falls back to the legacy positional layout when the header does not contain
+    the required column names.
+    """
+    columns = {}
+    for idx, name in enumerate(header_line.split('\t')):
+        key = _RCTRK_COLUMN_ALIASES.get(name.strip().lower())
+        if key and key not in columns:
+            columns[key] = idx
+    if all(k in columns for k in _RCTRK_REQUIRED_COLUMNS):
+        return columns
+    return dict(_RCTRK_LEGACY_COLUMNS)
+
+
+def _parse_rctrk_android_points(file_content):
+    """
+    Parse the Android RadiaCode export (tab-separated text) into a list of point dicts.
+
+    Format:
+        Line 1: Track: <name>\t<device>\t<comment>\tEC
+        Line 2: Column headers (tab-separated)
+        Line 3+: Data rows (tab-separated)
+
+    Known header layouts (columns are mapped by name, so order does not matter):
+        2025:  Timestamp Time Latitude Longitude Accuracy DoseRate CountRate Comment
+        2026a: Timestamp Time Latitude Longitude Altitude Accuracy Temperature DoseRate CountRate Comment
+        2026b: Timestamp Time Latitude Longitude Altitude DoseRate CountRate Comment
+        2026c: Timestamp Time Latitude Longitude Altitude DoseRate CountRate Comment Accuracy Temperature
+
+    Example:
+        Track: 2025-08-27vistabella-ruta\tRC-102-008858\t \tEC
+        Timestamp\tTime\tLatitude\tLongitude\tAccuracy\tDoseRate\tCountRate\tComment
+        134007603713620000\t2025-08-27 09:26:11\t41.2184571\t-1.1548868\t1.94\t6.52\t7.47\t 
+
+    Field mapping:
+        - Timestamp: Windows FILETIME (not used)
+        - Time: UTC datetime "YYYY-MM-DD HH:MM:SS" (used for dateTime)
+        - Latitude / Longitude: decimal degrees
+        - Accuracy: GPS accuracy in metres (optional, None when the column is absent)
+        - Altitude: metres (optional, None when the column is absent)
+        - DoseRate: μR/h → stored as μSv/h (value / 100)
+        - CountRate: CPS → stored as CPM (value * 60)
+        - Temperature / Comment: ignored
+
+    Returns:
+        list[dict]: one dict per valid row with keys
+            dateTime, latitude, longitude, accuracy, altitude, dose_rate, cpm
+    """
+    lines = file_content.strip().split('\n')
+
+    if len(lines) < 3:
+        raise ValueError("Invalid RCTRK file: too few lines")
+
+    columns = _rctrk_column_map(lines[1])
+    min_columns = max(columns[k] for k in _RCTRK_REQUIRED_COLUMNS) + 1
+
+    def cell(parts, key):
+        idx = columns.get(key)
+        if idx is None or idx >= len(parts):
+            return ''
+        return parts[idx].strip()
+
+    def optional_float(parts, key):
+        value = cell(parts, key)
+        return float(value) if value else None
+
+    points = []
+    # Skip line 1 (Track info) and line 2 (headers)
+    for line in lines[2:]:
+        if not line.strip():
+            continue
+
+        parts = line.split('\t')
+        if len(parts) < min_columns:
+            continue  # Skip invalid rows
+
+        try:
+            # The Timestamp field uses a custom format, so we use Time instead
+            time_str = cell(parts, 'time')  # "2025-08-27 09:26:11"
+            try:
+                dt = datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
+                if timezone.is_naive(dt):
+                    dt = timezone.make_aware(dt)
+            except ValueError:
+                dt = parse_datetime(time_str)
+                if dt and timezone.is_naive(dt):
+                    dt = timezone.make_aware(dt)
+                elif not dt:
+                    dt = timezone.now()
+
+            latitude = float(cell(parts, 'latitude'))
+            longitude = float(cell(parts, 'longitude'))
+            accuracy = optional_float(parts, 'accuracy')
+            altitude = optional_float(parts, 'altitude')
+            dose_rate = float(cell(parts, 'dose_rate')) / 100  # μR/h → μSv/h
+            cpm = int(float(cell(parts, 'count_rate')) * 60)  # CPS → CPM
+
+            points.append({
+                'dateTime': dt,
+                'latitude': latitude,
+                'longitude': longitude,
+                'accuracy': accuracy,
+                'altitude': altitude,
+                'dose_rate': dose_rate,
+                'cpm': cpm,
+            })
+        except (ValueError, IndexError):
+            # Skip rows with parsing errors
+            continue
+
+    return points
+
+
+def _parse_rctrk_ios_points(file_content):
+    """
+    Parse the iOS RadiaCode export (a .rctrk that is actually JSON) into point dicts.
+
+    Format:
+        {
+            "title": "Track 16 Nov 2025 08:33:42",
+            "devices": ["RC-102-008406"],
+            "start": 1763278422,
+            "periods": [{"distance": 6004.12, "start": 1763278422, "end": 1763287996}],
+            "sv": false,
+            "markers": [
+                {"date": 1763283709, "lat": 41.816321, "lon": -1.822395,
+                 "acc": 5, "doseRate": 5.73, "countRate": 5.38},
+                ...
+            ]
+        }
+
+    Field mapping (same units as the Android export):
+        - date: Unix epoch seconds (UTC)
+        - lat / lon: decimal degrees
+        - acc: GPS accuracy in metres
+        - doseRate: μR/h → stored as μSv/h (value / 100)
+        - countRate: CPS → stored as CPM (value * 60)
+
+    Returns:
+        list[dict]: one dict per valid marker with keys
+            dateTime, latitude, longitude, accuracy, altitude, dose_rate, cpm
+    """
+    try:
+        data = json.loads(file_content)
+    except ValueError as e:
+        raise ValueError(f"Invalid iOS RCTRK file: not valid JSON ({e})")
+
+    if not isinstance(data, dict) or not isinstance(data.get('markers'), list):
+        raise ValueError("Invalid iOS RCTRK file: 'markers' list not found")
+
+    points = []
+    for marker in data['markers']:
+        if not isinstance(marker, dict):
+            continue
+        try:
+            dt = datetime.fromtimestamp(float(marker['date']), tz=dt_timezone.utc)
+            latitude = float(marker['lat'])
+            longitude = float(marker['lon'])
+            dose_rate = float(marker['doseRate']) / 100  # μR/h → μSv/h
+            cpm = int(float(marker['countRate']) * 60)  # CPS → CPM
+            acc = marker.get('acc')
+            accuracy = float(acc) if acc is not None else None
+        except (KeyError, TypeError, ValueError, OverflowError, OSError):
+            # Skip markers with missing or malformed fields
+            continue
+
+        points.append({
+            'dateTime': dt,
+            'latitude': latitude,
+            'longitude': longitude,
+            'accuracy': accuracy,
+            'altitude': None,  # not present in the iOS export
+            'dose_rate': dose_rate,
+            'cpm': cpm,
+        })
+
+    return points
+
+
 def parse_rctrk_track(track, file_content):
     """
-    Parse RCTRK file (RadiaCode format) and create RadiationMeasurement objects in bulk.
-    
-    RCTRK Format:
-        Line 1: Track: <name>\t<device>\t \tEC
-        Line 2: Headers (tab-separated): Timestamp\tTime\tLatitude\tLongitude\tAccuracy\tDoseRate\tCountRate\tComment
-        Line 3+: Data rows (tab-separated)
-    
-    Example:
-        Track: 2025-08-27vistabella-ruta	RC-102-008858	 	EC
-        Timestamp	Time	Latitude	Longitude	Accuracy	DoseRate	CountRate	Comment
-        134007603713620000	2025-08-27 09:26:11	41.2184571	-1.1548868	1.94	6.52	7.47	 
-    
+    Parse an RCTRK file (RadiaCode export) and create RadiationMeasurement objects in bulk.
+
+    Both platform-specific exports are supported and detected automatically
+    (see detect_rctrk_format):
+        - Android: tab-separated text  → _parse_rctrk_android_points
+        - iOS: JSON document           → _parse_rctrk_ios_points
+
     Args:
         track (Track): Track instance that owns these measurements
         file_content (bytes | str): RCTRK file content to parse
-        
+
     Returns:
         int: Number of measurements successfully created
-    
-    Field Mapping:
-        - Timestamp: Custom format (not used, too complex)
-        - Time: Human-readable datetime in format YYYY-MM-DD HH:MM:SS (used for dateTime)
-        - Latitude: Decimal degrees
-        - Longitude: Decimal degrees
-        - Accuracy: GPS accuracy in meters
-        - DoseRate: Radiation dose rate in μSv/h (stored as dose_rate / 100)
-        - CountRate: Count rate in CPS (stored as cpm * 60)
-        - Speed: Calculated from distance/time between points (m/s)
-        - Comment: Ignored
-    
+
+    Post-processing (common to both formats):
+        - Speed: moving-window estimate from GPS points with good accuracy (m/s)
+        - Track metadata: start/end time, total distance, average speed, dose stats
+
     Raises:
         ValueError: If no valid measurements found or invalid format
     """
@@ -328,80 +665,45 @@ def parse_rctrk_track(track, file_content):
     if isinstance(file_content, bytes):
         file_content = file_content.decode('utf-8')
     
-    lines = file_content.strip().split('\n')
+    rctrk_format = detect_rctrk_format(file_content)
+    if rctrk_format == 'ios':
+        points = _parse_rctrk_ios_points(file_content)
+    else:
+        points = _parse_rctrk_android_points(file_content)
+    logger.info("Track %s: RCTRK format detected as %s, %d valid points", track.id, rctrk_format, len(points))
     
-    if len(lines) < 3:
-        raise ValueError("Invalid RCTRK file: too few lines")
+    from django.conf import settings
+    max_points = getattr(settings, 'TRACK_UPLOAD_MAX_POINTS', 20000)
+    if len(points) > max_points:
+        raise ValueError(f"Too many points in RCTRK file: {len(points)} (maximum is {max_points})")
     
-    # Skip line 1 (Track info) and line 2 (headers)
-    # Parse data starting from line 3
+    # Speed / distance post-processing assumes chronological order. The iOS export
+    # does not guarantee it (markers are stored unordered), so sort explicitly.
+    points.sort(key=lambda p: p['dateTime'])
+    
+    # Build measurement objects (not saved yet, speed will be calculated later)
+    # Inherit hierarchy from track: project, mission, campaign, user
     measurements = []
     timestamps = []
-    
-    for line in lines[2:]:
-        # Skip empty lines
-        if not line.strip():
-            continue
-        
-        # Split by tab
-        parts = line.split('\t')
-        
-        if len(parts) < 7:
-            continue  # Skip invalid rows
-        
-        try:
-            # Parse timestamp from the Time field (human-readable datetime)
-            # The Timestamp field uses a custom format, so we use Time instead
-            time_str = parts[1].strip()  # "2025-08-27 09:26:11"
-            
-            try:
-                dt = datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
-                # Make timezone-aware
-                if timezone.is_naive(dt):
-                    dt = timezone.make_aware(dt)
-            except ValueError:
-                # Fallback: try parsing as ISO format
-                dt = parse_datetime(time_str)
-                if dt and timezone.is_naive(dt):
-                    dt = timezone.make_aware(dt)
-                elif not dt:
-                    dt = timezone.now()
-            
-            timestamps.append(dt)
-            
-            # Parse fields
-            latitude = float(parts[2])
-            longitude = float(parts[3])
-            accuracy = float(parts[4]) if parts[4].strip() else None
-            dose_rate_raw = float(parts[5])  # Raw value from RCTRK
-            dose_rate = dose_rate_raw / 100  # Convert to μSv/h (RCTRK uses centiSv/h or similar)
-            count_rate = float(parts[6])  # CPS (counts per second)
-            
-            # Convert CPS to CPM
-            cpm = int(count_rate * 60)
-            
-            # Create measurement object (not saved yet, speed will be calculated later)
-            # Inherit hierarchy from track: project, mission, campaign, user
-            measurement = RadiationMeasurement(
-                user=track.created_by,
-                device=track.device,
-                project=track.project,
-                campaign=track.campaign,
-                track=track,
-                latitude=latitude,
-                longitude=longitude,
-                accuracy=accuracy,
-                dose_rate=dose_rate,
-                radiation_unit="μSv/h",
-                cpm=cpm,
-                speed=None,  # Will be calculated after all measurements are created
-                dateTime=dt
-            )
-            measurements.append(measurement)
-            
-        except (ValueError, IndexError) as e:
-            # Skip rows with parsing errors
-            continue
+    for point in points:
+        timestamps.append(point['dateTime'])
+        measurements.append(RadiationMeasurement(
+            user=track.created_by,
+            device=track.device,
+            project=track.project,
+            campaign=track.campaign,
+            track=track,
+            latitude=point['latitude'],
+            longitude=point['longitude'],
+            location=Point(point['longitude'], point['latitude']),
+            accuracy=point['accuracy'],
+            altitude=point.get('altitude'),
+            dose_rate=point['dose_rate'],
+            radiation_unit="μSv/h",
+            cpm=point['cpm'],
+            speed=None,  # Will be calculated after all measurements are created
+            dateTime=point['dateTime']
+        ))
     
     if not measurements:
         raise ValueError("No valid measurements found in RCTRK file")
@@ -544,77 +846,10 @@ def parse_rctrk_track(track, file_content):
         'min_dose_rate', 'max_dose_rate', 'avg_dose_rate', 'std_dose_rate'
     ])
     
-    # Phase 8: Create WeatherCache entries and associate measurements
-    print(f"Phase 8/8: Creating weather cache entries...")
-    from .models import WeatherCache
-    
-    # Group measurements by (H3 cell, hour in UTC)
-    weather_groups = {}
-    for measurement in measurements:
-        try:
-            # Calculate H3 cell (resolution 8 = ~5.5km hexagons)
-            h3_cell = h3.latlng_to_cell(
-                float(measurement.latitude), 
-                float(measurement.longitude), 
-                8
-            )
-            
-            # Convert to UTC and round timestamp to hour (minute=0, second=0)
-            # measurement.dateTime might be naive (local time), make it UTC-aware
-            dt_utc = measurement.dateTime
-            if dt_utc.tzinfo is None:
-                # Assume local time, convert to UTC (you may need to adjust timezone)
-                dt_utc = timezone.make_aware(dt_utc, timezone.utc)
-            else:
-                # Already timezone-aware, convert to UTC
-                dt_utc = dt_utc.astimezone(timezone.utc)
-            
-            hour_timestamp = dt_utc.replace(minute=0, second=0, microsecond=0)
-            
-            # Unique key: (h3_cell, hour in UTC)
-            key = (h3_cell, hour_timestamp)
-            
-            if key not in weather_groups:
-                weather_groups[key] = {
-                    'h3_cell': h3_cell,
-                    'timestamp_hour': hour_timestamp,
-                    'latitude': measurement.latitude,  # Use first measurement as representative
-                    'longitude': measurement.longitude,
-                    'measurement_ids': []
-                }
-            
-            weather_groups[key]['measurement_ids'].append(measurement.id)
-        except Exception as e:
-            print(f"  Warning: Could not process H3 for measurement {measurement.id}: {e}")
-            continue
-    
-    print(f"  Found {len(weather_groups)} unique H3+time combinations (reduced from {len(measurements)} measurements)")
-    
-    # Create WeatherCache entries (without weather data yet, just structure)
-    weather_cache_mapping = {}
-    for group_data in weather_groups.values():
-        cache, created = WeatherCache.objects.get_or_create(
-            h3_cell=group_data['h3_cell'],
-            timestamp_hour=group_data['timestamp_hour'],
-            defaults={
-                'latitude': group_data['latitude'],
-                'longitude': group_data['longitude'],
-                'fetched': False,
-                'fetch_attempts': 0
-            }
-        )
-        weather_cache_mapping[cache.id] = group_data['measurement_ids']
-        if created:
-            print(f"  Created new WeatherCache: {cache.h3_cell} @ {cache.timestamp_hour}")
-    
-    # Associate measurements with WeatherCache (bulk update by cache)
-    from .models import RadiationMeasurement
-    for cache_id, measurement_ids in weather_cache_mapping.items():
-        RadiationMeasurement.objects.filter(id__in=measurement_ids).update(weather_cache_id=cache_id)
-    
-    print(f"  Associated {len(measurements)} measurements with {len(weather_groups)} weather cache entries")
-    print(f"  Weather data will be fetched by scheduler task (fetch_pending_weather)")
-    
+    # Weather buckets are NOT assigned here. The periodic assign_pending_weather_buckets
+    # sweeper buckets every measurement lacking a weather_cache (tracks / movement /
+    # stations) — a single unified path — and fetch_pending_weather fills the buckets.
+
     return len(measurements)
 
 
@@ -652,7 +887,7 @@ def parse_json_track(track, file_content):
         int: Number of measurements successfully created
     """
     import json
-    from .models import RadiationMeasurement, LightPollutionMeasurement, WeatherCache
+    from .models import RadiationMeasurement, LightPollutionMeasurement
     from math import radians, sin, cos, sqrt, atan2
     
     def haversine_distance(lat1, lon1, lat2, lon2):
@@ -678,6 +913,7 @@ def parse_json_track(track, file_content):
         raise ValueError(f"Invalid JSON format: {e}")
     
     track_type = data.get('trackType') or 'radiation'
+    track.track_type = track_type
     points = data.get('points', [])
     if not points:
         raise ValueError("No measurement points found in JSON")
@@ -733,6 +969,7 @@ def parse_json_track(track, file_content):
                     track=track,
                     latitude=latitude,
                     longitude=longitude,
+                    location=Point(longitude, latitude),
                     altitude=altitude,
                     accuracy=accuracy,
                     speed=point.get('speed'),
@@ -752,9 +989,17 @@ def parse_json_track(track, file_content):
                 )
             else:
                 cpm = point.get('cpm')
-                cpm_error = point.get('cpmErr')
                 dose_rate = point.get('doseMicroSvPerHour')
+                # La app envía errores relativos (fracción); también aceptamos los
+                # absolutos antiguos (cpmErr/doseMicroSvPerHourErr) por compatibilidad.
+                cpm_rel_error = point.get('cpmRelErr')
+                dose_rate_rel_error = point.get('doseMicroSvPerHourRelErr')
+                cpm_error = point.get('cpmErr')
+                if cpm_error is None and cpm is not None and cpm_rel_error is not None:
+                    cpm_error = cpm * cpm_rel_error
                 dose_rate_error = point.get('doseMicroSvPerHourErr')
+                if dose_rate_error is None and dose_rate is not None and dose_rate_rel_error is not None:
+                    dose_rate_error = dose_rate * dose_rate_rel_error
                 measurement = RadiationMeasurement(
                     user=track.created_by,
                     device=track.device,
@@ -763,13 +1008,16 @@ def parse_json_track(track, file_content):
                     track=track,
                     latitude=latitude,
                     longitude=longitude,
+                    location=Point(longitude, latitude),
                     altitude=altitude,
                     accuracy=accuracy,
                     dose_rate=dose_rate,
                     dose_rate_error=dose_rate_error,
+                    dose_rate_rel_error=dose_rate_rel_error,
                     radiation_unit="μSv/h",
                     cpm=int(cpm) if cpm is not None else None,
                     cpm_error=cpm_error,
+                    cpm_rel_error=cpm_rel_error,
                     speed=None,  # Will be calculated later
                     dateTime=dt
                 )
@@ -792,65 +1040,10 @@ def parse_json_track(track, file_content):
         RadiationMeasurement.objects.bulk_create(measurements, batch_size=1000)
     print(f"  Created {len(measurements)} measurements")
     
-    # Phase 3: Calculate speed (same logic as RCTRK) for radiation tracks
+    # Phase 3: per-point speed from GPS (shared helper) for radiation tracks
     if track_type != 'light':
         print(f"Phase 3: Calculating speeds...")
-        WINDOW_SIZE = 5
-        MAX_ACCURACY_FOR_SPEED = 15.0
-        
-        for i, measurement in enumerate(measurements):
-            window_start = max(0, i - WINDOW_SIZE // 2)
-            window_end = min(len(measurements), i + WINDOW_SIZE // 2 + 1)
-            
-            window_points = []
-            for m in measurements[window_start:window_end]:
-                if m.accuracy is not None and m.accuracy < MAX_ACCURACY_FOR_SPEED:
-                    window_points.append(m)
-            
-            if len(window_points) < 2:
-                continue
-            
-            first_point = window_points[0]
-            last_point = window_points[-1]
-            
-            total_distance = 0
-            for j in range(len(window_points) - 1):
-                p1 = window_points[j]
-                p2 = window_points[j + 1]
-                total_distance += haversine_distance(
-                    p1.latitude, p1.longitude,
-                    p2.latitude, p2.longitude
-                )
-            
-            time_diff = (last_point.dateTime - first_point.dateTime).total_seconds()
-            
-            if time_diff > 0:
-                speed = total_distance / time_diff
-                if speed < 50.0:  # Sanity check
-                    measurement.speed = speed
-        
-        # Filter by acceleration
-        MAX_ACCELERATION = 10.0
-        for i, measurement in enumerate(measurements):
-            if measurement.speed is None:
-                continue
-            
-            prev_with_speed = None
-            for j in range(i - 1, -1, -1):
-                if measurements[j].speed is not None:
-                    prev_with_speed = measurements[j]
-                    break
-            
-            if prev_with_speed:
-                speed_diff = abs(measurement.speed - prev_with_speed.speed)
-                time_diff = (measurement.dateTime - prev_with_speed.dateTime).total_seconds()
-                
-                if time_diff > 0:
-                    acceleration = speed_diff / time_diff
-                    if acceleration > MAX_ACCELERATION:
-                        measurement.speed = None
-        
-        # Bulk update speeds
+        compute_point_speeds(measurements)
         RadiationMeasurement.objects.bulk_update(measurements, ['speed'], batch_size=1000)
     
     # Phase 4: Calculate track statistics
@@ -897,6 +1090,7 @@ def parse_json_track(track, file_content):
     track.total_distance = total_distance
 
     base_update_fields = [
+        'track_type',
         'description',
         'required_gps_accuracy_meters',
         'synced',
@@ -916,65 +1110,66 @@ def parse_json_track(track, file_content):
         base_update_fields.extend(['min_dose_rate', 'max_dose_rate', 'avg_dose_rate', 'std_dose_rate'])
 
     track.save(update_fields=base_update_fields)
-    
-    # Phase 5: Create WeatherCache entries
-    print(f"Phase 5: Creating weather cache entries...")
-    weather_groups = {}
-    
-    for measurement in measurements:
-        try:
-            h3_cell = h3.latlng_to_cell(
-                float(measurement.latitude),
-                float(measurement.longitude),
-                8
-            )
-            
-            dt_utc = measurement.dateTime
-            if dt_utc.tzinfo is None:
-                dt_utc = timezone.make_aware(dt_utc, timezone.utc)
-            else:
-                dt_utc = dt_utc.astimezone(timezone.utc)
-            
-            timestamp_hour = dt_utc.replace(minute=0, second=0, microsecond=0)
-            key = (h3_cell, timestamp_hour)
-            
-            if key not in weather_groups:
-                weather_groups[key] = []
-            weather_groups[key].append(measurement)
-            
-        except Exception as e:
-            print(f"  Warning: Could not calculate H3 cell for measurement: {e}")
-            continue
-    
-    print(f"  Found {len(weather_groups)} unique H3 cell + hour combinations")
-    
-    # Create or get WeatherCache entries
-    for (h3_cell, timestamp_hour), group_measurements in weather_groups.items():
-        representative = group_measurements[0]
-        
-        cache, created = WeatherCache.objects.get_or_create(
-            h3_cell=h3_cell,
-            timestamp_hour=timestamp_hour,
-            defaults={
-                'latitude': representative.latitude,
-                'longitude': representative.longitude,
-                'fetched': False,
-                'fetch_attempts': 0
-            }
-        )
-        
-        for measurement in group_measurements:
-            measurement.weather_cache = cache
-    
-    # Bulk update weather_cache associations
-    if track_type == 'light':
-        LightPollutionMeasurement.objects.bulk_update(measurements, ['weather_cache'], batch_size=1000)
-    else:
-        RadiationMeasurement.objects.bulk_update(measurements, ['weather_cache'], batch_size=1000)
-    
-    print(f"  Associated {len(measurements)} measurements with {len(weather_groups)} weather cache entries")
-    print(f"  Weather data will be fetched by scheduler task")
-    
+
+    # Weather buckets are NOT assigned here. The periodic assign_pending_weather_buckets
+    # sweeper buckets every measurement lacking a weather_cache (tracks / movement /
+    # stations) — a single unified path — and fetch_pending_weather fills the buckets.
+
+    # Phase 6: Create gamma spectra (RadiaCode JSON only)
+    # Spectra arrive as a root-level `spectra` array (sibling of `points`).
+    # Optional and backward-compatible: tracks without spectra are unaffected.
+    # An invalid spectrum is skipped with a warning; it never fails the track.
+    spectra_data = data.get('spectra') or []
+    if spectra_data:
+        from .models import Spectrum
+        print(f"Phase 6: Creating spectra from {len(spectra_data)} entries...")
+        spectra = []
+        for spec in spectra_data:
+            try:
+                channel_count = int(spec['channelCount'])
+                counts = spec['counts']
+                if not isinstance(counts, list) or len(counts) != channel_count:
+                    got = len(counts) if isinstance(counts, list) else type(counts).__name__
+                    print(f"  Warning: Skipping spectrum '{spec.get('name')}': "
+                          f"counts length {got} != channelCount {channel_count}")
+                    continue
+
+                started_at = parse_datetime(str(spec['startedAt']))
+                ended_at = parse_datetime(str(spec['endedAt']))
+                if started_at and timezone.is_naive(started_at):
+                    started_at = timezone.make_aware(started_at)
+                if ended_at and timezone.is_naive(ended_at):
+                    ended_at = timezone.make_aware(ended_at)
+                if not started_at or not ended_at:
+                    print(f"  Warning: Skipping spectrum '{spec.get('name')}': invalid startedAt/endedAt")
+                    continue
+
+                spectra.append(Spectrum(
+                    track=track,
+                    name=str(spec['name']),
+                    index=int(spec['index']),
+                    started_at=started_at,
+                    ended_at=ended_at,
+                    duration_sec=int(spec['durationSec']),
+                    a0=float(spec['a0']),
+                    a1=float(spec['a1']),
+                    a2=float(spec['a2']),
+                    channel_count=channel_count,
+                    counts=counts,
+                    start_lat=float(spec['startLat']) if spec.get('startLat') is not None else None,
+                    start_lon=float(spec['startLon']) if spec.get('startLon') is not None else None,
+                    start_alt=float(spec['startAlt']) if spec.get('startAlt') is not None else None,
+                    end_lat=float(spec['endLat']) if spec.get('endLat') is not None else None,
+                    end_lon=float(spec['endLon']) if spec.get('endLon') is not None else None,
+                ))
+            except (ValueError, KeyError, TypeError) as e:
+                print(f"  Warning: Skipping invalid spectrum: {e}")
+                continue
+
+        if spectra:
+            Spectrum.objects.bulk_create(spectra, batch_size=500)
+        print(f"  Created {len(spectra)} spectra ({len(spectra_data) - len(spectra)} skipped)")
+
     return len(measurements)
 
 
@@ -984,6 +1179,92 @@ def parse_gpx_track(track, file_content):
     TODO: Implement GPX parsing
     """
     raise NotImplementedError("GPX parsing not yet implemented")
+
+
+def assign_pending_weather_buckets(limit=5000):
+    """
+    Assign a (H3 cell res 8 + hour) WeatherCache bucket to every measurement that
+    lacks one — across ALL sources: tracks, movement single-uploads and station
+    readings. This is the SINGLE, unified bucketing path.
+
+    Ingest/upload code no longer buckets anything: it just saves measurements.
+    This scheduled task groups whatever is pending by (H3 cell, hour), creates or
+    reuses the bucket, and links the measurements in bulk. The actual weather API
+    call is then performed by ``fetch_pending_weather`` over pending buckets.
+
+    Run it on a short schedule (e.g. every few minutes) ahead of
+    ``fetch_pending_weather``. Idempotent and self-healing: anything left
+    unbucketed (e.g. a partial failure) is picked up on the next pass.
+
+    Same H3 resolution (8) and hour-rounding as the historical inline logic, so a
+    station reporting every 5 min within one cell/hour shares ONE bucket and thus
+    triggers at most one weather fetch per hour.
+
+    Args:
+        limit (int): max measurements to process per model per run.
+
+    Returns:
+        dict: per-model counts of measurements bucketed and buckets touched.
+    """
+    from .models import RadiationMeasurement, LightPollutionMeasurement, WeatherCache
+
+    results = {}
+    for model in (RadiationMeasurement, LightPollutionMeasurement):
+        pending = list(
+            model.objects
+            .filter(weather_cache__isnull=True)
+            .only('id', 'latitude', 'longitude', 'dateTime')
+            .order_by('id')[:limit]
+        )
+
+        # Group pending measurements by (H3 cell, hour) in UTC.
+        groups = {}
+        for m in pending:
+            if m.latitude is None or m.longitude is None or m.dateTime is None:
+                continue
+            try:
+                h3_cell = h3.latlng_to_cell(float(m.latitude), float(m.longitude), 8)
+            except Exception as exc:
+                logger.warning(f"assign_pending_weather_buckets: H3 falló para medida {m.id}: {exc}")
+                continue
+            dt_utc = m.dateTime
+            if dt_utc.tzinfo is None:
+                dt_utc = timezone.make_aware(dt_utc, timezone.utc)
+            else:
+                dt_utc = dt_utc.astimezone(timezone.utc)
+            hour = dt_utc.replace(minute=0, second=0, microsecond=0)
+            groups.setdefault((h3_cell, hour), []).append(m)
+
+        # Create/reuse buckets and link measurements.
+        to_update = []
+        bucket_ids = set()
+        for (h3_cell, hour), members in groups.items():
+            rep = members[0]
+            cache, _ = WeatherCache.objects.get_or_create(
+                h3_cell=h3_cell,
+                timestamp_hour=hour,
+                defaults={
+                    'latitude': rep.latitude,
+                    'longitude': rep.longitude,
+                    'fetched': False,
+                    'fetch_attempts': 0,
+                },
+            )
+            bucket_ids.add(cache.id)
+            for m in members:
+                m.weather_cache = cache
+                to_update.append(m)
+
+        if to_update:
+            model.objects.bulk_update(to_update, ['weather_cache'], batch_size=1000)
+
+        results[model.__name__] = {
+            'measurements': len(to_update),
+            'buckets': len(bucket_ids),
+        }
+
+    logger.info(f"assign_pending_weather_buckets: {results}")
+    return results
 
 
 def fetch_pending_weather(limit=100, max_attempts=3):
@@ -1295,9 +1576,468 @@ def fetch_weather_batch(caches):
             print(f"    Error: {error_msg}")
     
     print(f"  Batch fetch complete: {updated_count}/{len(caches)} entries updated")
-    
+
     return {
         'total': len(caches),
         'updated': updated_count,
         'errors': errors
     }
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: movement sessionization + station watchdog
+# ---------------------------------------------------------------------------
+
+def _haversine_m(lat1, lon1, lat2, lon2):
+    """Great-circle distance in metres between two lat/lon points."""
+    r = 6371000.0
+    p1, p2 = math.radians(float(lat1)), math.radians(float(lat2))
+    dphi = math.radians(float(lat2) - float(lat1))
+    dlmb = math.radians(float(lon2) - float(lon1))
+    a = math.sin(dphi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlmb / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(a))
+
+
+def compute_point_speeds(points, window_size=5, max_accuracy=15.0,
+                         max_speed=50.0, max_acceleration=10.0):
+    """
+    Per-point speed (m/s) from GPS positions — single shared implementation used by
+    the track parsers and the movement grouping job.
+
+    Smooths over GPS jitter with a moving window (only points with accuracy <
+    max_accuracy count), discards readings above max_speed, then drops any speed
+    whose implied acceleration vs the previous valid point exceeds max_acceleration.
+    Points MUST be ordered by dateTime. Mutates each point's ``speed`` in place
+    (leaving None where it can't be computed); the caller persists via bulk_update.
+    """
+    n = len(points)
+    for i in range(n):
+        start = max(0, i - window_size // 2)
+        end = min(n, i + window_size // 2 + 1)
+        window = [m for m in points[start:end]
+                  if m.accuracy is not None and m.accuracy < max_accuracy]
+        if len(window) < 2:
+            continue
+        distance = 0.0
+        for a, b in zip(window, window[1:]):
+            distance += _haversine_m(a.latitude, a.longitude, b.latitude, b.longitude)
+        dt = (window[-1].dateTime - window[0].dateTime).total_seconds()
+        if dt > 0:
+            speed = distance / dt
+            if speed < max_speed:
+                points[i].speed = speed
+
+    # Acceleration filter: invalidate physically impossible jumps.
+    for i in range(n):
+        if points[i].speed is None:
+            continue
+        prev = None
+        for j in range(i - 1, -1, -1):
+            if points[j].speed is not None:
+                prev = points[j]
+                break
+        if prev is not None:
+            dv = abs(points[i].speed - prev.speed)
+            dt = (points[i].dateTime - prev.dateTime).total_seconds()
+            if dt > 0 and dv / dt > max_acceleration:
+                points[i].speed = None
+    return points
+
+
+def recompute_track_stats(track):
+    """
+    Recompute and persist a radiation track's aggregate stats from its measurements.
+
+    Single source of truth for the stats shown on a Track: time span, count, dose
+    min/max/avg/std, total distance (haversine over ordered points) and average
+    speed. Used by the movement grouping job; safe to call on any radiation track.
+    """
+    from .models import RadiationMeasurement
+
+    points = list(
+        RadiationMeasurement.objects
+        .filter(track=track)
+        .order_by('dateTime')
+        .only('dateTime', 'latitude', 'longitude', 'dose_rate', 'speed')
+    )
+    if not points:
+        track.total_measurements = 0
+        track.save(update_fields=['total_measurements'])
+        return track
+
+    track.start_time = points[0].dateTime
+    track.end_time = points[-1].dateTime
+    track.total_measurements = len(points)
+
+    doses = [p.dose_rate for p in points if p.dose_rate is not None]
+    if doses:
+        track.min_dose_rate = min(doses)
+        track.max_dose_rate = max(doses)
+        track.avg_dose_rate = sum(doses) / len(doses)
+        track.std_dose_rate = statistics.pstdev(doses) if len(doses) > 1 else 0.0
+
+    total_distance = 0.0
+    for a, b in zip(points, points[1:]):
+        if None in (a.latitude, a.longitude, b.latitude, b.longitude):
+            continue
+        total_distance += _haversine_m(a.latitude, a.longitude, b.latitude, b.longitude)
+    track.total_distance = total_distance
+
+    duration = (track.end_time - track.start_time).total_seconds() if track.end_time and track.start_time else 0
+    speeds = [p.speed for p in points if p.speed is not None]
+    if speeds:
+        track.average_speed = sum(speeds) / len(speeds)
+    elif duration > 0:
+        track.average_speed = total_distance / duration
+
+    track.save(update_fields=[
+        'start_time', 'end_time', 'total_measurements',
+        'min_dose_rate', 'max_dose_rate', 'avg_dose_rate', 'std_dose_rate',
+        'total_distance', 'average_speed',
+    ])
+    return track
+
+
+def group_movement_measurements(gap_seconds=900, min_points=2, limit=20000):
+    """
+    Sessionize loose ``movement`` radiation measurements into Tracks.
+
+    Loose points (capture_mode='movement', track IS NULL) are grouped per
+    (device, project) and split into sessions wherever the time gap between
+    consecutive points exceeds ``gap_seconds``. Each closed session becomes a
+    Track; its measurements are linked and stats recomputed via
+    recompute_track_stats.
+
+    The most recent session of a (device, project) is left OPEN — not turned into
+    a track — while its newest reading arrived within ``gap_seconds`` (by server
+    received_at, so a wrong device clock can't prematurely close it). Those points
+    stay loose and visible on the map until the device goes quiet, then the next
+    run closes them. Idempotent: only touches points with track IS NULL.
+
+    Args:
+        gap_seconds (int): max gap within a session / quiet window to close it.
+        min_points (int): sessions with fewer points are skipped (left loose).
+        limit (int): max loose points scanned per run.
+
+    Returns:
+        dict: number of tracks created and measurements grouped.
+    """
+    from .models import RadiationMeasurement, Track
+
+    now = timezone.now()
+    pending = RadiationMeasurement.objects.filter(capture_mode='movement', track__isnull=True)
+    keys = list(pending.values_list('device_id', 'project_id').distinct()[:limit])
+
+    tracks_created = 0
+    grouped = 0
+    for device_id, project_id in keys:
+        points = list(
+            pending.filter(device_id=device_id, project_id=project_id)
+            .order_by('dateTime')
+            .only('id', 'dateTime', 'received_at', 'user')
+        )
+        if not points:
+            continue
+
+        # Split into sessions by temporal gap.
+        sessions = []
+        current = [points[0]]
+        for prev, point in zip(points, points[1:]):
+            if (point.dateTime - prev.dateTime).total_seconds() > gap_seconds:
+                sessions.append(current)
+                current = []
+            current.append(point)
+        sessions.append(current)
+
+        for idx, session in enumerate(sessions):
+            is_last = (idx == len(sessions) - 1)
+            if is_last:
+                newest = max((p.received_at or p.dateTime) for p in session)
+                if (now - newest).total_seconds() <= gap_seconds:
+                    continue  # still open; leave for a later run
+            if len(session) < min_points:
+                continue
+
+            track = Track.objects.create(
+                project_id=project_id,
+                device_id=device_id,
+                track_type='radiation',
+                file_type='json',
+                status='completed',
+                description='Auto-agrupado desde medidas movement',
+                created_by=session[0].user,
+            )
+            ids = [p.id for p in session]
+            RadiationMeasurement.objects.filter(id__in=ids).update(track=track)
+
+            # Per-point speed from GPS (same logic as track uploads), then stats.
+            pts = list(
+                RadiationMeasurement.objects.filter(track=track)
+                .order_by('dateTime')
+                .only('id', 'dateTime', 'latitude', 'longitude', 'accuracy', 'speed')
+            )
+            compute_point_speeds(pts)
+            RadiationMeasurement.objects.bulk_update(pts, ['speed'], batch_size=1000)
+
+            recompute_track_stats(track)
+            tracks_created += 1
+            grouped += len(ids)
+
+    result = {'tracks_created': tracks_created, 'measurements_grouped': grouped}
+    logger.info(f"group_movement_measurements: {result}")
+    return result
+
+
+def check_station_health(grace_factor=2):
+    """
+    Station watchdog: flag stations as online/offline by reporting cadence.
+
+    For each active station, a reading is "overdue" when
+    ``now - last_measurement_at > expected_interval_seconds * grace_factor`` (using
+    the server-side received_at stored in last_measurement_at, not the device
+    clock). Overdue -> 'offline'; recent -> 'online'; never-reported -> 'unknown'.
+    Status transitions are logged so a notification channel can hook in later.
+
+    Returns:
+        dict: counts per resulting status and the list of stations that changed.
+    """
+    from .models import Station
+
+    now = timezone.now()
+    counts = {'online': 0, 'offline': 0, 'unknown': 0}
+    transitions = []
+
+    for station in Station.objects.filter(is_active=True):
+        previous = station.status
+        if station.last_measurement_at is None:
+            new_status = 'unknown'
+        else:
+            overdue = (now - station.last_measurement_at).total_seconds()
+            threshold = station.expected_interval_seconds * grace_factor
+            new_status = 'offline' if overdue > threshold else 'online'
+
+        counts[new_status] += 1
+        if new_status != previous:
+            station.status = new_status
+            station.save(update_fields=['status', 'updated_at'])
+            transitions.append({'station_id': station.id, 'name': station.name,
+                                'from': previous, 'to': new_status})
+            # TODO(notify): wire an alert channel here when a station goes offline.
+            logger.warning(
+                f"check_station_health: estación {station.id} ({station.name}) "
+                f"{previous} -> {new_status}"
+            )
+
+    result = {'counts': counts, 'transitions': transitions}
+    logger.info(f"check_station_health: {counts}")
+    return result
+
+
+# =============================================================================
+# Contribution milestones (300k / 400k / ... measurements -> thank-you email)
+# =============================================================================
+
+def count_project_contributions(project_name=None):
+    """
+    Number of contributions (radiation + light pollution measurements) filed
+    under the milestone project (settings.CONTRIBUTION_MILESTONE_PROJECT).
+
+    Returns 0 if the project does not exist.
+    """
+    from django.conf import settings
+    from missions.models import Project
+    from .models import RadiationMeasurement, LightPollutionMeasurement
+
+    name = project_name or getattr(settings, 'CONTRIBUTION_MILESTONE_PROJECT', 'Openred')
+    project = Project.objects.filter(name=name).first()
+    if project is None:
+        logger.warning(f"Milestone project '{name}' not found; counting 0 contributions")
+        return 0
+    return (
+        RadiationMeasurement.objects.filter(project=project).count()
+        + LightPollutionMeasurement.objects.filter(project=project).count()
+    )
+
+
+def milestone_thresholds_reached(total):
+    """All configured thresholds <= total, ascending (e.g. [300000, 400000])."""
+    from django.conf import settings
+    start = getattr(settings, 'CONTRIBUTION_MILESTONE_START', 300000)
+    step = getattr(settings, 'CONTRIBUTION_MILESTONE_STEP', 100000)
+    if total < start or step <= 0:
+        return []
+    return list(range(start, total + 1, step))
+
+
+def check_contribution_milestones():
+    """
+    Detect newly reached contribution milestones and enqueue the thank-you email.
+
+    Runs periodically (RQ_JOBS, daily). Safe to run concurrently: the unique ``threshold`` column guarantees a milestone is
+    created (and therefore emailed) once.
+
+    Bootstrap: the first time it runs with an empty table, every threshold
+    already passed is recorded as ``backfilled`` and NOT emailed, so enabling
+    the feature never mass-mails users for milestones that are old news. Use
+    ``manage.py contribution_milestone send --threshold N`` to send one of
+    those by hand.
+
+    Returns:
+        dict: {'total': int, 'new': [thresholds enqueued], 'backfilled': [...]}
+    """
+    from django.db import IntegrityError
+    from .models import ContributionMilestone
+
+    total = count_project_contributions()
+    reached = milestone_thresholds_reached(total)
+    result = {'total': total, 'new': [], 'backfilled': []}
+    if not reached:
+        return result
+
+    bootstrap = not ContributionMilestone.objects.exists()
+    for threshold in reached:
+        if ContributionMilestone.objects.filter(threshold=threshold).exists():
+            continue
+        status = 'backfilled' if bootstrap else 'pending'
+        try:
+            milestone = ContributionMilestone.objects.create(
+                threshold=threshold, total_at_detection=total, status=status,
+            )
+        except IntegrityError:
+            # Another worker got there first — that one sends the email.
+            continue
+        if status == 'backfilled':
+            result['backfilled'].append(threshold)
+            continue
+        result['new'].append(threshold)
+        try:
+            import django_rq
+            django_rq.get_queue('openred-tracks').enqueue(
+                'measures.tasks.send_contribution_milestone_email',
+                milestone.id,
+                job_timeout='30m',
+                result_ttl=86400,
+                job_id=f'milestone_email_{threshold}',
+            )
+        except Exception as enqueue_error:
+            logger.error(f"Failed to enqueue milestone email {threshold}: {enqueue_error}")
+            milestone.status = 'failed'
+            milestone.error_message = f'enqueue: {enqueue_error}'
+            milestone.save(update_fields=['status', 'error_message'])
+
+    if result['new'] or result['backfilled']:
+        logger.info(f"Contribution milestones: total={total} new={result['new']} backfilled={result['backfilled']}")
+    return result
+
+
+def milestone_recipients(project_name=None):
+    """
+    Distinct emails (case-insensitive) of active users who have contributed at
+    least one measurement to the milestone project. These are the people the
+    thank-you is addressed to; users without contributions are not mailed.
+    """
+    from django.conf import settings
+    from django.contrib.auth import get_user_model
+    from missions.models import Project
+    from .models import RadiationMeasurement, LightPollutionMeasurement
+
+    name = project_name or getattr(settings, 'CONTRIBUTION_MILESTONE_PROJECT', 'Openred')
+    project = Project.objects.filter(name=name).first()
+    if project is None:
+        return []
+    user_ids = set(
+        RadiationMeasurement.objects.filter(project=project, user__isnull=False)
+        .values_list('user_id', flat=True).distinct()
+    ) | set(
+        LightPollutionMeasurement.objects.filter(project=project, user__isnull=False)
+        .values_list('user_id', flat=True).distinct()
+    )
+    User = get_user_model()
+    seen = {}
+    for email in (User.objects.filter(id__in=user_ids, is_active=True)
+                  .exclude(email='').values_list('email', flat=True)):
+        key = email.strip().lower()
+        if key and key not in seen:
+            seen[key] = email.strip()
+    return sorted(seen.values(), key=str.lower)
+
+
+def build_milestone_email(threshold, to_email, connection=None):
+    """
+    Render the bilingual thank-you email for ``threshold`` addressed to one
+    recipient (one message per user so addresses are never exposed).
+    """
+    from django.conf import settings
+    from django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
+
+    context = {
+        'threshold': threshold,
+        'threshold_es': f'{threshold:,}'.replace(',', '.'),
+        'threshold_en': f'{threshold:,}',
+        'site_url': getattr(settings, 'FRONTEND_URL', 'https://map.open-red.es'),
+    }
+    subject = render_to_string('emails/contribution_milestone_subject.txt', context).strip()
+    text_body = render_to_string('emails/contribution_milestone.txt', context)
+    html_body = render_to_string('emails/contribution_milestone.html', context)
+    message = EmailMultiAlternatives(
+        subject=subject,
+        body=text_body,
+        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+        to=[to_email],
+        connection=connection,
+    )
+    message.attach_alternative(html_body, 'text/html')
+    return message
+
+
+def send_contribution_milestone_email(milestone_id, recipients=None):
+    """
+    Send the milestone thank-you to every active user (or to ``recipients``).
+
+    Marks the ContributionMilestone as sent/failed. Refuses to re-send a
+    milestone that is already ``sent`` or ``sending``.
+
+    Returns:
+        dict: {'milestone_id', 'threshold', 'sent': int, 'failed': int}
+    """
+    from django.core.mail import get_connection
+    from .models import ContributionMilestone
+
+    milestone = ContributionMilestone.objects.get(id=milestone_id)
+    if milestone.status in ('sent', 'sending'):
+        logger.warning(f"Milestone {milestone.threshold} already {milestone.status}; skipping")
+        return {'milestone_id': milestone_id, 'threshold': milestone.threshold, 'sent': 0, 'failed': 0,
+                'skipped': milestone.status}
+
+    milestone.status = 'sending'
+    milestone.save(update_fields=['status'])
+
+    recipients = list(recipients) if recipients is not None else milestone_recipients()
+    sent = failed = 0
+    errors = []
+    try:
+        connection = get_connection()
+        connection.open()
+        for email in recipients:
+            try:
+                build_milestone_email(milestone.threshold, email, connection=connection).send()
+                sent += 1
+            except Exception as send_error:
+                failed += 1
+                errors.append(f'{email}: {send_error}')
+                logger.error(f"Milestone {milestone.threshold} email to {email} failed: {send_error}")
+        connection.close()
+    except Exception as conn_error:
+        errors.append(f'connection: {conn_error}')
+        logger.error(f"Milestone {milestone.threshold} mail connection failed: {conn_error}")
+
+    milestone.recipients_count = sent
+    milestone.failed_count = failed
+    milestone.error_message = '\n'.join(errors)[:10000]
+    milestone.sent_at = timezone.now()
+    milestone.status = 'sent' if sent > 0 else 'failed'
+    milestone.save(update_fields=['recipients_count', 'failed_count', 'error_message', 'sent_at', 'status'])
+
+    logger.info(f"Milestone {milestone.threshold}: sent={sent} failed={failed}")
+    return {'milestone_id': milestone_id, 'threshold': milestone.threshold, 'sent': sent, 'failed': failed}

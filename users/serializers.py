@@ -34,7 +34,13 @@ class CustomRegisterSerializer(serializers.Serializer):
         """
         Validar que el email sea único.
         """
-        if User.objects.filter(email=value).exists():
+        user = User.objects.filter(email=value).first()
+        if user:
+            from allauth.socialaccount.models import SocialAccount
+            if SocialAccount.objects.filter(user=user, provider='google').exists():
+                raise serializers.ValidationError(
+                    "Esta cuenta fue creada con Google. Por favor, inicia sesión con Google."
+                )
             raise serializers.ValidationError("Un usuario con este email ya existe.")
         return value
 

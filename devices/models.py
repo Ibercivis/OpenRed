@@ -12,7 +12,9 @@ Each measurement in OpenRed must be associated with a registered Device.
 """
 from django.db import models
 from django.contrib.auth.models import User  # Assuming you're using Django's User model for owners
+from django.utils import timezone
 import hashlib
+import secrets
 
 class DeviceModel(models.Model):
     """
@@ -107,6 +109,25 @@ class Device(models.Model):
     calibration_date = models.DateField(blank=True, null=True)  # Date of the last calibration
     is_active = models.BooleanField(default=True)  # Indicates if the device is still in use
 
+    # Ingest token (for headless devices like M5Stack posting measurements).
+    # Only the SHA-256 hash is stored; the plaintext token is shown once at
+    # creation/rotation and never again. Never expose this in public serializers.
+    ingest_token_hash = models.CharField(
+        max_length=64,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="SHA-256 hash of the device's ingest token (plaintext never stored)"
+    )
+    ingest_token_created_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the current ingest token was issued/rotated"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, null=True, help_text="When the device was registered")
+    updated_at = models.DateTimeField(auto_now=True, null=True, help_text="Last update of the device record")
+
     # To automatically generate a hash for the device
     def save(self, *args, **kwargs):
         """
@@ -126,6 +147,29 @@ class Device(models.Model):
         # Generate a unique hash based on the device serial number
         self.hash = hashlib.md5(self.serial_number.encode('utf-8')).hexdigest()
         super(Device, self).save(*args, **kwargs)
+
+    @staticmethod
+    def hash_ingest_token(raw_token):
+        """SHA-256 hex digest of an ingest token (what we store; never the plaintext)."""
+        return hashlib.sha256(raw_token.encode('utf-8')).hexdigest()
+
+    def issue_ingest_token(self):
+        """
+        Generate a new ingest token, persist only its hash, and return the
+        plaintext. The plaintext is shown to the owner exactly once (on creation
+        or rotation) and cannot be recovered afterwards. Rotating invalidates the
+        previous token.
+        """
+        raw_token = secrets.token_urlsafe(32)
+        self.ingest_token_hash = self.hash_ingest_token(raw_token)
+        self.ingest_token_created_at = timezone.now()
+        self.save(update_fields=['ingest_token_hash', 'ingest_token_created_at'])
+        return raw_token
+
+    @property
+    def has_ingest_token(self):
+        """Whether this device currently has an ingest token issued."""
+        return bool(self.ingest_token_hash)
 
     def __str__(self):
         """

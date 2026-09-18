@@ -227,6 +227,12 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',  # Lectura pública, escritura requiere autenticación
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',  # Use drf-spectacular for schema generation
+    # Throttling is opt-in per view (ScopedRateThrottle); public reads are not throttled.
+    'DEFAULT_THROTTLE_RATES': {
+        # Track uploads (RCTRK + JSON), per authenticated user. Counter lives in CACHES (Redis),
+        # so the limit is shared across gunicorn workers.
+        'track_upload': config('TRACK_UPLOAD_RATE', default='30/hour'),
+    },
 }
 
 # ====================
@@ -327,6 +333,21 @@ SOCIALACCOUNT_PROVIDERS = {
 MAPBOX_ACCESS_TOKEN = config('MAPBOX_ACCESS_TOKEN', default='') # Fetch from environment variable
 OSR_API_KEY = config('OSR_API_KEY', default='') # Fetch from environment variable
 
+# Correos que reciben un aviso cada vez que termina de procesarse un track
+# (completado o fallido). Lista separada por comas; vacío = no avisar.
+TRACK_UPLOAD_NOTIFY_EMAILS = [
+    e.strip() for e in config(
+        'TRACK_UPLOAD_NOTIFY_EMAILS',
+        default='frasanz@ibercivis.es,dlisbona@ibercivis.es,germangil@ibercivis.es',
+    ).split(',') if e.strip()
+]
+# Proyectos (por nombre) cuyos tracks NO generan aviso, p.ej. el de pruebas
+TRACK_UPLOAD_NOTIFY_EXCLUDE_PROJECTS = [
+    e.strip() for e in config(
+        'TRACK_UPLOAD_NOTIFY_EXCLUDE_PROJECTS', default='radiation-test'
+    ).split(',') if e.strip()
+]
+
 # ====================
 # Security Settings (HTTPS/SSL - Production Only)
 # ====================
@@ -344,6 +365,25 @@ if not DEBUG:
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
 LANGUAGE_CODE = 'es'
+
+LANGUAGES = [
+    ('en', 'English'),
+    ('es', 'Español'),
+]
+
+LOCALE_PATHS = [BASE_DIR / 'locale']
+
+# Language used for generated PDF reports when the request does not carry an
+# explicit ``lang`` query parameter nor an Accept-Language header we support.
+REPORT_DEFAULT_LANGUAGE = os.environ.get('REPORT_DEFAULT_LANGUAGE', 'en')
+
+# User-Agent sent when fetching OpenStreetMap basemap tiles for PDF report maps.
+# OSM's tile usage policy blocks generic/anonymous agents (HTTP 403 "Access
+# blocked" tiles), so identify the app and give a contact address.
+OSM_TILE_USER_AGENT = os.environ.get(
+    'OSM_TILE_USER_AGENT',
+    'OpenRed-API/1.0 (+https://api.open-red.es; noreply@ibercivis.es)',
+)
 
 TIME_ZONE = 'UTC'
 
@@ -382,17 +422,44 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # RQ (Redis Queue) Configuration
 # ====================
 
+# ====================
+# Cache (Redis, same DB slot as RQ)
+# ====================
+# Used by DRF throttling. Keys are prefixed so they never collide with RQ's.
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://{}:{}/{}'.format(
+            config('REDIS_HOST', default='localhost'),
+            config('REDIS_PORT', default=6379, cast=int),
+            config('REDIS_DB', default=4, cast=int),
+        ),
+        'KEY_PREFIX': 'openred',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'SOCKET_CONNECT_TIMEOUT': 2,
+            'SOCKET_TIMEOUT': 2,
+            # Never let a Redis hiccup turn into a 500 on an API call.
+            'IGNORE_EXCEPTIONS': True,
+        },
+    }
+}
+DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
+
 RQ_QUEUES = {
     'openred-tracks': {
         'HOST': config('REDIS_HOST', default='localhost'),
         'PORT': config('REDIS_PORT', default=6379, cast=int),
-        'DB': config('REDIS_DB', default=0, cast=int),
+        # DB 4 is openred's slot on this host's shared Redis. Do NOT use 0:
+        # rq-scheduler's scheduled-jobs key is per-DB, not per-queue, so sharing a
+        # DB lets one project's job re-registration wipe the others'.
+        'DB': config('REDIS_DB', default=4, cast=int),
         'DEFAULT_TIMEOUT': '10m',  # 10 minutes timeout for track processing
     },
     'openred-weather': {
         'HOST': config('REDIS_HOST', default='localhost'),
         'PORT': config('REDIS_PORT', default=6379, cast=int),
-        'DB': config('REDIS_DB', default=0, cast=int),
+        'DB': config('REDIS_DB', default=4, cast=int),  # openred's slot — see openred-tracks above
         'DEFAULT_TIMEOUT': '30m',  # 30 minutes timeout for weather fetching
     },
 }
@@ -409,18 +476,73 @@ RQ_SHOW_ADMIN_LINK = True  # Show RQ link in admin
 from datetime import timedelta
 
 RQ_JOBS = {
+    # Step 1: bucket every measurement lacking a weather_cache (tracks / movement /
+    # stations) into its (H3 cell + hour) WeatherCache. Runs ahead of the fetch.
+    'assign_pending_weather_buckets': {
+        'func': 'measures.tasks.assign_pending_weather_buckets',
+        'kwargs': {
+            'limit': 5000,  # Measurements processed per model per run
+        },
+        'interval': 300,  # Every 5 minutes
+        'repeat': None,  # Repeat indefinitely
+        'timeout': 300,  # 5 minute timeout
+        'result_ttl': 500,
+    },
+    # Step 2: fetch weather from Open-Meteo for pending WeatherCache buckets.
     'fetch_pending_weather': {
         'func': 'measures.tasks.fetch_pending_weather',
         'kwargs': {
             'limit': 100,  # Process up to 100 entries per run
             'max_attempts': 3,  # Skip entries with 3+ failed attempts
         },
-        'interval': 60,  # Run every 60 seconds (1 minute for testing, use 3600 for production - 1 hour)
+        'interval': 300,  # Every 5 minutes
         'repeat': None,  # Repeat indefinitely
         'timeout': 300,  # 5 minute timeout
         'result_ttl': 500,  # Keep results for 500 seconds
     },
+    # Sessionize loose movement measurements into tracks (closes quiet sessions).
+    'group_movement_measurements': {
+        'func': 'measures.tasks.group_movement_measurements',
+        'kwargs': {
+            'gap_seconds': 900,  # 15 min gap splits sessions / quiet window to close
+            'min_points': 2,
+        },
+        'interval': 300,  # Every 5 minutes
+        'repeat': None,
+        'timeout': 600,
+        'result_ttl': 500,
+    },
+    # Station watchdog: flag base stations online/offline by reporting cadence.
+    # Contribution milestones: detect 300k/400k/... measurements of the
+    # OpenRed project and email every user a thank-you (idempotent via
+    # ContributionMilestone.threshold unique constraint).
+    'check_contribution_milestones': {
+        'func': 'measures.tasks.check_contribution_milestones',
+        'kwargs': {},
+        'interval': 86400,  # Daily
+        'repeat': None,
+        'timeout': 120,
+        'result_ttl': 500,
+    },
+    'check_station_health': {
+        'func': 'measures.tasks.check_station_health',
+        'kwargs': {
+            'grace_factor': 2,  # offline when overdue > expected_interval * 2
+        },
+        'interval': 120,  # Every 2 minutes
+        'repeat': None,
+        'timeout': 120,
+        'result_ttl': 500,
+    },
 }
+
+# Hitos de contribuciones: correo de agradecimiento a todos los usuarios al
+# superar CONTRIBUTION_MILESTONE_START y cada CONTRIBUTION_MILESTONE_STEP
+# (300.000, 400.000, 500.000...). Solo cuentan las medidas del proyecto
+# CONTRIBUTION_MILESTONE_PROJECT. Ver measures.tasks.check_contribution_milestones.
+CONTRIBUTION_MILESTONE_PROJECT = config('CONTRIBUTION_MILESTONE_PROJECT', default='Openred')
+CONTRIBUTION_MILESTONE_START = config('CONTRIBUTION_MILESTONE_START', default=300000, cast=int)
+CONTRIBUTION_MILESTONE_STEP = config('CONTRIBUTION_MILESTONE_STEP', default=100000, cast=int)
 
 # ====================
 # Default Settings
@@ -433,7 +555,7 @@ RQ_JOBS = {
 _DEFAULT_TRACK_UPLOAD_MAX_POINTS = 20000
 _DEFAULT_TRACK_UPLOAD_MAX_BYTES = 10 * 1024 * 1024  # 10 MiB
 
-# Max number of points accepted in JSON track uploads
+# Max number of points accepted per track upload (JSON and RCTRK)
 TRACK_UPLOAD_MAX_POINTS = config(
     'TRACK_UPLOAD_MAX_POINTS',
     default=_DEFAULT_TRACK_UPLOAD_MAX_POINTS,

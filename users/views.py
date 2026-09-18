@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.db import transaction
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -55,24 +56,111 @@ class UserViewSet(viewsets.ModelViewSet):
     def me(self, request):
         """
         Get the authenticated user's profile.
-        
+
         Returns:
             Response: JSON with user data (id, username, email, date_joined)
         """
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
-    
-    @action(detail=False, methods=['get'], url_path='me')
-    def me(self, request):
+
+    @me.mapping.delete
+    def delete_me(self, request):
         """
-        Get the authenticated user's profile.
-        
+        Delete the authenticated user's account.
+
+        Requires re-authentication so a stolen token / hijacked session cannot
+        wipe an account, and to guard against accidental deletion:
+            - Password accounts: must send `current_password`, which is verified.
+            - Social-login accounts (no usable password): must send `confirm: true`.
+
+        Accepts a `delete_data` flag (request body or query param) to choose
+        what happens to the data the user contributed:
+            - False (default): the account is deleted but the user's
+              measurements and tracks are kept and anonymized (their user/
+              created_by FK is set to NULL via on_delete=SET_NULL). This
+              preserves the scientific dataset while removing the personal link.
+            - True: the user's measurements and tracks are also deleted.
+
         Returns:
-            Response: JSON with user data (id, username, email, date_joined)
+            Response: 200 with a summary of what was removed/anonymized.
         """
-        serializer = self.get_serializer(request.user)
-        return Response(serializer.data)
-    
+        return self._delete_account(request)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Handle DELETE /api/users/{pk}/.
+
+        Routed through the same confirmed deletion path as /api/users/me/ so the
+        default ModelViewSet destroy cannot be used to bypass re-authentication.
+        get_object() still enforces that users may only target their own account
+        (404 otherwise).
+        """
+        self.get_object()
+        return self._delete_account(request)
+
+    def _delete_account(self, request):
+        """
+        Shared account-deletion logic with re-authentication and an optional
+        data wipe. See delete_me() for the public contract.
+        """
+        from measures.models import (
+            RadiationMeasurement,
+            LightPollutionMeasurement,
+            Track,
+        )
+
+        user = request.user
+
+        # Re-authentication is the real security control here: a frontend
+        # confirmation modal is only UX and can be bypassed by calling this
+        # endpoint directly with a valid token.
+        if user.has_usable_password():
+            current_password = request.data.get('current_password', '')
+            if not current_password or not user.check_password(current_password):
+                return Response(
+                    {'detail': 'Current password is incorrect or missing.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        else:
+            # Social-login accounts have no usable password; require an explicit
+            # confirmation flag instead.
+            confirmed = str(request.data.get('confirm', '')).lower() in ('true', '1', 'yes', 'on')
+            if not confirmed:
+                return Response(
+                    {'detail': 'Account has no password (social login). Send "confirm": true to delete.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        raw_flag = request.data.get('delete_data', request.query_params.get('delete_data', False))
+        delete_data = str(raw_flag).lower() in ('true', '1', 'yes', 'on')
+
+        radiation_count = RadiationMeasurement.objects.filter(user=user).count()
+        light_count = LightPollutionMeasurement.objects.filter(user=user).count()
+        track_count = Track.objects.filter(created_by=user).count()
+
+        with transaction.atomic():
+            if delete_data:
+                # Deleting tracks cascades to their measurements and spectra;
+                # the remaining measurements (not tied to a track) are removed next.
+                Track.objects.filter(created_by=user).delete()
+                RadiationMeasurement.objects.filter(user=user).delete()
+                LightPollutionMeasurement.objects.filter(user=user).delete()
+            # Deleting the user sets the remaining FKs (measurement.user,
+            # track.created_by, device.owner, project/mission/campaign.created_by)
+            # to NULL thanks to on_delete=SET_NULL.
+            user.delete()
+
+        action_taken = 'deleted' if delete_data else 'anonymized'
+        return Response(
+            {
+                'detail': 'Account deleted successfully.',
+                'data_deleted': delete_data,
+                'measurements_%s' % action_taken: radiation_count + light_count,
+                'tracks_%s' % action_taken: track_count,
+            },
+            status=status.HTTP_200_OK,
+        )
+
     @action(detail=False, methods=['get'], url_path='me/stats')
     def my_stats(self, request):
         """

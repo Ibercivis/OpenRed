@@ -164,6 +164,9 @@ python manage.py createsuperuser
 # Collect static files
 python manage.py collectstatic --noinput
 
+# Compile translations for PDF reports (.mo files are not in git)
+python manage.py compilemessages -l es
+
 # Test Gunicorn
 gunicorn openred.wsgi:application --bind 127.0.0.1:8000 --timeout 120
 # Press Ctrl+C after verifying it works
@@ -406,6 +409,9 @@ python manage.py migrate
 
 # Collect static files
 python manage.py collectstatic --noinput
+
+# Compile translations for PDF reports (.mo files are not in git)
+python manage.py compilemessages -l es
 
 # Restart services
 sudo systemctl restart openred-gunicorn

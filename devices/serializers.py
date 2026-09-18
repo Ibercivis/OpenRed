@@ -66,7 +66,48 @@ class DeviceSerializer(serializers.ModelSerializer):
     Note:
         The hash field is read-only and auto-generated from serial_number.
         It's included in responses but ignored in create/update requests.
+
+        The ingest token is NEVER exposed here (this serializer feeds public GET
+        endpoints). Only its presence is reported via ``has_ingest_token``; the
+        plaintext token is returned once, separately, on creation/rotation.
     """
+    has_ingest_token = serializers.BooleanField(read_only=True)
+    last_measurement_at = serializers.SerializerMethodField()
+    is_owner = serializers.SerializerMethodField()
+
     class Meta:
         model = Device
-        fields = '__all__'  # Include all fields, or specify the fields you want
+        # Exclude the secret hash; keep everything else.
+        exclude = ['ingest_token_hash']
+        read_only_fields = ['hash', 'owner', 'ingest_token_created_at', 'created_at', 'updated_at']
+
+    def get_last_measurement_at(self, obj):
+        """Timestamp of this device's most recent measurement (radiation or light), or None."""
+        # ``mine`` precomputes these in bulk to avoid two queries per device.
+        bulk = self.context.get('last_measurement_by_device')
+        if bulk is not None:
+            return bulk.get(obj.id)
+
+        from measures.models import RadiationMeasurement, LightPollutionMeasurement
+        latest = None
+        for model in (RadiationMeasurement, LightPollutionMeasurement):
+            dt = (model.objects.filter(device=obj)
+                  .order_by('-dateTime')
+                  .values_list('dateTime', flat=True)
+                  .first())
+            if dt is not None and (latest is None or dt > latest):
+                latest = dt
+        return latest
+
+    def get_is_owner(self, obj):
+        """
+        Whether the requesting user owns this device.
+
+        A shared device (e.g. a RadiaCode lent to several volunteers) is listed
+        in ``/api/devices/mine/`` for everyone who has measured with it, but only
+        its owner can rotate the ingest token or edit it.
+        """
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.owner_id == request.user.id

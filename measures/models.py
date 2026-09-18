@@ -220,7 +220,7 @@ class BaseMeasurement(models.Model):
     # Basic relationships
     device = models.ForeignKey(
         'devices.Device',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,  # no borrar un device con medidas; hay que tratarlas antes
         verbose_name="Device"
     )
     user = models.ForeignKey(
@@ -366,6 +366,7 @@ class BaseMeasurement(models.Model):
             models.Index(fields=['campaign']),
             models.Index(fields=['track']),
             models.Index(fields=['weather_cache']),
+            models.Index(fields=['altitude']),
         ]
 
 class RadiationMeasurement(BaseMeasurement):
@@ -438,6 +439,12 @@ class RadiationMeasurement(BaseMeasurement):
         verbose_name="CPM Error",
         help_text="Absolute error of CPM measurement"
     )
+    cpm_rel_error = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name="CPM Relative Error",
+        help_text="Relative error of CPM (fraction, e.g. 0.18 = 18%)"
+    )
     dose_rate = models.FloatField(
         null=True, 
         blank=True,
@@ -450,7 +457,13 @@ class RadiationMeasurement(BaseMeasurement):
         verbose_name="Dose Rate Error",
         help_text="Absolute error of dose rate measurement"
     )
-    
+    dose_rate_rel_error = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name="Dose Rate Relative Error",
+        help_text="Relative error of dose rate (fraction, e.g. 0.09 = 9%)"
+    )
+
     # Speed data (calculated from GPS track)
     speed = models.FloatField(
         null=True,
@@ -477,25 +490,53 @@ class RadiationMeasurement(BaseMeasurement):
     
     # Datos adicionales en JSON (para flexibilidad)
     raw_data = models.JSONField(
-        blank=True, 
+        blank=True,
         null=True,
         help_text="Datos brutos del dispositivo en formato JSON"
     )
-    
+
+    # Modo de captura e ingesta por token de dispositivo (solo radiación)
+    CAPTURE_MODE_CHOICES = [
+        ('movement', 'Movement'),
+        ('static', 'Static'),
+    ]
+    capture_mode = models.CharField(
+        max_length=20,
+        choices=CAPTURE_MODE_CHOICES,
+        default='movement',
+        verbose_name="Modo de Captura",
+        help_text="movement: punto suelto a agrupar en track / static: serie temporal de una estación"
+    )
+    station = models.ForeignKey(
+        'Station',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='measurements',
+        verbose_name="Estación",
+        help_text="Estación base que emitió esta medida (solo para capture_mode=static)"
+    )
+    received_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Recibido en",
+        help_text="Hora de llegada al servidor (independiente del reloj del aparato)"
+    )
+
     # Campo geoespacial para consultas PostGIS y H3
     location = gis_models.PointField(
-        geography=True, 
-        srid=4326, 
-        null=True, 
+        geography=True,
+        srid=4326,
+        null=True,
         blank=True,
         verbose_name="Ubicación Geográfica",
         help_text="Punto geográfico para consultas espaciales (auto-generado desde lat/lng)"
     )
-    
+
     def save(self, *args, **kwargs):
         """
         Auto-populate location field from latitude/longitude.
-        
+
         This ensures the PostGIS point is always in sync with lat/lng coordinates.
         """
         if self.latitude and self.longitude:
@@ -503,13 +544,21 @@ class RadiationMeasurement(BaseMeasurement):
             # Note: Point takes (longitude, latitude) - order is important!
             self.location = Point(float(self.longitude), float(self.latitude))
         super().save(*args, **kwargs)
-    
+
     class Meta:
         verbose_name = "Medición de Radiación"
         verbose_name_plural = "Mediciones de Radiación"
         db_table = 'measures_radiation_measurement'
         indexes = [
             gis_models.Index(fields=['location']),  # Spatial index for fast queries
+            models.Index(fields=['dose_rate']),
+            models.Index(fields=['speed']),
+            models.Index(fields=['station']),
+            # Serie temporal de una estación: filtra por estación Y rango de fechas
+            # (endpoint de la gráfica). Una estación a 5 min son ~105k filas/año.
+            models.Index(fields=['station', 'dateTime']),
+            # Acelera el job de agrupación (movement sin track) y prefija capture_mode
+            models.Index(fields=['capture_mode', 'track', 'device']),
         ]
 
 class LightPollutionMeasurement(BaseMeasurement):
@@ -611,6 +660,8 @@ class LightPollutionMeasurement(BaseMeasurement):
         db_table = 'measures_light_pollution_measurement'
         indexes = [
             gis_models.Index(fields=['location']),  # Spatial index for fast queries
+            models.Index(fields=['lux']),
+            models.Index(fields=['speed']),
         ]
 
 class Track(models.Model):
@@ -676,8 +727,8 @@ class Track(models.Model):
         help_text="Parent project (required)"
     )
     device = models.ForeignKey(
-        'devices.Device', 
-        on_delete=models.CASCADE, 
+        'devices.Device',
+        on_delete=models.PROTECT,  # no borrar un device con tracks; hay que tratarlos antes
         related_name='tracks',
         verbose_name="Device",
         help_text="Device that captured the measurements"
@@ -701,6 +752,19 @@ class Track(models.Model):
         help_text="Optional campaign this track belongs to"
     )
     
+    # Tipo de track (radiation / light pollution)
+    TRACK_TYPE_CHOICES = [
+        ('radiation', 'Radiation'),
+        ('light', 'Light Pollution'),
+    ]
+    track_type = models.CharField(
+        max_length=20,
+        choices=TRACK_TYPE_CHOICES,
+        default='radiation',
+        verbose_name="Tipo de Track",
+        help_text="Tipo de medición del track (radiation/light)"
+    )
+
     # Archivo subido
     file = models.FileField(
         upload_to='tracks/%Y/%m/%d/',
@@ -936,6 +1000,263 @@ class Track(models.Model):
         verbose_name = "Track"
         verbose_name_plural = "Tracks"
         ordering = ['-created_at']
+
+
+class Spectrum(models.Model):
+    """
+    Gamma spectrum integrated over a segment of a RadiaCode track.
+
+    Each spectrum is a gamma energy histogram (counts per channel) accumulated
+    over a time/space window of the parent track. Spectra arrive nested inside
+    the track JSON (the `spectra` array, sibling of `points`) at
+    POST /api/tracks/upload_json/ and are created during asynchronous track
+    processing (see measures.tasks.parse_json_track). Only RadiaCode devices
+    emit them, for now.
+
+    Energy calibration maps channel index to energy:
+        E(keV) = a0 + a1·ch + a2·ch²
+
+    Each spectrum carries its own coordinates and timestamps, so it can be
+    geolocated without a FK to individual points. The start_*/end_* coordinates
+    are nullable because the client omits them when there was no GPS fix for
+    that capture window.
+
+    Attributes:
+        track (ForeignKey): Parent track (related_name="spectra")
+        name (str): Spectrum label
+        index (int): 0-based order within the track
+        started_at (DateTime): Capture window start (UTC)
+        ended_at (DateTime): Capture window end (UTC)
+        duration_sec (int): Integration (live) time in seconds
+        a0, a1, a2 (float): Energy calibration coefficients
+        channel_count (int): Number of channels (typically 1024)
+        counts (JSON): Accumulated counts per channel; len(counts) == channel_count
+        start_lat, start_lon, start_alt (float): Position at segment start (nullable)
+        end_lat, end_lon (float): Position at segment end (nullable)
+        created_at (DateTime): When this record was saved
+    """
+    track = models.ForeignKey(
+        'Track',
+        on_delete=models.CASCADE,
+        related_name='spectra',
+        verbose_name="Track",
+        help_text="Track this spectrum was integrated over"
+    )
+
+    name = models.CharField(max_length=255, verbose_name="Nombre")
+    index = models.IntegerField(
+        verbose_name="Índice",
+        help_text="0-based order within the track"
+    )
+
+    started_at = models.DateTimeField(verbose_name="Inicio de captura")
+    ended_at = models.DateTimeField(verbose_name="Fin de captura")
+    duration_sec = models.IntegerField(
+        verbose_name="Duración (s)",
+        help_text="Integration (live) time in seconds"
+    )
+
+    # Energy calibration: E(keV) = a0 + a1·ch + a2·ch²
+    a0 = models.FloatField(verbose_name="Calibración a0")
+    a1 = models.FloatField(verbose_name="Calibración a1")
+    a2 = models.FloatField(verbose_name="Calibración a2")
+
+    channel_count = models.IntegerField(verbose_name="Nº de canales")
+    counts = models.JSONField(
+        verbose_name="Cuentas por canal",
+        help_text="Accumulated counts per channel (len == channel_count)"
+    )
+
+    # Position at the start/end of the segment (nullable: omitted when no GPS fix)
+    start_lat = models.FloatField(null=True, blank=True, verbose_name="Latitud inicio")
+    start_lon = models.FloatField(null=True, blank=True, verbose_name="Longitud inicio")
+    start_alt = models.FloatField(null=True, blank=True, verbose_name="Altitud inicio (m)")
+    end_lat = models.FloatField(null=True, blank=True, verbose_name="Latitud fin")
+    end_lon = models.FloatField(null=True, blank=True, verbose_name="Longitud fin")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Espectro"
+        verbose_name_plural = "Espectros"
+        ordering = ['track', 'index']
+        indexes = [
+            models.Index(fields=['track', 'index']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} (#{self.index}) — {self.track_id}"
+
+
+class Station(models.Model):
+    """
+    Fixed base station that reports radiation measurements as a time series.
+
+    A Station is a stationary device (e.g. an M5Stack) registered once by a user
+    and bound 1:1 to a Device. It has a fixed location and an expected reporting
+    interval. Incoming static measurements are routed to their station via the
+    device token (token → device → device.station), so the firmware never sends
+    a station id: there is nothing to spoof.
+
+    Each reading is stamped with the station's fixed location, so all existing
+    spatial/weather/stats machinery keeps working unchanged. Station measurements
+    are NOT grouped into tracks — they stay as a pure time series (track=NULL).
+
+    A watchdog job compares ``now - last_measurement_at`` against
+    ``expected_interval_seconds`` (with a grace factor) to flag stations offline.
+
+    Radiation only, for now.
+
+    Attributes:
+        device (OneToOne): Hardware device that backs this station
+        user (ForeignKey): Owner of the station
+        project (ForeignKey): Project all readings are filed under (campaign stays NULL)
+        name (str): Human-readable station name
+        latitude/longitude (Decimal): Fixed location, sealed into each measurement
+        altitude (float): Fixed altitude in meters (optional)
+        location (Point): PostGIS point (auto-generated from lat/lng)
+        expected_interval_seconds (int): Expected seconds between readings (default 300)
+        last_measurement_at (DateTime): Server arrival time of the last reading (watchdog)
+        status (str): online / offline / unknown (maintained by the watchdog)
+        is_active (bool): Whether the station is currently in service
+    """
+    device = models.OneToOneField(
+        'devices.Device',
+        on_delete=models.CASCADE,
+        related_name='station',
+        verbose_name="Device",
+        help_text="Hardware device bound 1:1 to this station"
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='stations',
+        verbose_name="Owner"
+    )
+    project = models.ForeignKey(
+        'missions.Project',
+        on_delete=models.CASCADE,
+        related_name='stations',
+        verbose_name="Project",
+        help_text="Project all station readings are filed under"
+    )
+
+    name = models.CharField(max_length=200, verbose_name="Nombre de la Estación")
+
+    # Fixed location, stamped into every measurement
+    latitude = models.DecimalField(max_digits=10, decimal_places=8, verbose_name="Latitud")
+    longitude = models.DecimalField(max_digits=11, decimal_places=8, verbose_name="Longitud")
+    altitude = models.FloatField(null=True, blank=True, verbose_name="Altitud (m)")
+    location = gis_models.PointField(
+        geography=True,
+        srid=4326,
+        null=True,
+        blank=True,
+        verbose_name="Ubicación Geográfica",
+        help_text="Punto geográfico (auto-generado desde lat/lng)"
+    )
+
+    # Reporting cadence and watchdog state
+    expected_interval_seconds = models.PositiveIntegerField(
+        default=300,
+        verbose_name="Intervalo Esperado (s)",
+        help_text="Segundos esperados entre medidas (default 300 = 5 min)"
+    )
+    last_measurement_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Última Medida",
+        help_text="Hora de llegada al servidor de la última medida (para el watchdog)"
+    )
+    STATUS_CHOICES = [
+        ('online', 'Online'),
+        ('offline', 'Offline'),
+        ('unknown', 'Unknown'),
+    ]
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='unknown',
+        verbose_name="Estado"
+    )
+    is_active = models.BooleanField(default=True, verbose_name="Activa")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        """Auto-populate the PostGIS point from latitude/longitude."""
+        if self.latitude is not None and self.longitude is not None:
+            from django.contrib.gis.geos import Point
+            # Point takes (longitude, latitude) - order matters!
+            self.location = Point(float(self.longitude), float(self.latitude))
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Estación {self.name} ({self.project.name})"
+
+    class Meta:
+        verbose_name = "Estación"
+        verbose_name_plural = "Estaciones"
+        ordering = ['name']
+        indexes = [
+            # location ya obtiene índice GIST automático de PointField
+            models.Index(fields=['status']),
+            models.Index(fields=['last_measurement_at']),
+        ]
+
+
+class ContributionMilestone(models.Model):
+    """
+    Hito de contribuciones (medidas subidas) alcanzado por el proyecto.
+
+    Una fila por umbral (300.000, 400.000, ...). La unicidad de ``threshold``
+    es lo que garantiza que el correo de agradecimiento a todos los usuarios
+    se envía como mucho una vez por hito aunque el chequeo corra en paralelo
+    (job programado + job encolado al terminar un track).
+
+    Flujo:
+        1. ``measures.tasks.check_contribution_milestones`` cuenta las
+           contribuciones y crea la fila del mayor umbral alcanzado que
+           aún no exista (``status='pending'``).
+        2. Encola ``send_contribution_milestone_email(milestone_id)``, que
+           manda el correo a todos los usuarios activos y marca ``sent``.
+        3. Los umbrales que ya estaban superados cuando el sistema se
+           estrenó se registran como ``backfilled`` y no se envían.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pendiente de envío'),
+        ('sending', 'Enviando'),
+        ('sent', 'Enviado'),
+        ('backfilled', 'Registrado sin envío (ya superado)'),
+        ('failed', 'Fallido'),
+    ]
+
+    threshold = models.PositiveIntegerField(
+        unique=True,
+        verbose_name="Umbral",
+        help_text="Número de contribuciones del hito (p.ej. 300000)",
+    )
+    total_at_detection = models.PositiveIntegerField(
+        verbose_name="Contribuciones al detectarlo",
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True,
+    )
+    detected_at = models.DateTimeField(auto_now_add=True, verbose_name="Detectado")
+    sent_at = models.DateTimeField(null=True, blank=True, verbose_name="Enviado")
+    recipients_count = models.PositiveIntegerField(default=0, verbose_name="Destinatarios")
+    failed_count = models.PositiveIntegerField(default=0, verbose_name="Fallos de envío")
+    error_message = models.TextField(blank=True, verbose_name="Error")
+
+    def __str__(self):
+        return f"Hito {self.threshold:,} contribuciones ({self.get_status_display()})"
+
+    class Meta:
+        verbose_name = "Hito de contribuciones"
+        verbose_name_plural = "Hitos de contribuciones"
+        ordering = ['-threshold']
+
 
 # Para mantener compatibilidad temporal si es necesario
 # Measurement = RadiationMeasurement  # Alias de compatibilidad

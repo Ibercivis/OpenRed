@@ -1,0 +1,42 @@
+{% comment %}
+Base HTML para correos de OpenRed. Estilos en línea (los clientes de correo
+ignoran <style> en gran parte). Bloques: title, preview, content, footer.
+Contexto esperado: site_url (p.ej. https://map.open-red.es).
+{% endcomment %}<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}OpenRed{% endblock %}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;">
+  <span style="display:none;max-height:0;overflow:hidden;color:transparent;">{% block preview %}{% endblock %}</span>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+          <tr>
+            <td style="background-color:#0f172a;padding:20px 28px;">
+              <a href="{{ site_url }}" style="color:#ffffff;text-decoration:none;font-size:22px;font-weight:700;letter-spacing:0.5px;">OpenRed</a>
+              <div style="color:#94a3b8;font-size:12px;margin-top:4px;">Ciencia ciudadana · Citizen science</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px;font-size:15px;line-height:1.55;">
+              {% block content %}{% endblock %}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 28px 24px;border-top:1px solid #e2e8f0;font-size:12px;line-height:1.5;color:#64748b;">
+              {% block footer %}
+              Recibes este correo porque tienes una cuenta en <a href="{{ site_url }}" style="color:#64748b;">OpenRed</a>, un proyecto de Ibercivis.<br>
+              You are receiving this email because you have an account on <a href="{{ site_url }}" style="color:#64748b;">OpenRed</a>, an Ibercivis project.
+              {% endblock %}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

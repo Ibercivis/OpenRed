@@ -1,0 +1,51 @@
+{% extends "emails/base.html" %}
+{% block title %}{{ threshold_es }} contribuciones en OpenRed{% endblock %}
+{% block preview %}Gracias: OpenRed ha superado las {{ threshold_es }} contribuciones · Thank you: OpenRed has passed {{ threshold_en }} contributions{% endblock %}
+{% block content %}
+  <div style="text-align:center;padding:8px 0 20px;">
+    <div style="display:inline-block;background-color:#f0fdf4;color:#10b981;border:1px solid #10b981;border-radius:999px;padding:6px 16px;font-size:13px;font-weight:600;letter-spacing:1px;">HITO · MILESTONE</div>
+    <div style="font-size:44px;font-weight:800;color:#0f172a;margin-top:12px;line-height:1;">{{ threshold_es }}</div>
+    <div style="font-size:14px;color:#64748b;margin-top:6px;">contribuciones · contributions</div>
+  </div>
+
+  <h2 style="font-size:18px;margin:0 0 10px;color:#0f172a;">¡Gracias!</h2>
+  <p style="margin:0 0 12px;">
+    OpenRed acaba de superar las <strong>{{ threshold_es }} contribuciones</strong>: medidas de radiación
+    tomadas por personas como tú, con sus propios sensores, en sus calles, en sus paseos y en sus viajes.
+  </p>
+  <p style="margin:0 0 12px;">
+    Cada medida que subes hace un poco más completo el mapa abierto de OpenRed y lo convierte en un
+    dato público, reutilizable por cualquiera. Este hito no es nuestro: es de la comunidad.
+  </p>
+  <p style="margin:0 0 24px;">
+    Gracias por formar parte del proyecto. Seguimos midiendo.
+  </p>
+
+  <hr style="border:0;border-top:1px solid #e2e8f0;margin:0 0 24px;">
+
+  <h2 style="font-size:18px;margin:0 0 10px;color:#0f172a;">Thank you!</h2>
+  <p style="margin:0 0 12px;">
+    OpenRed has just passed <strong>{{ threshold_en }} contributions</strong>: radiation measurements
+    taken by people like you, with their own sensors, on their streets, on their walks and on their travels.
+  </p>
+  <p style="margin:0 0 12px;">
+    Every measurement you upload makes the OpenRed open map a little more complete and turns it
+    into public data anyone can reuse. This milestone is not ours: it belongs to the community.
+  </p>
+  <p style="margin:0 0 24px;">
+    Thank you for being part of the project. Let's keep measuring.
+  </p>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+    <tr>
+      <td style="background-color:#10b981;border-radius:8px;">
+        <a href="{{ site_url }}" style="display:inline-block;padding:12px 24px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;">Ver el mapa · View the map</a>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:24px 0 0;font-size:13px;color:#64748b;">
+    El equipo de OpenRed · The OpenRed team<br>
+    <a href="https://ibercivis.es" style="color:#64748b;">Ibercivis</a>
+  </p>
+{% endblock %}

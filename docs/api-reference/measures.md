@@ -51,6 +51,59 @@ Full CRUD operations for light pollution measurements.
 
 ---
 
+## PDF Reports
+
+Both measurement viewsets expose a `report` action that renders a PDF for the
+current selection (same filters as `h3-aggregation`):
+
+- `GET /api/radiation-measurements/report/`
+- `GET /api/light-pollution-measurements/report/`
+
+### Language
+
+Reports are generated in **English by default**. The language is resolved in
+this order:
+
+1. `lang` query parameter: `?lang=en` or `?lang=es`
+2. `Accept-Language` request header (only `en` / `es` are honoured)
+3. `REPORT_DEFAULT_LANGUAGE` setting (env var, default `en`)
+
+Number formatting follows the selected language (`0.1161` in English,
+`0,1161` in Spanish). Chart labels inside the embedded images are translated
+too.
+
+```bash
+# Spanish report for project 3
+curl -o informe.pdf "https://.../api/radiation-measurements/report/?project=3&lang=es"
+```
+
+### Map style
+
+The spatial distribution page draws either individual measurements or H3
+hexagons, controlled by `map_mode`:
+
+- `auto` (default): points when the map covers a small area (bbox or data
+  extent spanning at most 1.5°, roughly 150 km), hexagons when zoomed out.
+- `points`: every measurement as a dot coloured by its value (dose rate, or lux
+  on a log scale). At most 20 000 points are drawn; larger selections are
+  randomly sampled and the caption says so.
+- `hexagons`: H3 choropleth. `resolution` picks the cell size; when omitted it
+  is derived from the map extent.
+
+Measurements within ~1 km of (0, 0) are ignored by the report: they are bogus
+GPS fixes and would stretch the map to the Gulf of Guinea.
+
+```bash
+# Force the point map for a project
+curl -o report.pdf "https://.../api/light-pollution-measurements/report/?project=2&map_mode=points"
+```
+
+Translations live in `locale/es/LC_MESSAGES/django.po`. After editing them, or
+on every deploy, run `python manage.py compilemessages -l es` (the compiled
+`.mo` file is not committed).
+
+---
+
 ## Track Uploads
 
 ### TrackViewSet

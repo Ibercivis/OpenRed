@@ -1,0 +1,510 @@
+{% load i18n %}{% get_current_language as LANGUAGE_CODE %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    color: #1e293b;
+    background: white;
+  }
+
+  /* ── PAGE BREAKS ─────────────────────────────── */
+  .page { page-break-after: always; padding: 28mm 20mm; min-height: 270mm; }
+  .page:last-child { page-break-after: avoid; }
+
+  /* ── COVER ───────────────────────────────────── */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    background: linear-gradient(160deg, #0f172a 60%, #1e3a5f);
+    color: white;
+    padding: 40mm 24mm;
+  }
+  .cover-label {
+    font-size: 8pt;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #f59e0b;
+    margin-bottom: 12px;
+  }
+  .cover-title {
+    font-size: 28pt;
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 8px;
+  }
+  .cover-subtitle {
+    font-size: 13pt;
+    color: #94a3b8;
+    margin-bottom: 36px;
+  }
+  .cover-divider {
+    width: 60px;
+    height: 4px;
+    background: #f59e0b;
+    margin-bottom: 32px;
+  }
+  .cover-meta table { border-collapse: collapse; }
+  .cover-meta td { padding: 4px 16px 4px 0; font-size: 9pt; color: #cbd5e1; }
+  .cover-meta td strong { color: white; }
+  .cover-footer {
+    position: absolute;
+    bottom: 20mm;
+    left: 24mm;
+    font-size: 7.5pt;
+    color: #475569;
+  }
+
+  /* ── SECTION HEADER ──────────────────────────── */
+  .section-header {
+    border-left: 4px solid #f59e0b;
+    padding-left: 10px;
+    margin-bottom: 18px;
+  }
+  .section-header h2 {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .section-header p {
+    font-size: 8.5pt;
+    color: #64748b;
+    margin-top: 2px;
+  }
+
+  /* ── STAT CARDS ──────────────────────────────── */
+  .cards { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+  .card {
+    flex: 1;
+    min-width: 100px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .card-label { font-size: 7.5pt; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+  .card-value { font-size: 18pt; font-weight: 700; color: #0f172a; margin: 4px 0 2px; }
+  .card-unit { font-size: 7.5pt; color: #94a3b8; }
+  .card-accent { border-top: 3px solid #f59e0b; }
+
+  /* ── FILTERS BOX ─────────────────────────────── */
+  .filters-box {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+  }
+  .filters-box h3 { font-size: 9pt; color: #92400e; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .filters-grid { display: flex; flex-wrap: wrap; gap: 6px 24px; }
+  .filter-item { font-size: 8.5pt; color: #78350f; }
+  .filter-item span { color: #1e293b; font-weight: 600; }
+
+  /* ── IMAGES ──────────────────────────────────── */
+  .chart-wrap { margin: 16px 0; text-align: center; }
+  .chart-wrap img { max-width: 100%; border-radius: 6px; border: 1px solid #e2e8f0; }
+  .chart-caption { font-size: 7.5pt; color: #94a3b8; margin-top: 6px; font-style: italic; }
+
+  /* ── TWO COLUMN CHARTS ───────────────────────── */
+  .two-col { display: flex; gap: 16px; margin: 16px 0; }
+  .two-col .chart-wrap { flex: 1; margin: 0; }
+
+  /* ── TABLE ───────────────────────────────────── */
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8pt;
+    margin-top: 12px;
+  }
+  table.data-table thead th {
+    background: #0f172a;
+    color: white;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  table.data-table tbody tr:nth-child(even) { background: #f8fafc; }
+  table.data-table tbody tr:hover { background: #fffbeb; }
+  table.data-table tbody td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
+  }
+  table.data-table tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .lux-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 7.5pt;
+    font-weight: 700;
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  /* ── FOOTER ──────────────────────────────────── */
+  .report-footer {
+    margin-top: 28px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7pt;
+    color: #94a3b8;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ COVER PAGE ════════════════════════════════════════════════ -->
+<div class="cover page">
+  <div class="cover-label">{% trans "Monitoring report" %}</div>
+  <div class="cover-title">{% trans "Light" %}<br>{% trans "Pollution" %}</div>
+  <div class="cover-subtitle">{{ project_name }}</div>
+  <div class="cover-divider"></div>
+  <div class="cover-meta">
+    <table>
+      <tr><td>{% trans "Period analysed" %}</td><td><strong>{{ date_from }} — {{ date_to }}</strong></td></tr>
+      <tr><td>{% trans "Total measurements" %}</td><td><strong>{{ total_measurements }}</strong></td></tr>
+      <tr><td>{% trans "Generated on" %}</td><td><strong>{{ generated_at }}</strong></td></tr>
+    </table>
+  </div>
+  <div class="cover-footer">OpenRed · {% trans "Citizen science data" %}</div>
+</div>
+
+<!-- ═══ SUMMARY PAGE ══════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <h2>{% trans "Executive summary" %}</h2>
+    <p>{% trans "Global statistics for the selected set of measurements" %}</p>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="cards">
+    <div class="card card-accent">
+      <div class="card-label">{% trans "Total measurements" %}</div>
+      <div class="card-value">{{ total_measurements }}</div>
+      <div class="card-unit">{% trans "points recorded" %}</div>
+    </div>
+    <div class="card card-accent">
+      <div class="card-label">{% trans "Mean lux" %}</div>
+      <div class="card-value">{{ stats.global_avg|floatformat:2 }}</div>
+      <div class="card-unit">lux</div>
+    </div>
+    <div class="card">
+      <div class="card-label">{% trans "Minimum lux" %}</div>
+      <div class="card-value">{{ stats.global_min|floatformat:2 }}</div>
+      <div class="card-unit">lux</div>
+    </div>
+    <div class="card">
+      <div class="card-label">{% trans "Maximum lux" %}</div>
+      <div class="card-value">{{ stats.global_max|floatformat:2 }}</div>
+      <div class="card-unit">lux</div>
+    </div>
+    {% if stats.global_avg_cct %}
+    <div class="card">
+      <div class="card-label">{% trans "Mean CCT" %}</div>
+      <div class="card-value">{{ stats.global_avg_cct|floatformat:0 }}</div>
+      <div class="card-unit">{% trans "K (colour temperature)" %}</div>
+    </div>
+    {% endif %}
+    {% if total_users %}
+    <div class="card card-accent">
+      <div class="card-label">{% trans "Users" %}</div>
+      <div class="card-value">{{ total_users }}</div>
+      <div class="card-unit">{% trans "participants" %}</div>
+    </div>
+    {% endif %}
+    {% if total_distance_km %}
+    <div class="card card-accent">
+      <div class="card-label">{% trans "Distance covered" %}</div>
+      <div class="card-value">{{ total_distance_km }}</div>
+      <div class="card-unit">km</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-box">
+    <h3>{% trans "Applied filters" %}</h3>
+    <div class="filters-grid">
+      {% if filter_project %}<div class="filter-item">{% trans "Project" %}: <span>{{ filter_project_name }}</span></div>{% endif %}
+      {% if filter_mission %}<div class="filter-item">{% trans "Mission" %}: <span>{{ filter_mission_name }}</span></div>{% endif %}
+      {% if filter_campaign %}<div class="filter-item">{% trans "Campaign" %}: <span>{{ filter_campaign_name }}</span></div>{% endif %}
+      {% if filter_track %}<div class="filter-item">{% trans "Track" %}: <span>{{ filter_track_name }}</span></div>{% endif %}
+      {% if filter_start_date %}<div class="filter-item">{% trans "From" %}: <span>{{ filter_start_date }}</span></div>{% endif %}
+      {% if filter_end_date %}<div class="filter-item">{% trans "To" %}: <span>{{ filter_end_date }}</span></div>{% endif %}
+      {% if filter_bbox %}
+      <div class="filter-item">Bbox N: <span>{{ filter_bbox.north|floatformat:4 }}</span></div>
+      <div class="filter-item">S: <span>{{ filter_bbox.south|floatformat:4 }}</span></div>
+      <div class="filter-item">E: <span>{{ filter_bbox.east|floatformat:4 }}</span></div>
+      <div class="filter-item">{% trans "W" %}: <span>{{ filter_bbox.west|floatformat:4 }}</span></div>
+      {% endif %}
+      {% if filter_min_lux %}<div class="filter-item">{% trans "Min lux" %}: <span>{{ filter_min_lux }}</span></div>{% endif %}
+      {% if filter_max_lux %}<div class="filter-item">{% trans "Max lux" %}: <span>{{ filter_max_lux }}</span></div>{% endif %}
+      {% if filter_min_altitude %}<div class="filter-item">{% trans "Min altitude" %}: <span>{{ filter_min_altitude }} m</span></div>{% endif %}
+      {% if filter_max_altitude %}<div class="filter-item">{% trans "Max altitude" %}: <span>{{ filter_max_altitude }} m</span></div>{% endif %}
+      {% if filter_min_speed %}<div class="filter-item">{% trans "Min speed" %}: <span>{{ filter_min_speed }} m/s</span></div>{% endif %}
+      {% if filter_max_speed %}<div class="filter-item">{% trans "Max speed" %}: <span>{{ filter_max_speed }} m/s</span></div>{% endif %}
+    </div>
+  </div>
+
+  <div class="report-footer">
+    <span>OpenRed · {% trans "Light Pollution" %}</span>
+    <span>{{ generated_at }}</span>
+  </div>
+</div>
+
+<!-- ═══ MAP PAGE ══════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <h2>{% trans "Spatial distribution" %}</h2>
+    <p>{% if map_mode == 'points' %}{% trans "Each point is a measurement, coloured by its lux value (log scale)" %}{% else %}{% blocktrans %}H3 aggregation at resolution {{ resolution }} · each hexagon represents the mean lux of the measurements it contains{% endblocktrans %}{% endif %}</p>
+  </div>
+
+  {% if map_img %}
+  <div class="chart-wrap">
+    <img src="{{ map_img }}" alt="{% trans "Light pollution map" %}">
+    <div class="chart-caption">
+      {% if map_mode == 'points' %}
+      {% blocktrans count counter=map_points %}Map of individual measurements · {{ counter }} point drawn{% plural %}Map of individual measurements · {{ counter }} points drawn{% endblocktrans %}{% if map_sampled %} {% trans "(random sample)" %}{% endif %} · {% blocktrans count counter=total_measurements %}{{ counter }} measurement in total{% plural %}{{ counter }} measurements in total{% endblocktrans %}
+      {% else %}
+      {% blocktrans %}Map generated with H3 (resolution {{ resolution }}) · {{ total_hexagons }} hexagons · {{ total_measurements }} measurements{% endblocktrans %}
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <p style="color:#94a3b8; font-style:italic; margin-top:40px; text-align:center;">
+    {% trans "No spatial data for the selected filters." %}
+  </p>
+  {% endif %}
+
+  <div class="report-footer">
+    <span>OpenRed · {% trans "Light Pollution" %}</span>
+    <span>{{ generated_at }}</span>
+  </div>
+</div>
+
+<!-- ═══ IDA CLASSIFICATION PAGE ═══════════════════════════════════ -->
+{% if ida_img %}
+<div class="page">
+  <div class="section-header">
+    <h2>{% trans "IDA light pollution classification" %}</h2>
+    <p>{% trans "Distribution of measurements by International Dark-Sky Association pollution levels" %}</p>
+  </div>
+
+  <div class="chart-wrap">
+    <img src="{{ ida_img }}" alt="{% trans "IDA classification" %}">
+    <div class="chart-caption">{% trans "Classification by light intensity: Class 1 &lt;0.01 lux (dark sky) → Class 7 &gt;100 lux (heavily polluted)" %}</div>
+  </div>
+
+  <div class="report-footer">
+    <span>OpenRed · {% trans "Light Pollution" %}</span>
+    <span>{{ generated_at }}</span>
+  </div>
+</div>
+{% endif %}
+
+<!-- ═══ CHARTS PAGE ═══════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <h2>{% trans "Statistical analysis" %}</h2>
+    <p>{% trans "Lux distribution and relationship with colour temperature" %}</p>
+  </div>
+
+  {% if histogram_img %}
+  <div class="chart-wrap">
+    <img src="{{ histogram_img }}" alt="{% trans "Lux histogram" %}">
+    <div class="chart-caption">{% trans "Histogram: frequency of lux values in the selected set" %}</div>
+  </div>
+  {% endif %}
+
+  {% if cct_hist_img %}
+  <div class="chart-wrap" style="margin-top:20px;">
+    <img src="{{ cct_hist_img }}" alt="{% trans "CCT histogram" %}">
+    <div class="chart-caption">{% trans "Histogram: colour temperature (CCT) distribution · reference lines: incandescent 2700 K, neutral white 4000 K, daylight 6500 K" %}</div>
+  </div>
+  {% endif %}
+
+  {% if scatter_img %}
+  <div class="chart-wrap" style="margin-top:20px;">
+    <img src="{{ scatter_img }}" alt="{% trans "Lux vs CCT scatter" %}">
+    <div class="chart-caption">{% trans "Scatter: relationship between light intensity (lux) and colour temperature (CCT in K)" %}</div>
+  </div>
+  {% endif %}
+
+  <div class="report-footer">
+    <span>OpenRed · {% trans "Light Pollution" %}</span>
+    <span>{{ generated_at }}</span>
+  </div>
+</div>
+
+<!-- ═══ TIME SERIES PAGE ══════════════════════════════════════════ -->
+{% if timeseries_img %}
+<div class="page">
+  <div class="section-header">
+    <h2>{% trans "Temporal analysis" %}</h2>
+    <p>{% trans "Evolution of mean lux over the selected period · dashed line = trend" %}</p>
+  </div>
+
+  <div class="chart-wrap">
+    <img src="{{ timeseries_img }}" alt="{% trans "Time series" %}">
+    <div class="chart-caption">{% blocktrans %}Daily mean lux · {{ total_days }} days with data · the dashed line shows the linear trend for the period{% endblocktrans %}</div>
+  </div>
+
+  <div class="report-footer">
+    <span>OpenRed · {% trans "Light Pollution" %}</span>
+    <span>{{ generated_at }}</span>
+  </div>
+</div>
+{% endif %}
+
+<!-- ═══ NIGHT VS DAY + HOUR DISTRIBUTION PAGE ════════════════════ -->
+{% if night_day_img or hour_img %}
+<div class="page">
+  <div class="section-header">
+    <h2>{% trans "Hourly analysis" %}</h2>
+    <p>{% trans "Night/day comparison and distribution by hour of day (UTC)" %}</p>
+  </div>
+
+  {% if night_day_img %}
+  <div class="chart-wrap">
+    <img src="{{ night_day_img }}" alt="{% trans "Night vs day" %}">
+    <div class="chart-caption">{% trans "Night (22h–6h UTC) vs day (6h–22h UTC) comparison · number of measurements and mean lux" %}</div>
+  </div>
+  {% endif %}
+
+  {% if hour_img %}
+  <div class="chart-wrap" style="margin-top:20px;">
+    <img src="{{ hour_img }}" alt="{% trans "Hourly distribution" %}">
+    <div class="chart-caption">{% trans "Distribution of measurements and mean lux by hour of day · time in UTC" %}</div>
+  </div>
+  {% endif %}
+
+  <div class="report-footer">
+    <span>OpenRed · {% trans "Light Pollution" %}</span>
+    <span>{{ generated_at }}</span>
+  </div>
+</div>
+{% endif %}
+
+<!-- ═══ CONTRIBUTORS + HEXAGON TABLE PAGE ═══════════════════════ -->
+{% if hexagons or top_contributors %}
+<div class="page">
+  {% if top_contributors %}
+  <div class="section-header">
+    <h2>{% trans "Top contributors" %}</h2>
+    <p>{% trans "Users with the most measurements in the selected set (anonymised)" %}</p>
+  </div>
+  <table class="data-table" style="margin-bottom:28px;">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th class="num">{% trans "Measurements contributed" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in top_contributors %}
+      <tr>
+        <td>{% blocktrans with rank=c.rank %}Participant {{ rank }}{% endblocktrans %}</td>
+        <td class="num"><span class="lux-badge">{{ c.measurements }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if hexagons %}
+  <div class="section-header">
+    <h2>{% trans "H3 hexagon detail" %}</h2>
+    <p>{% blocktrans with n=hexagons|length %}Top {{ n }} hexagons ordered by number of measurements (resolution {{ resolution }}){% endblocktrans %}</p>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>H3 Index</th>
+        <th class="num">{% trans "Measurements" %}</th>
+        <th class="num">{% trans "Mean lux" %}</th>
+        <th class="num">{% trans "Min lux" %}</th>
+        <th class="num">{% trans "Max lux" %}</th>
+        <th class="num">{% trans "Mean CCT (K)" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in hexagons %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td style="font-family: monospace; font-size: 7.5pt;">{{ h.h3_index }}</td>
+        <td class="num">{{ h.measurement_count }}</td>
+        <td class="num"><span class="lux-badge">{{ h.avg_value|floatformat:2 }}</span></td>
+        <td class="num">{{ h.min_value|floatformat:2 }}</td>
+        <td class="num">{{ h.max_value|floatformat:2 }}</td>
+        <td class="num">{% if h.avg_cct %}{{ h.avg_cct|floatformat:0 }}{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <div class="report-footer">
+    <span>OpenRed · {% trans "Light Pollution" %}</span>
+    <span>{{ generated_at }}</span>
+  </div>
+</div>
+{% endif %}
+
+<!-- keep old block for backwards compat but skip it -->
+{% if False %}
+{% if hexagons %}
+<div class="page">
+  <div class="section-header">
+    <h2>{% trans "H3 hexagon detail" %}</h2>
+    <p>{% blocktrans with n=hexagons|length %}Top {{ n }} hexagons ordered by number of measurements (resolution {{ resolution }}){% endblocktrans %}</p>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>H3 Index</th>
+        <th class="num">{% trans "Measurements" %}</th>
+        <th class="num">{% trans "Mean lux" %}</th>
+        <th class="num">{% trans "Min lux" %}</th>
+        <th class="num">{% trans "Max lux" %}</th>
+        <th class="num">{% trans "Mean CCT (K)" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in hexagons %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td style="font-family: monospace; font-size: 7.5pt;">{{ h.h3_index }}</td>
+        <td class="num">{{ h.measurement_count }}</td>
+        <td class="num"><span class="lux-badge">{{ h.avg_value|floatformat:2 }}</span></td>
+        <td class="num">{{ h.min_value|floatformat:2 }}</td>
+        <td class="num">{{ h.max_value|floatformat:2 }}</td>
+        <td class="num">{% if h.avg_cct %}{{ h.avg_cct|floatformat:0 }}{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="report-footer">
+    <span>OpenRed · {% trans "Light Pollution" %}</span>
+    <span>{{ generated_at }}</span>
+  </div>
+</div>
+{% endif %}
+{% endif %}{# end if False #}
+
+</body>
+</html>

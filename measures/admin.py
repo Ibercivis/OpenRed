@@ -12,7 +12,7 @@ Admin Classes:
 """
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import RadiationMeasurement, LightPollutionMeasurement, Track, WeatherCache
+from .models import RadiationMeasurement, LightPollutionMeasurement, Track, WeatherCache, Spectrum, ContributionMilestone
 
 @admin.register(RadiationMeasurement)
 class RadiationMeasurementAdmin(admin.ModelAdmin):
@@ -301,3 +301,58 @@ class WeatherCacheAdmin(admin.ModelAdmin):
         )
         return format_html(f'<strong>{total}</strong> mediciones')
     measurement_count.short_description = 'Mediciones'
+
+
+@admin.register(Spectrum)
+class SpectrumAdmin(admin.ModelAdmin):
+    """
+    Django admin interface for Spectrum model.
+
+    Read-only view of gamma spectra integrated over track segments
+    (RadiaCode). Spectra are created during track processing, not edited here.
+    """
+    list_display = (
+        'name', 'get_track', 'index', 'started_at', 'ended_at',
+        'duration_sec', 'channel_count', 'start_lat', 'start_lon'
+    )
+    list_filter = ('track__project', 'track__device', 'started_at')
+    search_fields = ('name', 'track__name', 'track__project__name')
+    readonly_fields = ('created_at',)
+    date_hierarchy = 'started_at'
+
+    fieldsets = (
+        ('Identificación', {
+            'fields': ('track', 'name', 'index')
+        }),
+        ('Ventana de captura', {
+            'fields': ('started_at', 'ended_at', 'duration_sec')
+        }),
+        ('Calibración de energía (E = a0 + a1·ch + a2·ch²)', {
+            'fields': ('a0', 'a1', 'a2', 'channel_count')
+        }),
+        ('Posición', {
+            'fields': ('start_lat', 'start_lon', 'start_alt', 'end_lat', 'end_lon')
+        }),
+        ('Datos', {
+            'fields': ('counts', 'created_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def get_track(self, obj):
+        return format_html(
+            '<a href="/admin/measures/track/{}/change/">{}</a>',
+            obj.track.id,
+            obj.track.name
+        )
+    get_track.short_description = 'Track'
+
+
+@admin.register(ContributionMilestone)
+class ContributionMilestoneAdmin(admin.ModelAdmin):
+    """Read-mostly log of contribution milestones and their thank-you emails."""
+    list_display = ('threshold', 'status', 'total_at_detection', 'detected_at', 'sent_at',
+                    'recipients_count', 'failed_count')
+    list_filter = ('status',)
+    readonly_fields = ('detected_at',)
+    ordering = ('-threshold',)

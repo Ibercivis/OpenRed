@@ -75,6 +75,26 @@ CORS solo permitirá requests desde ese dominio.
 En desarrollo, los emails se imprimen en consola.
 En producción, se envían via AWS SES desde `noreply@ibercivis.es`.
 
+### **Informes PDF**
+
+`REPORT_DEFAULT_LANGUAGE` (por defecto `en`) fija el idioma de los informes PDF
+cuando la petición no trae `?lang=` ni cabecera `Accept-Language` soportada.
+Valores admitidos: `en`, `es`. Tras desplegar hay que ejecutar
+`python manage.py compilemessages -l es` para que exista la traducción al español.
+
+`OSM_TILE_USER_AGENT` identifica la app ante los servidores de tiles de
+OpenStreetMap al dibujar el mapa del informe. Sin un User-Agent identificativo
+OSM devuelve tiles de "Access blocked" (403). Debe incluir nombre de la app y un
+contacto, según la [política de uso de tiles de OSM](https://operations.osmfoundation.org/policies/tiles/).
+
+### **Subida de tracks**
+
+| Variable | Default | Descripción |
+|---|---|---|
+| `TRACK_UPLOAD_MAX_POINTS` | `20000` | Máximo de puntos por track (JSON y RCTRK). Se comprueba al recibir el JSON y al parsear el RCTRK. |
+| `TRACK_UPLOAD_MAX_BYTES` | `10485760` (10 MiB) | Tamaño máximo del fichero o payload. |
+| `TRACK_UPLOAD_RATE` | `30/hour` | Subidas por usuario autenticado en `POST /api/tracks/upload/` y `upload_json/` (DRF `ScopedRateThrottle`, scope `track_upload`). El contador vive en Redis (`CACHES`, misma DB que RQ), compartido entre workers de gunicorn. |
+
 ## 🔒 Seguridad
 
 **NUNCA** commitear archivos `.env` con credenciales reales a git.

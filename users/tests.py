@@ -10,7 +10,7 @@ This module tests the complete authentication flow including:
 - User profile management
 - Token management
 """
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.contrib.auth.models import User
 from django.core import mail
 from rest_framework.test import APIClient
@@ -741,6 +741,240 @@ class UserProfileTestCase(TestCase):
         
         response = self.client.get('/dj-rest-auth/user/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+@override_settings(SECURE_SSL_REDIRECT=False)
+class AccountDeletionTestCase(TestCase):
+    """
+    Test account deletion via DELETE /api/users/me/ (and the equivalent
+    DELETE /api/users/{pk}/ path).
+
+    Covers:
+    - Re-authentication enforcement (password / social-login confirm flag)
+    - The two data-handling modes: keep & anonymize (default) vs. delete
+    - That the default detail-route destroy cannot bypass re-authentication
+    """
+
+    PASSWORD = 'DeleteMePass123!'
+
+    def setUp(self):
+        """Create an authenticated user with some contributed data."""
+        from devices.models import DeviceModel, Device
+        from missions.models import Project
+        from measures.models import (
+            RadiationMeasurement,
+            LightPollutionMeasurement,
+            Track,
+        )
+        from django.utils import timezone
+
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='deluser',
+            email='deluser@example.com',
+            password=self.PASSWORD,
+        )
+
+        # Minimal hierarchy required to create measurements/tracks.
+        device_model = DeviceModel.objects.create(
+            name='TestModel',
+            manufacturer='TestMaker',
+            max_radiation_range=1000.0,
+        )
+        self.device = Device.objects.create(
+            device_model=device_model,
+            serial_number='DEL-0001',
+            owner=self.user,
+        )
+        self.project = Project.objects.create(
+            name='Test Project',
+            project_type='radiation',
+            created_by=self.user,
+        )
+
+        now = timezone.now()
+        # 2 radiation + 1 light pollution measurement attributed to the user.
+        for i in range(2):
+            RadiationMeasurement.objects.create(
+                device=self.device,
+                user=self.user,
+                project=self.project,
+                dateTime=now,
+                latitude=40.4168,
+                longitude=-3.7038,
+                dose_rate=0.10 + i,
+            )
+        LightPollutionMeasurement.objects.create(
+            device=self.device,
+            user=self.user,
+            project=self.project,
+            dateTime=now,
+            latitude=40.4168,
+            longitude=-3.7038,
+            lux=12.3,
+        )
+        # 1 track created by the user.
+        self.track = Track.objects.create(
+            project=self.project,
+            device=self.device,
+            created_by=self.user,
+        )
+
+        self.client.force_authenticate(user=self.user)
+
+    def test_delete_requires_authentication(self):
+        """Unauthenticated requests cannot delete an account."""
+        self.client.force_authenticate(user=None)
+        response = self.client.delete('/api/users/me/')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_delete_without_password_is_rejected(self):
+        """A password account must supply current_password."""
+        response = self.client.delete('/api/users/me/', {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_delete_with_wrong_password_is_rejected(self):
+        """A wrong current_password is rejected and nothing is deleted."""
+        response = self.client.delete(
+            '/api/users/me/',
+            {'current_password': 'WrongPassword!'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_delete_keeps_data_anonymized_by_default(self):
+        """
+        Correct password without delete_data deletes the account but keeps the
+        measurements and tracks, anonymized (user/created_by set to NULL).
+        """
+        from measures.models import (
+            RadiationMeasurement,
+            LightPollutionMeasurement,
+            Track,
+        )
+
+        response = self.client.delete(
+            '/api/users/me/',
+            {'current_password': self.PASSWORD},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['data_deleted'])
+        self.assertEqual(response.data['measurements_anonymized'], 3)
+        self.assertEqual(response.data['tracks_anonymized'], 1)
+
+        # Account is gone.
+        self.assertFalse(User.objects.filter(pk=self.user.pk).exists())
+
+        # Data still exists but anonymized.
+        self.assertEqual(RadiationMeasurement.objects.count(), 2)
+        self.assertEqual(LightPollutionMeasurement.objects.count(), 1)
+        self.assertEqual(Track.objects.count(), 1)
+        self.assertFalse(
+            RadiationMeasurement.objects.exclude(user__isnull=True).exists()
+        )
+        self.assertFalse(
+            LightPollutionMeasurement.objects.exclude(user__isnull=True).exists()
+        )
+        self.track.refresh_from_db()
+        self.assertIsNone(self.track.created_by)
+
+    def test_delete_with_data_removal(self):
+        """
+        Correct password with delete_data=true deletes the account AND the
+        user's measurements and tracks.
+        """
+        from measures.models import (
+            RadiationMeasurement,
+            LightPollutionMeasurement,
+            Track,
+        )
+
+        response = self.client.delete(
+            '/api/users/me/',
+            {'current_password': self.PASSWORD, 'delete_data': True},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['data_deleted'])
+        self.assertEqual(response.data['measurements_deleted'], 3)
+        self.assertEqual(response.data['tracks_deleted'], 1)
+
+        self.assertFalse(User.objects.filter(pk=self.user.pk).exists())
+        self.assertEqual(RadiationMeasurement.objects.count(), 0)
+        self.assertEqual(LightPollutionMeasurement.objects.count(), 0)
+        self.assertEqual(Track.objects.count(), 0)
+
+    def test_social_account_requires_confirm_flag(self):
+        """Social-login accounts (no usable password) must send confirm=true."""
+        self.user.set_unusable_password()
+        self.user.save()
+
+        response = self.client.delete('/api/users/me/', {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_social_account_deletes_with_confirm_flag(self):
+        """Social-login accounts can delete by sending confirm=true."""
+        self.user.set_unusable_password()
+        self.user.save()
+
+        response = self.client.delete(
+            '/api/users/me/',
+            {'confirm': True},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_password_account_ignores_confirm_flag(self):
+        """A password account cannot bypass the password with confirm=true."""
+        response = self.client.delete(
+            '/api/users/me/',
+            {'confirm': True},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_detail_route_delete_also_requires_password(self):
+        """
+        DELETE /api/users/{pk}/ (default destroy) must not bypass
+        re-authentication.
+        """
+        url = f'/api/users/{self.user.pk}/'
+        # Without password: rejected.
+        response = self.client.delete(url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+        # With password: succeeds.
+        response = self.client.delete(
+            url, {'current_password': self.PASSWORD}, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_cannot_delete_other_users_account(self):
+        """A user cannot delete someone else's account via the detail route."""
+        other = User.objects.create_user(
+            username='otheruser',
+            email='other@example.com',
+            password='OtherPass123!',
+        )
+        response = self.client.delete(
+            f'/api/users/{other.pk}/',
+            {'current_password': self.PASSWORD},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(User.objects.filter(pk=other.pk).exists())
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
 
 
 class TokenManagementTestCase(TestCase):

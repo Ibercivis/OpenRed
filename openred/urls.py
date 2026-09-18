@@ -48,6 +48,10 @@ urlpatterns = [
     path('django-rq/', include('django_rq.urls')),  # RQ dashboard
 ]
 
+# Custom error handlers
+handler404 = 'openred.views.custom_404'
+handler500 = 'openred.views.custom_500'
+
 # Serve media files in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

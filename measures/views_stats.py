@@ -22,6 +22,7 @@ import logging
 from datetime import datetime
 
 from .models import RadiationMeasurement, LightPollutionMeasurement, Track
+from .scoping import scope_capture_mode_qs
 from missions.models import Project
 from django.contrib.auth.models import User
 from datetime import timedelta
@@ -358,8 +359,9 @@ class StatsViewSet(viewsets.ViewSet):
         end_date = request.query_params.get('end_date')
         measurement_type = request.query_params.get('type')
         
-        # Build querysets with filters
-        radiation_qs = RadiationMeasurement.objects.all()
+        # Build querysets with filters. The heatmap is a spatial view, so it
+        # leaves out station readings (fixed-point series) unless asked for.
+        radiation_qs = scope_capture_mode_qs(request, RadiationMeasurement.objects.all())
         light_pollution_qs = LightPollutionMeasurement.objects.all()
         
         # Apply measurement type filter

@@ -168,6 +168,7 @@ requests==2.32.3
 requests-oauthlib==2.0.0
 rpds-py==0.22.3
 rq==2.0.0
+rq-scheduler==0.14.0
 s3transfer==0.10.4
 scipy==1.16.3
 shortuuid==1.0.11

@@ -1,0 +1,9 @@
+{% autoescape off %}OpenRed — {{ site_url }}
+========================================
+
+{% block content %}{% endblock %}
+
+----------------------------------------
+{% block footer %}Recibes este correo porque tienes una cuenta en OpenRed, un proyecto de Ibercivis.
+You are receiving this email because you have an account on OpenRed, an Ibercivis project.{% endblock %}
+{% endautoescape %}

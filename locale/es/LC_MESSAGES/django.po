@@ -1,0 +1,909 @@
+# Spanish translations for OpenRed PDF reports.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: openred-api\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-17 08:43+0000\n"
+"PO-Revision-Date: 2026-09-17 08:00+0000\n"
+"Last-Translator: OpenRed\n"
+"Language-Team: es\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: measures/report_generators.py:128
+msgid "Longitude"
+msgstr "Longitud"
+
+#: measures/report_generators.py:129
+msgid "Latitude"
+msgstr "Latitud"
+
+#: measures/report_generators.py:145 measures/report_generators.py:318
+#: measures/report_generators.py:447 measures/report_generators.py:509
+#: measures/report_generators.py:546
+#: templates/reports/light_pollution_report.html:198
+#: templates/reports/light_pollution_report.html:436
+#: templates/reports/light_pollution_report.html:480
+msgid "Mean lux"
+msgstr "Lux medio"
+
+#: measures/report_generators.py:182
+#, python-format
+msgid "Spatial distribution · H3 resolution %(resolution)s"
+msgstr "Distribución espacial · H3 resolución %(resolution)s"
+
+#: measures/report_generators.py:199 measures/views.py:2267
+msgid "Lux"
+msgstr "Lux"
+
+#: measures/report_generators.py:235
+#, python-format
+msgid "Spatial distribution · %(n)s measurement"
+msgid_plural "Spatial distribution · %(n)s measurements"
+msgstr[0] "Distribución espacial · %(n)s medida"
+msgstr[1] "Distribución espacial · %(n)s medidas"
+
+#: measures/report_generators.py:255
+msgid "Colour temperature (K)"
+msgstr "Temperatura de color (K)"
+
+#: measures/report_generators.py:256 measures/report_generators.py:293
+#: measures/report_generators.py:595 measures/report_generators.py:626
+#: templates/reports/light_pollution_report.html:435
+#: templates/reports/light_pollution_report.html:479
+#: templates/reports/radiation_report.html:479
+msgid "Measurements"
+msgstr "Medidas"
+
+#: measures/report_generators.py:257
+msgid "Colour temperature (CCT) distribution"
+msgstr "Distribución de temperatura de color (CCT)"
+
+#: measures/report_generators.py:263
+msgid "Incandescent"
+msgstr "Incandescente"
+
+#: measures/report_generators.py:263
+msgid "Neutral white"
+msgstr "Blanco neutro"
+
+#: measures/report_generators.py:263
+msgid "Daylight"
+msgstr "Luz día"
+
+#: measures/report_generators.py:292 measures/report_generators.py:354
+msgid "Lux (log scale)"
+msgstr "Lux (escala logarítmica)"
+
+#: measures/report_generators.py:294
+msgid "Lux value distribution"
+msgstr "Distribución de valores de Lux"
+
+#: measures/report_generators.py:317 measures/report_generators.py:446
+#: measures/report_generators.py:777
+msgid "Date"
+msgstr "Fecha"
+
+#: measures/report_generators.py:319 measures/report_generators.py:448
+msgid "Mean lux over time"
+msgstr "Evolución temporal del Lux medio"
+
+#: measures/report_generators.py:356
+msgid "Lux vs colour temperature"
+msgstr "Lux vs Temperatura de color"
+
+#: measures/report_generators.py:369
+msgid "Class 1 · Dark sky"
+msgstr "Clase 1 · Cielo oscuro"
+
+#: measures/report_generators.py:370
+msgid "Class 2 · Rural"
+msgstr "Clase 2 · Rural"
+
+#: measures/report_generators.py:371
+msgid "Class 3 · Rural/Peri-urban"
+msgstr "Clase 3 · Rural/Periurbano"
+
+#: measures/report_generators.py:372
+msgid "Class 4 · Peri-urban"
+msgstr "Clase 4 · Periurbano"
+
+#: measures/report_generators.py:373
+msgid "Class 5 · Suburban"
+msgstr "Clase 5 · Suburbano"
+
+#: measures/report_generators.py:374
+msgid "Class 6 · Urban"
+msgstr "Clase 6 · Urbano"
+
+#: measures/report_generators.py:375
+msgid "Class 7 · Heavily polluted"
+msgstr "Clase 7 · Muy contaminado"
+
+#: measures/report_generators.py:411 measures/report_generators.py:500
+#: measures/report_generators.py:537 measures/report_generators.py:705
+#: measures/report_generators.py:888
+msgid "Number of measurements"
+msgstr "Número de medidas"
+
+#: measures/report_generators.py:412
+#: templates/reports/light_pollution_report.html:300
+msgid "IDA light pollution classification"
+msgstr "Clasificación IDA de contaminación lumínica"
+
+#: measures/report_generators.py:434
+msgid "Daily mean lux"
+msgstr "Lux medio diario"
+
+#: measures/report_generators.py:443 measures/report_generators.py:775
+msgid "Trend (↑ increasing)"
+msgstr "Tendencia (↑ aumentando)"
+
+#: measures/report_generators.py:443 measures/report_generators.py:775
+msgid "Trend (↓ decreasing)"
+msgstr "Tendencia (↓ disminuyendo)"
+
+#: measures/report_generators.py:495
+msgid ""
+"Night\n"
+"(22h–6h)"
+msgstr ""
+"Noche\n"
+"(22h–6h)"
+
+#: measures/report_generators.py:495
+msgid ""
+"Day\n"
+"(6h–22h)"
+msgstr ""
+"Día\n"
+"(6h–22h)"
+
+#: measures/report_generators.py:499
+msgid "Measurements per period"
+msgstr "Medidas por franja"
+
+#: measures/report_generators.py:508
+msgid "Mean lux per period"
+msgstr "Lux medio por franja"
+
+#: measures/report_generators.py:516
+msgid "Night vs day comparison (UTC)"
+msgstr "Comparativa noche vs día (UTC)"
+
+#: measures/report_generators.py:536 measures/report_generators.py:545
+#: measures/report_generators.py:887 measures/report_generators.py:896
+msgid "Hour of day (UTC)"
+msgstr "Hora del día (UTC)"
+
+#: measures/report_generators.py:538 measures/report_generators.py:889
+msgid "Measurements per hour"
+msgstr "Medidas por hora"
+
+#: measures/report_generators.py:547
+msgid "Mean lux per hour"
+msgstr "Lux medio por hora"
+
+#: measures/report_generators.py:565
+msgid "Natural background (<0.3 μSv/h)"
+msgstr "Fondo natural (<0.3 μSv/h)"
+
+#: measures/report_generators.py:566
+msgid "Elevated (0.3–1 μSv/h)"
+msgstr "Elevado (0.3–1 μSv/h)"
+
+#: measures/report_generators.py:567
+msgid "Concerning (1–10 μSv/h)"
+msgstr "Preocupante (1–10 μSv/h)"
+
+#: measures/report_generators.py:568
+msgid "High (10–100 μSv/h)"
+msgstr "Alto (10–100 μSv/h)"
+
+#: measures/report_generators.py:569
+msgid "Extreme (>100 μSv/h)"
+msgstr "Extremo (>100 μSv/h)"
+
+#: measures/report_generators.py:589
+msgid "Dose rate (μSv/h) — log scale"
+msgstr "Tasa de dosis (μSv/h) — escala logarítmica"
+
+#: measures/report_generators.py:592 measures/report_generators.py:651
+#: measures/report_generators.py:730 measures/report_generators.py:849
+#: measures/views.py:1359
+msgid "Dose rate (μSv/h)"
+msgstr "Tasa de dosis (μSv/h)"
+
+#: measures/report_generators.py:596
+msgid "Dose rate distribution (μSv/h)"
+msgstr "Distribución de tasa de dosis (μSv/h)"
+
+#: measures/report_generators.py:625
+msgid "Counts per minute (CPM)"
+msgstr "Pulsos por minuto (CPM)"
+
+#: measures/report_generators.py:627
+msgid "CPM distribution (counts per minute)"
+msgstr "Distribución de CPM (pulsos por minuto)"
+
+#: measures/report_generators.py:650
+msgid "CPM (counts per minute)"
+msgstr "CPM (pulsos por minuto)"
+
+#: measures/report_generators.py:652
+msgid "CPM vs dose rate"
+msgstr "CPM vs Tasa de dosis"
+
+#: measures/report_generators.py:661
+#, python-format
+msgid "Factor: %(factor).4f μSv/CPM"
+msgstr "Factor: %(factor).4f μSv/CPM"
+
+#: measures/report_generators.py:706
+msgid "Classification by radiation level (μSv/h)"
+msgstr "Clasificación por nivel de radiación (μSv/h)"
+
+#: measures/report_generators.py:729
+msgid "Altitude (m)"
+msgstr "Altitud (m)"
+
+#: measures/report_generators.py:731
+#: templates/reports/radiation_report.html:365
+msgid "Altitude vs dose rate"
+msgstr "Altitud vs Tasa de dosis"
+
+#: measures/report_generators.py:743
+msgid "Trend (↑ increases with altitude)"
+msgstr "Tendencia (↑ aumenta con altitud)"
+
+#: measures/report_generators.py:743
+msgid "Trend (↓ decreases with altitude)"
+msgstr "Tendencia (↓ disminuye con altitud)"
+
+#: measures/report_generators.py:765
+msgid "Daily mean dose"
+msgstr "Dosis media diaria"
+
+#: measures/report_generators.py:778 measures/report_generators.py:897
+msgid "Mean dose rate (μSv/h)"
+msgstr "Tasa de dosis media (μSv/h)"
+
+#: measures/report_generators.py:779
+msgid "Mean dose rate over time"
+msgstr "Evolución temporal de la tasa de dosis media"
+
+#: measures/report_generators.py:811
+msgid "Temperature"
+msgstr "Temperatura"
+
+#: measures/report_generators.py:812
+msgid "Pressure"
+msgstr "Presión"
+
+#: measures/report_generators.py:813
+msgid "Cloud cover"
+msgstr "Cobertura nubosa"
+
+#: measures/report_generators.py:814
+msgid "Precipitation"
+msgstr "Precipitación"
+
+#: measures/report_generators.py:850
+#, python-format
+msgid "%(variable)s vs dose"
+msgstr "%(variable)s vs Dosis"
+
+#: measures/report_generators.py:898
+msgid "Mean dose per hour"
+msgstr "Dosis media por hora"
+
+#: measures/views.py:1361 templates/reports/radiation_report.html:480
+msgid "Mean dose (μSv/h)"
+msgstr "Dosis media (μSv/h)"
+
+#: measures/views.py:1389 measures/views.py:2298
+msgid "All projects"
+msgstr "Todos los proyectos"
+
+#: templates/reports/light_pollution_report.html:169
+#: templates/reports/radiation_report.html:168
+msgid "Monitoring report"
+msgstr "Informe de monitorización"
+
+#: templates/reports/light_pollution_report.html:170
+msgid "Light"
+msgstr "Contaminación"
+
+#: templates/reports/light_pollution_report.html:170
+msgid "Pollution"
+msgstr "Lumínica"
+
+#: templates/reports/light_pollution_report.html:175
+#: templates/reports/radiation_report.html:174
+msgid "Period analysed"
+msgstr "Período analizado"
+
+#: templates/reports/light_pollution_report.html:176
+#: templates/reports/light_pollution_report.html:193
+#: templates/reports/radiation_report.html:175
+#: templates/reports/radiation_report.html:191
+msgid "Total measurements"
+msgstr "Medidas totales"
+
+#: templates/reports/light_pollution_report.html:177
+#: templates/reports/radiation_report.html:176
+msgid "Generated on"
+msgstr "Generado el"
+
+#: templates/reports/light_pollution_report.html:180
+#: templates/reports/radiation_report.html:179
+msgid "Citizen science data"
+msgstr "Datos de ciencia ciudadana"
+
+#: templates/reports/light_pollution_report.html:186
+#: templates/reports/radiation_report.html:185
+msgid "Executive summary"
+msgstr "Resumen ejecutivo"
+
+#: templates/reports/light_pollution_report.html:187
+#: templates/reports/radiation_report.html:186
+msgid "Global statistics for the selected set of measurements"
+msgstr "Estadísticas globales del conjunto de medidas seleccionado"
+
+#: templates/reports/light_pollution_report.html:195
+#: templates/reports/radiation_report.html:193
+msgid "points recorded"
+msgstr "puntos registrados"
+
+#: templates/reports/light_pollution_report.html:203
+msgid "Minimum lux"
+msgstr "Lux mínimo"
+
+#: templates/reports/light_pollution_report.html:208
+msgid "Maximum lux"
+msgstr "Lux máximo"
+
+#: templates/reports/light_pollution_report.html:214
+msgid "Mean CCT"
+msgstr "CCT medio"
+
+#: templates/reports/light_pollution_report.html:216
+msgid "K (colour temperature)"
+msgstr "K (temperatura de color)"
+
+#: templates/reports/light_pollution_report.html:221
+#: templates/reports/radiation_report.html:226
+msgid "Users"
+msgstr "Usuarios"
+
+#: templates/reports/light_pollution_report.html:223
+#: templates/reports/radiation_report.html:228
+msgid "participants"
+msgstr "participantes"
+
+#: templates/reports/light_pollution_report.html:228
+#: templates/reports/radiation_report.html:233
+msgid "Distance covered"
+msgstr "Distancia recorrida"
+
+#: templates/reports/light_pollution_report.html:237
+#: templates/reports/radiation_report.html:241
+msgid "Applied filters"
+msgstr "Filtros aplicados"
+
+#: templates/reports/light_pollution_report.html:239
+#: templates/reports/radiation_report.html:243
+msgid "Project"
+msgstr "Proyecto"
+
+#: templates/reports/light_pollution_report.html:240
+#: templates/reports/radiation_report.html:244
+msgid "Mission"
+msgstr "Misión"
+
+#: templates/reports/light_pollution_report.html:241
+#: templates/reports/radiation_report.html:245
+msgid "Campaign"
+msgstr "Campaña"
+
+#: templates/reports/light_pollution_report.html:242
+#: templates/reports/radiation_report.html:246
+msgid "Track"
+msgstr "Track"
+
+#: templates/reports/light_pollution_report.html:243
+#: templates/reports/radiation_report.html:247
+msgid "From"
+msgstr "Desde"
+
+#: templates/reports/light_pollution_report.html:244
+#: templates/reports/radiation_report.html:248
+msgid "To"
+msgstr "Hasta"
+
+#: templates/reports/light_pollution_report.html:249
+#: templates/reports/radiation_report.html:253
+msgid "W"
+msgstr "O"
+
+#: templates/reports/light_pollution_report.html:251
+#: templates/reports/light_pollution_report.html:437
+#: templates/reports/light_pollution_report.html:481
+msgid "Min lux"
+msgstr "Lux mín"
+
+#: templates/reports/light_pollution_report.html:252
+#: templates/reports/light_pollution_report.html:438
+#: templates/reports/light_pollution_report.html:482
+msgid "Max lux"
+msgstr "Lux máx"
+
+#: templates/reports/light_pollution_report.html:253
+#: templates/reports/radiation_report.html:257
+msgid "Min altitude"
+msgstr "Altitud mín"
+
+#: templates/reports/light_pollution_report.html:254
+#: templates/reports/radiation_report.html:258
+msgid "Max altitude"
+msgstr "Altitud máx"
+
+#: templates/reports/light_pollution_report.html:255
+#: templates/reports/radiation_report.html:259
+msgid "Min speed"
+msgstr "Velocidad mín"
+
+#: templates/reports/light_pollution_report.html:256
+#: templates/reports/radiation_report.html:260
+msgid "Max speed"
+msgstr "Velocidad máx"
+
+#: templates/reports/light_pollution_report.html:261
+#: templates/reports/light_pollution_report.html:291
+#: templates/reports/light_pollution_report.html:310
+#: templates/reports/light_pollution_report.html:345
+#: templates/reports/light_pollution_report.html:364
+#: templates/reports/light_pollution_report.html:393
+#: templates/reports/light_pollution_report.html:459
+#: templates/reports/light_pollution_report.html:502
+msgid "Light Pollution"
+msgstr "Contaminación Lumínica"
+
+#: templates/reports/light_pollution_report.html:269
+#: templates/reports/radiation_report.html:273
+msgid "Spatial distribution"
+msgstr "Distribución espacial"
+
+#: templates/reports/light_pollution_report.html:270
+msgid "Each point is a measurement, coloured by its lux value (log scale)"
+msgstr ""
+"Cada punto es una medida, coloreada según su valor de lux (escala "
+"logarítmica)"
+
+#: templates/reports/light_pollution_report.html:270
+#, python-format
+msgid ""
+"H3 aggregation at resolution %(resolution)s · each hexagon represents the "
+"mean lux of the measurements it contains"
+msgstr ""
+"Agregación H3 a resolución %(resolution)s · cada hexágono representa la "
+"media de lux de las medidas contenidas"
+
+#: templates/reports/light_pollution_report.html:275
+msgid "Light pollution map"
+msgstr "Mapa de contaminación lumínica"
+
+#: templates/reports/light_pollution_report.html:278
+#: templates/reports/radiation_report.html:282
+#, python-format
+msgid "Map of individual measurements · %(counter)s point drawn"
+msgid_plural "Map of individual measurements · %(counter)s points drawn"
+msgstr[0] "Mapa de medidas individuales · %(counter)s punto dibujado"
+msgstr[1] "Mapa de medidas individuales · %(counter)s puntos dibujados"
+
+#: templates/reports/light_pollution_report.html:278
+#: templates/reports/radiation_report.html:282
+msgid "(random sample)"
+msgstr "(muestra aleatoria)"
+
+#: templates/reports/light_pollution_report.html:278
+#: templates/reports/radiation_report.html:282
+#, python-format
+msgid "%(counter)s measurement in total"
+msgid_plural "%(counter)s measurements in total"
+msgstr[0] "%(counter)s medida en total"
+msgstr[1] "%(counter)s medidas en total"
+
+#: templates/reports/light_pollution_report.html:280
+#: templates/reports/radiation_report.html:284
+#, python-format
+msgid ""
+"Map generated with H3 (resolution %(resolution)s) · %(total_hexagons)s "
+"hexagons · %(total_measurements)s measurements"
+msgstr ""
+"Mapa generado con H3 (resolución %(resolution)s) · %(total_hexagons)s "
+"hexágonos · %(total_measurements)s medidas"
+
+#: templates/reports/light_pollution_report.html:286
+#: templates/reports/radiation_report.html:290
+msgid "No spatial data for the selected filters."
+msgstr "No hay datos espaciales para los filtros seleccionados."
+
+#: templates/reports/light_pollution_report.html:301
+msgid ""
+"Distribution of measurements by International Dark-Sky Association pollution "
+"levels"
+msgstr ""
+"Distribución de medidas según los niveles de contaminación de la "
+"International Dark-Sky Association"
+
+#: templates/reports/light_pollution_report.html:305
+msgid "IDA classification"
+msgstr "Clasificación IDA"
+
+#: templates/reports/light_pollution_report.html:306
+msgid ""
+"Classification by light intensity: Class 1 &lt;0.01 lux (dark sky) → Class 7 "
+"&gt;100 lux (heavily polluted)"
+msgstr ""
+"Clasificación por intensidad lumínica: Clase 1 &lt;0.01 lux (cielo oscuro) → "
+"Clase 7 &gt;100 lux (muy contaminado)"
+
+#: templates/reports/light_pollution_report.html:319
+#: templates/reports/radiation_report.html:325
+msgid "Statistical analysis"
+msgstr "Análisis estadístico"
+
+#: templates/reports/light_pollution_report.html:320
+msgid "Lux distribution and relationship with colour temperature"
+msgstr "Distribución de Lux y relación con la temperatura de color"
+
+#: templates/reports/light_pollution_report.html:325
+msgid "Lux histogram"
+msgstr "Histograma de Lux"
+
+#: templates/reports/light_pollution_report.html:326
+msgid "Histogram: frequency of lux values in the selected set"
+msgstr "Histograma: frecuencia de valores de lux en el conjunto seleccionado"
+
+#: templates/reports/light_pollution_report.html:332
+msgid "CCT histogram"
+msgstr "Histograma CCT"
+
+#: templates/reports/light_pollution_report.html:333
+msgid ""
+"Histogram: colour temperature (CCT) distribution · reference lines: "
+"incandescent 2700 K, neutral white 4000 K, daylight 6500 K"
+msgstr ""
+"Histograma: distribución de temperatura de color (CCT) · líneas de "
+"referencia: incandescente 2700 K, blanco neutro 4000 K, luz de día 6500 K"
+
+#: templates/reports/light_pollution_report.html:339
+msgid "Lux vs CCT scatter"
+msgstr "Scatter Lux vs CCT"
+
+#: templates/reports/light_pollution_report.html:340
+msgid ""
+"Scatter: relationship between light intensity (lux) and colour temperature "
+"(CCT in K)"
+msgstr ""
+"Dispersión: relación entre intensidad lumínica (lux) y temperatura de color "
+"(CCT en K)"
+
+#: templates/reports/light_pollution_report.html:354
+#: templates/reports/radiation_report.html:407
+msgid "Temporal analysis"
+msgstr "Análisis temporal"
+
+#: templates/reports/light_pollution_report.html:355
+msgid "Evolution of mean lux over the selected period · dashed line = trend"
+msgstr ""
+"Evolución del lux medio a lo largo del período seleccionado · línea "
+"discontinua = tendencia"
+
+#: templates/reports/light_pollution_report.html:359
+#: templates/reports/radiation_report.html:412
+msgid "Time series"
+msgstr "Serie temporal"
+
+#: templates/reports/light_pollution_report.html:360
+#, python-format
+msgid ""
+"Daily mean lux · %(total_days)s days with data · the dashed line shows the "
+"linear trend for the period"
+msgstr ""
+"Lux medio diario · %(total_days)s días con datos · la línea discontinua "
+"muestra la tendencia lineal del período"
+
+#: templates/reports/light_pollution_report.html:374
+msgid "Hourly analysis"
+msgstr "Análisis horario"
+
+#: templates/reports/light_pollution_report.html:375
+msgid "Night/day comparison and distribution by hour of day (UTC)"
+msgstr "Comparativa noche/día y distribución por hora del día (UTC)"
+
+#: templates/reports/light_pollution_report.html:380
+msgid "Night vs day"
+msgstr "Noche vs Día"
+
+#: templates/reports/light_pollution_report.html:381
+msgid ""
+"Night (22h–6h UTC) vs day (6h–22h UTC) comparison · number of measurements "
+"and mean lux"
+msgstr ""
+"Comparativa noche (22h–6h UTC) vs día (6h–22h UTC) · número de medidas y lux "
+"medio"
+
+#: templates/reports/light_pollution_report.html:387
+#: templates/reports/radiation_report.html:427
+#: templates/reports/radiation_report.html:432
+msgid "Hourly distribution"
+msgstr "Distribución horaria"
+
+#: templates/reports/light_pollution_report.html:388
+msgid "Distribution of measurements and mean lux by hour of day · time in UTC"
+msgstr "Distribución de medidas y lux medio por hora del día · hora en UTC"
+
+#: templates/reports/light_pollution_report.html:404
+#: templates/reports/radiation_report.html:448
+msgid "Top contributors"
+msgstr "Top contribuidores"
+
+#: templates/reports/light_pollution_report.html:405
+#: templates/reports/radiation_report.html:449
+msgid "Users with the most measurements in the selected set (anonymised)"
+msgstr "Usuarios con más medidas en el conjunto seleccionado (anonimizados)"
+
+#: templates/reports/light_pollution_report.html:411
+#: templates/reports/radiation_report.html:455
+msgid "Measurements contributed"
+msgstr "Medidas aportadas"
+
+#: templates/reports/light_pollution_report.html:417
+#: templates/reports/radiation_report.html:461
+#, python-format
+msgid "Participant %(rank)s"
+msgstr "Participante %(rank)s"
+
+#: templates/reports/light_pollution_report.html:427
+#: templates/reports/light_pollution_report.html:470
+#: templates/reports/radiation_report.html:471
+msgid "H3 hexagon detail"
+msgstr "Detalle por hexágono H3"
+
+#: templates/reports/light_pollution_report.html:428
+#: templates/reports/light_pollution_report.html:471
+#: templates/reports/radiation_report.html:472
+#, python-format
+msgid ""
+"Top %(n)s hexagons ordered by number of measurements (resolution "
+"%(resolution)s)"
+msgstr ""
+"Top %(n)s hexágonos ordenados por número de medidas (resolución "
+"%(resolution)s)"
+
+#: templates/reports/light_pollution_report.html:439
+#: templates/reports/light_pollution_report.html:483
+msgid "Mean CCT (K)"
+msgstr "CCT medio (K)"
+
+#: templates/reports/radiation_report.html:169
+msgid "Environmental"
+msgstr "Radiación"
+
+#: templates/reports/radiation_report.html:169
+msgid "Radiation"
+msgstr "Ambiental"
+
+#: templates/reports/radiation_report.html:196
+msgid "Mean dose"
+msgstr "Dosis media"
+
+#: templates/reports/radiation_report.html:201
+msgid "Minimum dose"
+msgstr "Dosis mínima"
+
+#: templates/reports/radiation_report.html:206
+msgid "Maximum dose"
+msgstr "Dosis máxima"
+
+#: templates/reports/radiation_report.html:212
+msgid "Mean CPM"
+msgstr "CPM medio"
+
+#: templates/reports/radiation_report.html:214
+msgid "counts per minute"
+msgstr "pulsos por minuto"
+
+#: templates/reports/radiation_report.html:219
+msgid "Mean altitude"
+msgstr "Altitud media"
+
+#: templates/reports/radiation_report.html:221
+#, python-format
+msgid "m · range %(min)s–%(max)s m"
+msgstr "m · rango %(min)s–%(max)s m"
+
+#: templates/reports/radiation_report.html:255
+#: templates/reports/radiation_report.html:481
+msgid "Min dose"
+msgstr "Dosis mín"
+
+#: templates/reports/radiation_report.html:256
+#: templates/reports/radiation_report.html:482
+msgid "Max dose"
+msgstr "Dosis máx"
+
+#: templates/reports/radiation_report.html:265
+#: templates/reports/radiation_report.html:295
+#: templates/reports/radiation_report.html:316
+#: templates/reports/radiation_report.html:351
+#: templates/reports/radiation_report.html:375
+#: templates/reports/radiation_report.html:397
+#: templates/reports/radiation_report.html:417
+#: templates/reports/radiation_report.html:437
+#: templates/reports/radiation_report.html:503
+msgid "Environmental Radiation"
+msgstr "Radiación Ambiental"
+
+#: templates/reports/radiation_report.html:274
+msgid "Each point is a measurement, coloured by its dose rate"
+msgstr "Cada punto es una medida, coloreada según su tasa de dosis"
+
+#: templates/reports/radiation_report.html:274
+#, python-format
+msgid ""
+"H3 aggregation at resolution %(resolution)s · each hexagon represents the "
+"mean dose of the measurements it contains"
+msgstr ""
+"Agregación H3 a resolución %(resolution)s · cada hexágono representa la "
+"dosis media de las medidas contenidas"
+
+#: templates/reports/radiation_report.html:279
+msgid "Radiation map"
+msgstr "Mapa de radiación"
+
+#: templates/reports/radiation_report.html:304
+#: templates/reports/radiation_report.html:309
+msgid "Classification by radiation level"
+msgstr "Clasificación por nivel de radiación"
+
+#: templates/reports/radiation_report.html:305
+msgid "Distribution of measurements by equivalent dose thresholds (μSv/h)"
+msgstr "Distribución de medidas según umbrales de dosis equivalente (μSv/h)"
+
+#: templates/reports/radiation_report.html:311
+msgid ""
+"Natural background &lt;0.3 μSv/h · Elevated 0.3–1 · Concerning 1–10 · High "
+"10–100 · Extreme &gt;100 μSv/h"
+msgstr ""
+"Fondo natural &lt;0.3 μSv/h · Elevado 0.3–1 · Preocupante 1–10 · Alto 10–100 "
+"· Extremo &gt;100 μSv/h"
+
+#: templates/reports/radiation_report.html:326
+msgid "Dose rate distribution and relationship with CPM"
+msgstr "Distribución de tasa de dosis y relación con CPM"
+
+#: templates/reports/radiation_report.html:331
+msgid "Dose rate histogram"
+msgstr "Histograma de tasa de dosis"
+
+#: templates/reports/radiation_report.html:332
+msgid ""
+"Histogram: frequency of dose rate values in the selected set · dashed line = "
+"typical natural background (0.2 μSv/h)"
+msgstr ""
+"Histograma: frecuencia de valores de tasa de dosis en el conjunto "
+"seleccionado · línea discontinua = fondo natural típico (0.2 μSv/h)"
+
+#: templates/reports/radiation_report.html:338
+msgid "CPM histogram"
+msgstr "Histograma CPM"
+
+#: templates/reports/radiation_report.html:339
+msgid ""
+"Histogram: distribution of counts per minute (CPM) recorded by the Geiger-"
+"Müller detector"
+msgstr ""
+"Histograma: distribución de pulsos por minuto (CPM) registrados por el "
+"detector Geiger-Müller"
+
+#: templates/reports/radiation_report.html:345
+msgid "CPM vs dose scatter"
+msgstr "Scatter CPM vs Dosis"
+
+#: templates/reports/radiation_report.html:346
+msgid ""
+"CPM vs dose rate scatter · the slope of the dashed line is the detector "
+"calibration factor (μSv/CPM)"
+msgstr ""
+"Dispersión CPM vs tasa de dosis · la pendiente de la línea discontinua es el "
+"factor de calibración del detector (μSv/CPM)"
+
+#: templates/reports/radiation_report.html:360
+msgid "Altitude analysis"
+msgstr "Análisis de altitud"
+
+#: templates/reports/radiation_report.html:361
+msgid ""
+"Relationship between altitude and dose rate · cosmic radiation increases "
+"with altitude"
+msgstr ""
+"Relación entre altitud y tasa de dosis · la radiación cósmica aumenta con la "
+"altitud"
+
+#: templates/reports/radiation_report.html:367
+msgid ""
+"Altitude vs dose rate scatter · an upward trend indicates a cosmic radiation "
+"contribution"
+msgstr ""
+"Dispersión altitud vs tasa de dosis · la tendencia ascendente indica "
+"contribución de radiación cósmica"
+
+#: templates/reports/radiation_report.html:369
+#, python-format
+msgid "altitude range: %(min)s–%(max)s m · mean: %(avg)s m"
+msgstr "rango de altitud: %(min)s–%(max)s m · media: %(avg)s m"
+
+#: templates/reports/radiation_report.html:385
+msgid "Correlation with weather conditions"
+msgstr "Correlación con condiciones meteorológicas"
+
+#: templates/reports/radiation_report.html:386
+msgid ""
+"Relationship between dose rate and atmospheric variables · data from the "
+"Open-Meteo weather cache"
+msgstr ""
+"Relación entre la tasa de dosis y variables atmosféricas · datos de caché "
+"meteorológica Open-Meteo"
+
+#: templates/reports/radiation_report.html:390
+msgid "Weather correlations"
+msgstr "Correlaciones meteorológicas"
+
+#: templates/reports/radiation_report.html:392
+msgid ""
+"Dose vs temperature, pressure, cloud cover and precipitation scatter · the "
+"dashed line shows the linear trend in each panel · atmospheric pressure "
+"modulates cosmic radiation (barometric effect): higher pressure = lower dose"
+msgstr ""
+"Dispersión dosis vs temperatura, presión, cobertura nubosa y precipitación · "
+"la línea discontinua muestra la tendencia lineal en cada panel · la presión "
+"atmosférica modula la radiación cósmica (efecto barómetro): mayor presión = "
+"menor dosis"
+
+#: templates/reports/radiation_report.html:408
+msgid ""
+"Evolution of the mean dose rate over the selected period · dashed line = "
+"trend"
+msgstr ""
+"Evolución de la tasa de dosis media a lo largo del período seleccionado · "
+"línea discontinua = tendencia"
+
+#: templates/reports/radiation_report.html:413
+#, python-format
+msgid ""
+"Daily mean dose rate · %(total_days)s days with data · the dashed line shows "
+"the linear trend for the period"
+msgstr ""
+"Tasa de dosis media diaria · %(total_days)s días con datos · la línea "
+"discontinua muestra la tendencia lineal del período"
+
+#: templates/reports/radiation_report.html:428
+msgid "Number of measurements and mean dose by hour of day (UTC)"
+msgstr "Número de medidas y dosis media por hora del día (UTC)"
+
+#: templates/reports/radiation_report.html:433
+msgid ""
+"Distribution of measurements and mean dose rate by hour of day · time in UTC"
+msgstr ""
+"Distribución de medidas y tasa de dosis media por hora del día · hora en UTC"
+
+#: templates/reports/radiation_report.html:483
+msgid "Std. dev."
+msgstr "Desv. típica"

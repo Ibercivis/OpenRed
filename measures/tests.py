@@ -14,6 +14,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
 from decimal import Decimal
+from datetime import datetime, timezone as dt_timezone
 import h3
 
 from .models import RadiationMeasurement, LightPollutionMeasurement, Track
@@ -502,3 +503,152 @@ class UserRegistrationTests(TestCase):
         response = self.client.post(url, data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class RctrkParserTests(TestCase):
+    """
+    Tests for the RCTRK (RadiaCode export) parser.
+
+    The RadiaCode app exports a different file depending on the platform:
+    Android writes tab-separated text, iOS writes a JSON document. Both carry
+    the same units (DoseRate in μR/h, CountRate in CPS) and must produce the
+    same measurements.
+
+    Run with:
+        python manage.py test measures.tests.RctrkParserTests
+    """
+
+    ANDROID_CONTENT = (
+        "Track: 2025-11-16 08-13-45\tRC-102-008530\tSetas\tEC\n"
+        "Timestamp\tTime\tLatitude\tLongitude\tAccuracy\tDoseRate\tCountRate\tComment\n"
+        "134077508536700000\t2025-11-16 07:14:13\t41.8378825\t-1.7921044\t3.68\t7.76\t6.61\t \n"
+        "134077508548580000\t2025-11-16 07:14:14\t41.8378849\t-1.7921036\t4.14\t7.77\t6.62\t \n"
+        "134077524440910000\t2025-11-16 07:40:44\t41.83495\t-1.7631616\t500\t6.92\t6.81\t \n"
+    )
+
+    IOS_CONTENT = """{
+      "sv" : false,
+      "title" : "Track 16 Nov 2025 08:33:42",
+      "devices" : ["RC-102-008406"],
+      "start" : 1763278422,
+      "periods" : [{"distance" : 6004.12, "start" : 1763278422, "end" : 1763287996}],
+      "markers" : [
+        {"doseRate" : 5.73, "date" : 1763283709, "acc" : 5, "lon" : -1.822395, "lat" : 41.816321, "countRate" : 5.38},
+        {"doseRate" : 8.96, "date" : 1763284204, "acc" : 8, "lon" : -1.820435, "lat" : 41.817606, "countRate" : 7.48},
+        {"doseRate" : 8.36, "date" : 1763282989, "lon" : -1.823629, "lat" : 41.816547, "countRate" : 6.32},
+        {"doseRate" : "bad", "date" : 1763282990, "lon" : -1.82, "lat" : 41.81, "countRate" : 6.0}
+      ]
+    }"""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='rctrk_user', email='rctrk@test.com', password='x')
+        self.project = Project.objects.create(name='RCTRK project', description='', project_type='radiation')
+        self.device_model = DeviceModel.objects.create(name='RadiaCode 102', description='', max_radiation_range=1000.0)
+        self.device = Device.objects.create(serial_number='RC-102-TEST', device_model=self.device_model)
+
+    def _make_track(self):
+        return Track.objects.create(
+            created_by=self.user, project=self.project, device=self.device,
+            file_type='rctrk', status='pending',
+        )
+
+    def test_detect_format(self):
+        from .tasks import detect_rctrk_format
+        self.assertEqual(detect_rctrk_format(self.ANDROID_CONTENT), 'android')
+        self.assertEqual(detect_rctrk_format(self.ANDROID_CONTENT.encode()), 'android')
+        self.assertEqual(detect_rctrk_format(self.IOS_CONTENT), 'ios')
+        self.assertEqual(detect_rctrk_format(('﻿' + self.IOS_CONTENT).encode('utf-8')), 'ios')
+
+    def test_android_format_creates_measurements(self):
+        from .tasks import parse_rctrk_track
+        track = self._make_track()
+        count = parse_rctrk_track(track, self.ANDROID_CONTENT.encode('utf-8'))
+        self.assertEqual(count, 3)
+        m = RadiationMeasurement.objects.filter(track=track).order_by('dateTime').first()
+        self.assertAlmostEqual(float(m.dose_rate), 0.0776, places=6)
+        self.assertEqual(m.cpm, 396)
+        self.assertAlmostEqual(m.accuracy, 3.68)
+        self.assertEqual(m.dateTime, datetime(2025, 11, 16, 7, 14, 13, tzinfo=dt_timezone.utc))
+        track.refresh_from_db()
+        self.assertEqual(track.start_time, m.dateTime)
+        self.assertIsNotNone(track.avg_dose_rate)
+
+    def test_ios_format_creates_measurements(self):
+        from .tasks import parse_rctrk_track
+        track = self._make_track()
+        count = parse_rctrk_track(track, self.IOS_CONTENT.encode('utf-8'))
+        # 3 valid markers; the one with a non-numeric doseRate is skipped
+        self.assertEqual(count, 3)
+        ms = list(RadiationMeasurement.objects.filter(track=track).order_by('dateTime'))
+        # Earliest marker is the third one (date 1763282989 = 2025-11-16 08:49:49 UTC)
+        self.assertEqual(ms[0].dateTime, datetime(2025, 11, 16, 8, 49, 49, tzinfo=dt_timezone.utc))
+        self.assertAlmostEqual(float(ms[0].dose_rate), 0.0836, places=6)
+        self.assertEqual(ms[0].cpm, 379)  # int(6.32 * 60)
+        self.assertIsNone(ms[0].accuracy)  # marker without "acc"
+        self.assertAlmostEqual(ms[1].accuracy, 5.0)
+        self.assertEqual(ms[1].cpm, 322)  # int(5.38 * 60)
+        for m in ms:
+            self.assertEqual(m.user, self.user)
+            self.assertEqual(m.project, self.project)
+            self.assertEqual(m.device, self.device)
+            self.assertEqual(m.radiation_unit, 'μSv/h')
+        track.refresh_from_db()
+        self.assertEqual(track.start_time, ms[0].dateTime)
+        self.assertEqual(track.end_time, ms[-1].dateTime)
+        self.assertAlmostEqual(track.min_dose_rate, 0.0573, places=6)
+        self.assertAlmostEqual(track.max_dose_rate, 0.0896, places=6)
+
+    def test_ios_and_android_give_same_values_for_same_point(self):
+        from .tasks import _parse_rctrk_android_points, _parse_rctrk_ios_points
+        android = _parse_rctrk_android_points(
+            "Track: x\ty\tz\tEC\nTimestamp\tTime\tLatitude\tLongitude\tAccuracy\tDoseRate\tCountRate\tComment\n"
+            "1\t2025-11-16 09:01:49\t41.816321\t-1.822395\t5\t5.73\t5.38\t \n"
+        )
+        ios = _parse_rctrk_ios_points(
+            '{"markers": [{"doseRate": 5.73, "date": 1763283709, "acc": 5, "lon": -1.822395, "lat": 41.816321, "countRate": 5.38}]}'
+        )
+        self.assertEqual(len(android), 1)
+        self.assertEqual(len(ios), 1)
+        self.assertEqual(android[0]['dateTime'], ios[0]['dateTime'])
+        for key in ('latitude', 'longitude', 'accuracy', 'dose_rate', 'cpm'):
+            self.assertEqual(android[0][key], ios[0][key], key)
+
+    def test_android_2026_layouts_map_columns_by_name(self):
+        from .tasks import _parse_rctrk_android_points
+        # Altitude, Accuracy, Temperature inserted before DoseRate (April 2026 export)
+        pts = _parse_rctrk_android_points(
+            "Track: 2026-04-25 10-33-39\tRC-102\tLlanes\tEC\n"
+            "Timestamp\tTime\tLatitude\tLongitude\tAltitude\tAccuracy\tTemperature\tDoseRate\tCountRate\tComment\n"
+            "134215796252610000\t2026-04-25 08:33:45\t43.4238722\t-4.7556933\t79.8\t4.19\t31.9\t3.68\t2.61\t \n"
+        )
+        self.assertEqual(len(pts), 1)
+        self.assertAlmostEqual(pts[0]['accuracy'], 4.19)
+        self.assertAlmostEqual(pts[0]['altitude'], 79.8)
+        self.assertAlmostEqual(pts[0]['dose_rate'], 0.0368)
+        self.assertEqual(pts[0]['cpm'], 156)  # int(2.61 * 60)
+        # Altitude in place of Accuracy, Accuracy/Temperature appended after Comment (May 2026 export)
+        pts = _parse_rctrk_android_points(
+            "Track: x\tRC-102\t\tEC\n"
+            "Timestamp\tTime\tLatitude\tLongitude\tAltitude\tDoseRate\tCountRate\tComment\tAccuracy\tTemperature\n"
+            "1.3421573213518E+017\t2026-04-25 06:46:53\t43.3192735\t-3.0215848\t96.3\t5.71\t4.08\t \t11.7\t29.4\n"
+            "1.3421573213519E+017\t2026-04-25 06:46:54\t43.3192736\t-3.0215849\t96.3\t5.70\t4.00\t \n"
+        )
+        self.assertEqual(len(pts), 2)
+        self.assertAlmostEqual(pts[0]['accuracy'], 11.7)
+        self.assertAlmostEqual(pts[0]['altitude'], 96.3)
+        self.assertAlmostEqual(pts[0]['dose_rate'], 0.0571)
+        self.assertIsNone(pts[1]['accuracy'])  # short row: trailing columns missing
+        # Legacy 2025 layout still yields no altitude
+        pts = _parse_rctrk_android_points(self.ANDROID_CONTENT)
+        self.assertEqual(len(pts), 3)
+        self.assertIsNone(pts[0]['altitude'])
+
+    def test_ios_without_markers_raises(self):
+        from .tasks import parse_rctrk_track
+        track = self._make_track()
+        with self.assertRaises(ValueError):
+            parse_rctrk_track(track, '{"title": "empty"}')
+        with self.assertRaises(ValueError):
+            parse_rctrk_track(track, '{"markers": []}')
+        with self.assertRaises(ValueError):
+            parse_rctrk_track(track, '{not json')
