@@ -543,7 +543,7 @@ class RctrkParserTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='rctrk_user', email='rctrk@test.com', password='x')
         self.project = Project.objects.create(name='RCTRK project', description='', project_type='radiation')
-        self.device_model = DeviceModel.objects.create(name='RadiaCode 102', description='', max_radiation_range=1000.0)
+        self.device_model = DeviceModel.objects.create(name='Radiacode 102', manufacturer='Radiacode', description='', max_radiation_range=1000.0)
         self.device = Device.objects.create(serial_number='RC-102-TEST', device_model=self.device_model)
 
     def _make_track(self):
@@ -642,6 +642,31 @@ class RctrkParserTests(TestCase):
         pts = _parse_rctrk_android_points(self.ANDROID_CONTENT)
         self.assertEqual(len(pts), 3)
         self.assertIsNone(pts[0]['altitude'])
+
+    def test_device_serial_from_file(self):
+        from .views import _rctrk_device_serial
+        self.assertEqual(_rctrk_device_serial(self.ANDROID_CONTENT), 'RC-102-008530')
+        self.assertEqual(_rctrk_device_serial(self.IOS_CONTENT.encode('utf-8')), 'RC-102-008406')
+        self.assertEqual(_rctrk_device_serial('Track: x\trc-103g-000245\t\tEC\nh\n'), 'RC-103G-000245')
+        self.assertIsNone(_rctrk_device_serial('Track: x\tRC-102\t\tEC\nh\n'))       # model only
+        self.assertIsNone(_rctrk_device_serial('Track: x\t \t \tEC\nh\n'))            # blank
+        self.assertIsNone(_rctrk_device_serial('{"markers": []}'))                    # no devices key
+        self.assertIsNone(_rctrk_device_serial('{not json'))
+
+    def test_device_resolution_without_device(self):
+        from .views import _device_for_rctrk_upload, RCTRK_UNKNOWN_DEVICE_SERIAL
+        # Serial in file -> device auto-created for the user, model from the prefix
+        d = _device_for_rctrk_upload(self.user, self.IOS_CONTENT)
+        self.assertEqual(d.serial_number, 'RC-102-008406')
+        self.assertEqual(d.owner, self.user)
+        self.assertEqual(d.device_model.name, 'Radiacode 102')  # picked from the RC-102 prefix
+        # Second time -> same device, no duplicate
+        self.assertEqual(_device_for_rctrk_upload(self.user, self.IOS_CONTENT).id, d.id)
+        # No serial -> shared placeholder, no owner
+        u = _device_for_rctrk_upload(self.user, 'Track: x\tRC-102\t\tEC\nh\n')
+        self.assertEqual(u.serial_number, RCTRK_UNKNOWN_DEVICE_SERIAL)
+        self.assertIsNone(u.owner)
+        self.assertEqual(_device_for_rctrk_upload(self.user, 'Track: y\t\t\tEC\nh\n').id, u.id)
 
     def test_ios_without_markers_raises(self):
         from .tasks import parse_rctrk_track

@@ -31,6 +31,8 @@ import h3
 from django.db.models import Q
 import csv
 import io
+import re
+import json
 import django_rq
 import h3
 import logging
@@ -2577,6 +2579,92 @@ class RadiationSpectrumViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(results)
 
 
+_RCTRK_SERIAL_RE = re.compile(r'^RC-(\d{3}[A-Z]?)-(\d{4,})$')
+
+# Serial prefix -> DeviceModel name (as stored in devices_devicemodel). Anything
+# else falls back to the generic "RadiaCode" model that upload_json also uses.
+_RCTRK_MODEL_BY_PREFIX = {
+    '102': 'Radiacode 102',
+    '103': 'Radiacode 103',
+    '103G': 'Radiacode 103G',
+    '110': 'Radiacode 110',
+}
+
+#: Serial of the placeholder device used when neither the request nor the file
+#: identifies the RadiaCode (e.g. the Android export only says "RC-102").
+RCTRK_UNKNOWN_DEVICE_SERIAL = 'RCTRK-UNKNOWN'
+
+_RADIACODE_MODEL_DEFAULTS = {
+    'manufacturer': 'Scan Electronics',
+    'technology': 'Geiger-Müller tube',
+    'max_radiation_range': 1000.0,
+    'validatedByOpenRed': False,
+    'description': 'RadiaCode radiation detector (auto-registered from track upload)',
+}
+
+
+def _rctrk_device_serial(content):
+    """
+    Extract the RadiaCode serial (e.g. "RC-102-008858") from an RCTRK export.
+
+    Android: second tab-separated field of the first line ("Track: <name>\t<serial>...").
+    iOS: first entry of the "devices" list.
+    Returns None when the file carries no full serial (blank, or just "RC-102").
+    """
+    if isinstance(content, bytes):
+        content = content.decode('utf-8', errors='replace')
+    content = content.lstrip('\ufeff \t\r\n')
+    candidate = None
+    if content.startswith('{'):
+        try:
+            devices = json.loads(content).get('devices')
+        except (ValueError, AttributeError):
+            devices = None
+        if isinstance(devices, list) and devices:
+            candidate = devices[0]
+    else:
+        parts = content.split('\n', 1)[0].split('\t')
+        if len(parts) > 1:
+            candidate = parts[1]
+    if not isinstance(candidate, str):
+        return None
+    candidate = candidate.strip().upper()
+    return candidate if _RCTRK_SERIAL_RE.match(candidate) else None
+
+
+def _device_for_rctrk_upload(user, content):
+    """
+    Resolve the Device for an RCTRK upload that did not specify one.
+
+    1. Serial found in the file -> existing Device with that serial, or a new one
+       owned by the uploading user (model chosen from the serial prefix).
+    2. No serial -> shared placeholder device RCTRK_UNKNOWN_DEVICE_SERIAL (no owner).
+    """
+    from devices.models import DeviceModel
+
+    serial = _rctrk_device_serial(content)
+    if serial:
+        device = Device.objects.filter(serial_number=serial).first()
+        if device:
+            return device
+        prefix = _RCTRK_SERIAL_RE.match(serial).group(1)
+        model_name = _RCTRK_MODEL_BY_PREFIX.get(prefix)
+        device_model = DeviceModel.objects.filter(name=model_name).first() if model_name else None
+        if device_model is None:
+            device_model, _ = DeviceModel.objects.get_or_create(name="RadiaCode", defaults=_RADIACODE_MODEL_DEFAULTS)
+        device = Device.objects.create(device_model=device_model, serial_number=serial, owner=user, is_active=True)
+        logger.info(f"Auto-created device {serial} from RCTRK upload by {user.username}")
+        return device
+
+    device = Device.objects.filter(serial_number=RCTRK_UNKNOWN_DEVICE_SERIAL).first()
+    if device is None:
+        device_model, _ = DeviceModel.objects.get_or_create(name="RadiaCode", defaults=_RADIACODE_MODEL_DEFAULTS)
+        device = Device.objects.create(
+            device_model=device_model, serial_number=RCTRK_UNKNOWN_DEVICE_SERIAL, owner=None, is_active=True,
+        )
+    return device
+
+
 def _looks_like_rctrk(head):
     """
     Return True if the first bytes of an upload look like a RadiaCode RCTRK export.
@@ -2814,7 +2902,8 @@ class TrackViewSet(viewsets.ModelViewSet):
                 ),
                 'device': openapi.Schema(
                     type=openapi.TYPE_INTEGER,
-                    description='Device ID'
+                    description='Device ID (optional). If omitted, the RadiaCode serial inside the file is used '
+                                '(device auto-created for the user) or, failing that, the shared RCTRK-UNKNOWN device.'
                 ),
                 'mission': openapi.Schema(
                     type=openapi.TYPE_INTEGER,
@@ -2833,7 +2922,7 @@ class TrackViewSet(viewsets.ModelViewSet):
                     description='Project ID (optional; must match mission.project if given)'
                 ),
             },
-            required=['file', 'device', 'mission', 'campaign']
+            required=['file', 'mission', 'campaign']
         ),
         responses={
             202: openapi.Response(
@@ -2844,6 +2933,8 @@ class TrackViewSet(viewsets.ModelViewSet):
                         'track_id': openapi.Schema(type=openapi.TYPE_INTEGER),
                         'job_id': openapi.Schema(type=openapi.TYPE_STRING),
                         'status': openapi.Schema(type=openapi.TYPE_STRING),
+                        'device': openapi.Schema(type=openapi.TYPE_INTEGER),
+                        'device_serial': openapi.Schema(type=openapi.TYPE_STRING),
                         'message': openapi.Schema(type=openapi.TYPE_STRING),
                         'status_url': openapi.Schema(type=openapi.TYPE_STRING)
                     }
@@ -2903,9 +2994,9 @@ class TrackViewSet(viewsets.ModelViewSet):
         # Cheap content check before storing anything: an RCTRK is either the
         # Android tab-separated export ("Track: ..." first line) or the iOS JSON
         # export (an object with a "markers" list).
-        head = file.read(4096)
+        content = file.read()
         file.seek(0)
-        if not _looks_like_rctrk(head):
+        if not _looks_like_rctrk(content[:4096]):
             return Response(
                 {'error': 'File content is not a RadiaCode RCTRK export (Android text or iOS JSON).'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -2914,20 +3005,25 @@ class TrackViewSet(viewsets.ModelViewSet):
         # Same rules as upload_json: mission + campaign are required, the campaign
         # must belong to the mission, the project is derived from the mission and
         # a protected campaign needs its password.
-        missing = [name for name, value in (('device', device_id), ('mission', mission_id), ('campaign', campaign_id)) if not value]
+        missing = [name for name, value in (('mission', mission_id), ('campaign', campaign_id)) if not value]
         if missing:
             return Response(
                 {'error': f"Missing required field(s): {', '.join(missing)}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        try:
-            device = Device.objects.get(id=device_id)
-        except (Device.DoesNotExist, ValueError, TypeError):
-            return Response(
-                {'error': f'Device with id {device_id} not found'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Device is optional: without it, the serial inside the file (or the shared
+        # placeholder) is used. Resolved after the campaign checks, so a rejected
+        # upload never creates a device as a side effect.
+        device = None
+        if device_id not in (None, '', 'null', 'undefined'):
+            try:
+                device = Device.objects.get(id=device_id)
+            except (Device.DoesNotExist, ValueError, TypeError):
+                return Response(
+                    {'error': f'Device with id {device_id} not found'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         from missions.models import Mission, Campaign
 
@@ -2967,6 +3063,9 @@ class TrackViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN
                 )
         
+        if device is None:
+            device = _device_for_rctrk_upload(request.user, content)
+
         # Create Track object with status='pending'
         track = Track.objects.create(
             created_by=request.user,
@@ -2993,6 +3092,8 @@ class TrackViewSet(viewsets.ModelViewSet):
             'track_id': track.id,
             'job_id': job.id,
             'status': 'pending',
+            'device': device.id,
+            'device_serial': device.serial_number,
             'message': 'Track file uploaded successfully. Processing in background.'
         }, status=status.HTTP_202_ACCEPTED)  # ✅ 202 Accepted
     

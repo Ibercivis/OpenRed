@@ -145,7 +145,11 @@ Listar dispositivos: `curl -s "$BASE_URL/api/devices/" -H "Authorization: Token 
 | **JSON** (RadiaCode app) | `POST /api/tracks/upload_json/` | **Sí** | **Sí** |
 | **RCTRK** (export Android o iOS) | `POST /api/tracks/upload/` | **Sí** | **Sí** |
 
-> Ambos exigen misión + campaña y validan la contraseña. Límites: 20 000 puntos / 10 MiB
+> Ambos exigen misión + campaña y validan la contraseña. En el RCTRK el `device` es
+> opcional: si no se envía, se usa el número de serie del RadiaCode que va dentro del
+> fichero (se crea el dispositivo a nombre del usuario si no existe) y, si el fichero
+> tampoco lo trae, el dispositivo compartido `RCTRK-UNKNOWN`. La respuesta 202 incluye
+> `device` y `device_serial` con lo que se ha asignado. Límites: 20 000 puntos / 10 MiB
 > y 30 subidas por hora y usuario (`TRACK_UPLOAD_RATE`). El RCTRK admite el export de
 > Android (texto tabulado) y el de iOS (JSON); se detecta solo.
 >
@@ -323,7 +327,7 @@ Reactivar: quitar el bloque `return ... 503 ...` marcado en `measures/views.py` 
 | Medidas (público, filtra) | `GET /api/radiation-measurements/?project=3` |
 | Conteo / paginado | `GET /api/radiation-measurements/count/?project=3` · `.../paginated/?project=3` |
 | Borrar track (+ medidas) | `DELETE /api/tracks/{id}/` |
-| Subir RCTRK | `POST /api/tracks/upload/` (multipart: file, device, mission, campaign, campaign_password) |
+| Subir RCTRK | `POST /api/tracks/upload/` (multipart: file, mission, campaign, campaign_password, device opcional) |
 | Crear medida suelta | _deshabilitado (503)_ |
 | Docs interactivas | `GET /api/docs/` (Swagger) · `GET /api/redoc/` |
 
