@@ -636,30 +636,15 @@ def parse_rctrk_track(track, file_content):
     Returns:
         int: Number of measurements successfully created
 
-    Post-processing (common to both formats):
-        - Speed: moving-window estimate from GPS points with good accuracy (m/s)
+    Post-processing (common to both formats, and shared with parse_json_track):
+        - Speed: compute_point_speeds (moving window over GPS points with good accuracy)
         - Track metadata: start/end time, total distance, average speed, dose stats
 
     Raises:
         ValueError: If no valid measurements found or invalid format
     """
     from .models import RadiationMeasurement
-    from math import radians, sin, cos, sqrt, atan2
-    
-    def haversine_distance(lat1, lon1, lat2, lon2):
-        """
-        Calculate distance between two GPS coordinates using Haversine formula.
-        Returns distance in meters.
-        """
-        R = 6371000  # Earth radius in meters
-        phi1, phi2 = radians(lat1), radians(lat2)
-        dphi = radians(lat2 - lat1)
-        dlambda = radians(lon2 - lon1)
-        
-        a = sin(dphi/2)**2 + cos(phi1) * cos(phi2) * sin(dlambda/2)**2
-        c = 2 * atan2(sqrt(a), sqrt(1-a))
-        
-        return R * c
+    haversine_distance = _haversine_m
     
     # Decode if bytes
     if isinstance(file_content, bytes):
@@ -711,80 +696,9 @@ def parse_rctrk_track(track, file_content):
     # Bulk create for efficiency with batching
     RadiationMeasurement.objects.bulk_create(measurements, batch_size=1000)
     
-    # Calculate speed using moving window (3 points before + current + 3 points after)
-    # This smooths out GPS errors and gives more reliable speed estimates
-    WINDOW_SIZE = 3  # points before and after
-    MAX_ACCURACY_FOR_SPEED = 15.0  # meters - only use points with good GPS accuracy
-    
-    for i, measurement in enumerate(measurements):
-        # Skip if current point has poor GPS accuracy
-        if measurement.accuracy is None or measurement.accuracy > MAX_ACCURACY_FOR_SPEED:
-            continue
-            
-        # Define window boundaries
-        start_idx = max(0, i - WINDOW_SIZE)
-        end_idx = min(len(measurements), i + WINDOW_SIZE + 1)
-        
-        # Get points in window with good accuracy
-        window_points = []
-        for j in range(start_idx, end_idx):
-            m = measurements[j]
-            if m.accuracy is not None and m.accuracy < MAX_ACCURACY_FOR_SPEED:
-                window_points.append(m)
-        
-        # Need at least 2 points to calculate speed
-        if len(window_points) < 2:
-            continue
-        
-        # Calculate total distance and time across window
-        first_point = window_points[0]
-        last_point = window_points[-1]
-        
-        # Calculate cumulative distance
-        total_distance = 0
-        for j in range(len(window_points) - 1):
-            p1 = window_points[j]
-            p2 = window_points[j + 1]
-            total_distance += haversine_distance(
-                p1.latitude, p1.longitude,
-                p2.latitude, p2.longitude
-            )
-        
-        # Calculate time difference
-        time_diff = (last_point.dateTime - first_point.dateTime).total_seconds()
-        
-        if time_diff > 0:
-            speed = total_distance / time_diff  # m/s
-            # Sanity check: max reasonable speed 50 m/s (180 km/h)
-            if speed < 50.0:
-                measurement.speed = speed
-    
-    # Second pass: Filter by acceleration to remove impossible speed changes
-    # This catches GPS errors that passed the accuracy filter
-    MAX_ACCELERATION = 10.0  # m/s² - maximum reasonable acceleration (includes vehicles)
-    
-    for i, measurement in enumerate(measurements):
-        if measurement.speed is None:
-            continue
-        
-        # Find previous measurement with valid speed
-        prev_with_speed = None
-        for j in range(i - 1, -1, -1):
-            if measurements[j].speed is not None:
-                prev_with_speed = measurements[j]
-                break
-        
-        if prev_with_speed:
-            # Calculate acceleration
-            speed_diff = abs(measurement.speed - prev_with_speed.speed)  # m/s
-            time_diff = (measurement.dateTime - prev_with_speed.dateTime).total_seconds()
-            
-            if time_diff > 0:
-                acceleration = speed_diff / time_diff  # m/s²
-                
-                # If acceleration is too high, invalidate this speed
-                if acceleration > MAX_ACCELERATION:
-                    measurement.speed = None
+    # Per-point speed: same shared helper as the JSON (mobile app) path, so every
+    # track gets its speed computed with one implementation.
+    compute_point_speeds(measurements)
     
     # Update speeds in database (bulk update)
     RadiationMeasurement.objects.bulk_update(measurements, ['speed'], batch_size=1000)
