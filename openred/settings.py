@@ -475,7 +475,21 @@ RQ_SHOW_ADMIN_LINK = True  # Show RQ link in admin
 # To activate: python manage.py rqscheduler (in separate terminal)
 from datetime import timedelta
 
+# GHS-SMOD Degree of Urbanisation raster (see measures/urban_class.py).
+# Download with: python manage.py urban_class fetch
+GHS_SMOD_PATH = config('GHS_SMOD_PATH',
+                       default=str(BASE_DIR / 'data' / 'ghsl' / 'GHS_SMOD_E2025_GLOBE_R2023A_54009_1000_V1_0.tif'))
+
 RQ_JOBS = {
+    # Urban class (city / town / rural) for light-pollution measurements lacking it.
+    'assign_pending_urban_class': {
+        'func': 'measures.urban_class.assign_pending_urban_class',
+        'kwargs': {'limit': 20000},
+        'interval': 600,  # Every 10 minutes
+        'repeat': None,
+        'timeout': 300,
+        'result_ttl': 500,
+    },
     # Step 1: bucket every measurement lacking a weather_cache (tracks / movement /
     # stations) into its (H3 cell + hour) WeatherCache. Runs ahead of the fetch.
     'assign_pending_weather_buckets': {

@@ -2683,6 +2683,57 @@ def _looks_like_rctrk(head):
     return False
 
 
+#: DeviceModel name used when the app does not say which instrument it is.
+GENERIC_DEVICE_MODEL_NAME = 'RadiaCode'
+
+#: Light-meter models the mobile app reports in upload_json as `device.model`.
+_LIGHT_DEVICE_MODELS = {
+    'opple_lm3': {
+        'name': 'Opple Light Master III',
+        'version': 'III',
+        'description': 'Opple Light Master III spectral light meter (6 channels, auto-registered from track upload)',
+    },
+    'opple_lm4': {
+        'name': 'Opple Light Master IV',
+        'version': 'IV',
+        'description': 'Opple Light Master IV spectral light meter (8 spectral channels + clear, auto-registered from track upload)',
+    },
+}
+
+#: App versions that predate `device.model` only supported the Light Master III.
+_DEFAULT_LIGHT_MODEL_KEY = 'opple_lm3'
+
+
+def _light_device_model(model_key, track_type):
+    """
+    DeviceModel for a light track, from the app-reported `device.model` key.
+
+    Returns None (caller keeps its generic fallback) for non-light tracks and for
+    keys we do not know, so a future instrument is never mislabelled.
+    """
+    from devices.models import DeviceModel
+
+    if track_type != 'light':
+        return None
+    if not model_key:
+        model_key = _DEFAULT_LIGHT_MODEL_KEY
+    spec = _LIGHT_DEVICE_MODELS.get(model_key) if isinstance(model_key, str) else None
+    if spec is None:
+        return None
+    device_model, _ = DeviceModel.objects.get_or_create(
+        name=spec['name'],
+        defaults={
+            'manufacturer': 'Opple',
+            'version': spec['version'],
+            'technology': 'Multichannel spectral light sensor',
+            'description': spec['description'],
+            'validatedByOpenRed': False,
+            'max_radiation_range': 0.0,
+        },
+    )
+    return device_model
+
+
 class TrackViewSet(viewsets.ModelViewSet):
     # Scope for ScopedRateThrottle; only the actions that declare
     # throttle_classes=[ScopedRateThrottle] (upload, upload_json) are throttled.
@@ -3308,6 +3359,7 @@ class TrackViewSet(viewsets.ModelViewSet):
         # Get or create device by serial number (MAC address)
         device_serial = data['device']['id']
         device_name = data['device'].get('name', 'RadiaCode Device')
+        light_device_model = _light_device_model(data['device'].get('model'), data.get('trackType'))
         
         try:
             device = Device.objects.get(serial_number=device_serial)
@@ -3329,13 +3381,19 @@ class TrackViewSet(viewsets.ModelViewSet):
             
             # Create the device associated to the current user
             device = Device.objects.create(
-                device_model=device_model,
+                device_model=light_device_model or device_model,
                 serial_number=device_serial,
                 owner=request.user,
                 is_active=True
             )
             
             logger.info(f"Auto-created device {device_serial} for user {request.user.username}")
+
+        # Devices registered before the model was known carry the generic RadiaCode model.
+        if (light_device_model and device.device_model_id != light_device_model.id
+                and device.device_model.name == GENERIC_DEVICE_MODEL_NAME):
+            device.device_model = light_device_model
+            device.save(update_fields=['device_model'])
         
         # Validate mission/campaign and derive project
         from missions.models import Mission, Campaign

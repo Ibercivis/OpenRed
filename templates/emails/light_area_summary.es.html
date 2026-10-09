@@ -1,0 +1,220 @@
+{% extends "emails/base.html" %}
+{% block title %}La luz de {{ place }}, medida por {{ n_users }} personas{% endblock %}
+{% block preview %}Gracias: {{ n_measurements }} medidas de contaminación lumínica en {{ place }} {{ period }}{% endblock %}
+{% block content %}
+  <div style="text-align:center;padding:8px 0 20px;">
+    <div style="display:inline-block;background-color:#fffbeb;color:#b45309;border:1px solid #f59e0b;border-radius:999px;padding:6px 16px;font-size:13px;font-weight:600;letter-spacing:1px;">{{ place|upper }} · {{ period_short }}</div>
+    <div style="font-size:44px;font-weight:800;color:#0f172a;margin-top:12px;line-height:1;">{{ n_measurements }}</div>
+    <div style="font-size:14px;color:#64748b;margin-top:6px;">medidas de contaminación lumínica · {{ n_users }} personas</div>
+    {% if d_measurements %}<div style="font-size:13px;font-weight:600;color:#15803d;margin-top:4px;">{{ d_measurements }} desde el último correo ({{ baseline_date }})</div>{% endif %}
+  </div>
+
+  <h2 style="font-size:18px;margin:0 0 10px;color:#0f172a;">¡Gracias!</h2>
+  <p style="margin:0 0 12px;">
+    {{ period|capfirst }}, <strong>{{ n_users }} personas</strong> salisteis a medir la contaminación lumínica
+    en {{ place }} y sus alrededores (hasta {{ radius_km }} km). Este es el resultado de lo que habéis hecho entre todos.
+  </p>
+  {% if has_baseline %}<p style="margin:0 0 12px;font-size:13px;color:#475569;">
+    Es la actualización del correo del {{ baseline_date }}: las cifras acumulan todo el periodo y, en verde, te marcamos lo que ha crecido desde entonces.
+  </p>{% endif %}
+
+  {% if you %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#fffbeb;border:1px solid #fde68a;border-radius:10px;">
+    <tr><td style="padding:14px 18px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#b45309;margin-bottom:8px;">TU APORTACIÓN</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+        <tr>
+          <td width="25%" style="width:25%;padding:4px 8px 4px 0;"><strong style="font-size:20px;color:#0f172a;">{{ you_measurements }}</strong><br><span style="color:#64748b;">medidas</span>{% if d_you_measurements %}<br><span style="font-size:12px;font-weight:600;color:#15803d;">{{ d_you_measurements }}</span>{% endif %}</td>
+          <td width="25%" style="width:25%;padding:4px 8px 4px 0;"><strong style="font-size:20px;color:#0f172a;">{{ you_tracks }}</strong><br><span style="color:#64748b;">recorridos</span>{% if d_you_tracks %}<br><span style="font-size:12px;font-weight:600;color:#15803d;">{{ d_you_tracks }}</span>{% endif %}</td>
+          <td width="25%" style="width:25%;padding:4px 8px 4px 0;"><strong style="font-size:20px;color:#0f172a;">{{ you_km }}</strong><br><span style="color:#64748b;">km</span>{% if d_you_km %}<br><span style="font-size:12px;font-weight:600;color:#15803d;">{{ d_you_km }}</span>{% endif %}</td>
+          <td width="25%" style="width:25%;padding:4px 8px 4px 0;"><strong style="font-size:20px;color:#0f172a;">{{ you_nights }}</strong><br><span style="color:#64748b;">noche{{ you_nights|pluralize }}</span>{% if d_you_nights %}<br><span style="font-size:12px;font-weight:600;color:#15803d;">{{ d_you_nights }}</span>{% endif %}</td>
+        </tr>
+      </table>
+      {% if you_new %}<div style="font-size:13px;font-weight:600;color:#15803d;margin-top:6px;">¡Eres una de las personas que se ha sumado desde el último correo!</div>{% endif %}
+      {% if you_lux_median %}<div style="font-size:13px;color:#475569;margin-top:6px;">Mediana de lo que mediste: <strong>{{ you_lux_median }} lux</strong>{% if you_cct_median %} y <strong>{{ you_cct_median }} K</strong>{% endif %}.</div>{% endif %}
+    </td></tr>
+  </table>
+  {% endif %}
+
+  <h3 style="font-size:15px;margin:20px 0 8px;color:#0f172a;">Entre todos</h3>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;text-align:center;">
+    <tr>
+      <td style="padding:8px 4px;border:1px solid #e2e8f0;border-radius:8px;"><strong style="font-size:22px;color:#0f172a;">{{ n_users }}</strong><br><span style="color:#64748b;">personas</span>{% if d_users %}<br><span style="font-size:12px;font-weight:600;color:#15803d;">{{ d_users }}</span>{% endif %}</td>
+      <td style="padding:8px 4px;border:1px solid #e2e8f0;"><strong style="font-size:22px;color:#0f172a;">{{ n_tracks }}</strong><br><span style="color:#64748b;">recorridos</span>{% if d_tracks %}<br><span style="font-size:12px;font-weight:600;color:#15803d;">{{ d_tracks }}</span>{% endif %}</td>
+      <td style="padding:8px 4px;border:1px solid #e2e8f0;"><strong style="font-size:22px;color:#0f172a;">{{ km }}</strong><br><span style="color:#64748b;">km</span>{% if d_km %}<br><span style="font-size:12px;font-weight:600;color:#15803d;">{{ d_km }}</span>{% endif %}</td>
+      <td style="padding:8px 4px;border:1px solid #e2e8f0;"><strong style="font-size:22px;color:#0f172a;">{{ n_nights }}</strong><br><span style="color:#64748b;">noches</span>{% if d_nights %}<br><span style="font-size:12px;font-weight:600;color:#15803d;">{{ d_nights }}</span>{% endif %}</td>
+    </tr>
+  </table>
+
+  <h3 style="font-size:15px;margin:24px 0 4px;color:#0f172a;">Qué luz hay en {{ place }}</h3>
+  <p style="margin:0 0 12px;font-size:12px;color:#64748b;">
+    Estadísticas sobre las {{ n_night_measurements }} medidas tomadas ya de noche, una vez terminado el crepúsculo civil
+    ({{ pct_night }} % del total). Las medidas con luz de día residual se descartan para no inflar los valores.
+  </p>
+
+  <p style="margin:0 0 6px;"><strong>Iluminancia en el suelo: mediana {{ lux_median }} lux</strong>
+    <span style="color:#64748b;">(la mitad de las medidas entre {{ lux_p25 }} y {{ lux_p75 }} lux)</span>
+    {% if prev_lux_median %}<br><span style="font-size:12px;color:#64748b;">Hasta el {{ baseline_date }}: {{ prev_lux_median }} lux · {{ prev_lux_pct_over_30 }} % por encima de 30 lux</span>{% endif %}</p>
+  <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:13px;margin:0 0 10px;">
+    {% for b in lux_bands %}
+    <tr>
+      <td style="padding:2px 10px 2px 0;color:#475569;white-space:nowrap;">{{ b.label }}</td>
+      <td style="padding:2px 0;width:220px;"><div style="background-color:#f59e0b;height:10px;width:{{ b.bar }}%;min-width:2px;border-radius:3px;"></div></td>
+      <td style="padding:2px 0 2px 8px;color:#0f172a;">{{ b.pct }} %</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if has_chart_lux %}<img src="cid:chart_lux" alt="Distribución de lux" width="544" style="width:100%;max-width:544px;height:auto;display:block;margin:0 0 12px;border:1px solid #e2e8f0;border-radius:8px;">{% endif %}
+  <p style="margin:0 0 16px;font-size:13px;color:#475569;">
+    Para situarlo: la norma europea de alumbrado (UNE-EN 13201-2) y el reglamento español (RD 1890/2008) piden
+    entre <strong>2 y 15 lux</strong> de media en calles peatonales según su tráfico, y consideran sobreiluminación
+    superar esa referencia en más de un 20 %. El <strong>{{ lux_pct_over_30 }} %</strong> de vuestras medidas supera los 30 lux.
+  </p>
+
+  <p style="margin:0 0 6px;"><strong>Temperatura de color: mediana {{ cct_median }} K</strong>
+    {% if prev_cct_median %}<br><span style="font-size:12px;color:#64748b;">Hasta el {{ baseline_date }}: {{ prev_cct_median }} K · {{ prev_cct_pct_le_3000 }} % por debajo de 3.000 K</span>{% endif %}</p>
+  <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:13px;margin:0 0 10px;">
+    {% for b in cct_bands %}
+    <tr>
+      <td style="padding:2px 10px 2px 0;color:#475569;white-space:nowrap;">{{ b.label }}</td>
+      <td style="padding:2px 0;width:220px;"><div style="background-color:#60a5fa;height:10px;width:{{ b.bar }}%;min-width:2px;border-radius:3px;"></div></td>
+      <td style="padding:2px 0 2px 8px;color:#0f172a;">{{ b.pct }} %</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if has_chart_cct %}<img src="cid:chart_cct" alt="Distribución de temperatura de color" width="544" style="width:100%;max-width:544px;height:auto;display:block;margin:0 0 12px;border:1px solid #e2e8f0;border-radius:8px;">{% endif %}
+  <p style="margin:0 0 16px;font-size:13px;color:#475569;">
+    DarkSky International recomienda no superar los <strong>3.000 K</strong>, y Francia lo exige por ley en zonas urbanas
+    desde 2018 (2.400 K en espacios protegidos). El <strong>{{ cct_pct_le_3000 }} %</strong> de lo que habéis medido está
+    por debajo de 3.000 K: luz cálida, menos dañina para la fauna y el cielo nocturno.
+  </p>
+
+  {% if neighbourhoods %}
+  <h3 style="font-size:15px;margin:20px 0 4px;color:#0f172a;">Por barrios</h3>
+  <p style="margin:0 0 10px;font-size:12px;color:#64748b;">
+    Juntas municipales y vecinales de {{ place }} con al menos {{ neighbourhood_min_night }} medidas nocturnas. Mediana de lux y de temperatura de color;
+    "pers." es cuántas personas midieron allí: con una sola, la cifra depende mucho de las calles que eligió.
+  </p>
+  {% if has_chart_zones %}<img src="cid:chart_zones" alt="Mapa de barrios por mediana de lux" width="544" style="width:100%;max-width:544px;height:auto;display:block;margin:0 0 12px;border:1px solid #e2e8f0;border-radius:8px;">{% endif %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;border-collapse:collapse;">
+    <tr style="color:#64748b;">
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;">Barrio</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">Medidas</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">Pers.</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">Mediana lux</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">Mediana K</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">&gt; 30 lux</td>
+    </tr>
+    {% for h in neighbourhoods %}
+    <tr>
+      <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;">{{ h.name }}{% if h.new %} <span style="font-size:11px;font-weight:600;color:#15803d;">nuevo</span>{% endif %}</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ h.n }}{% if h.d %} <span style="font-size:11px;font-weight:600;color:#15803d;">{{ h.d }}</span>{% endif %}</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ h.n_users }}</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600;">{{ h.lux_median }}</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ h.cct_median }}</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ h.pct_over_30 }} %</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  {% if rings %}
+  <h3 style="font-size:15px;margin:20px 0 8px;color:#0f172a;">Por zonas</h3>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;border-collapse:collapse;">
+    <tr style="color:#64748b;">
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;">Distancia al centro</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">Medidas</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">Mediana lux</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">Mediana K</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">&gt; 30 lux</td>
+    </tr>
+    {% for r in rings %}
+    <tr>
+      <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;">{{ r.label }}</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ r.n }}{% if r.d %} <span style="font-size:11px;font-weight:600;color:#15803d;">{{ r.d }}</span>{% endif %}</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ r.lux_median }}</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ r.cct_median }}</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ r.pct_over_30 }} %</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  {% if has_weather %}
+  <h3 style="font-size:15px;margin:20px 0 8px;color:#0f172a;">El tiempo que hacía</h3>
+  <p style="margin:0 0 12px;font-size:14px;color:#475569;">
+    Mientras medíais: <strong>{{ temperature }} °C</strong> de media, humedad del {{ humidity }} %,
+    nubosidad del {{ cloud_cover }} % y viento de {{ wind_speed }} km/h.
+  </p>
+  {% endif %}
+
+  {% if zones %}
+  <h3 style="font-size:15px;margin:20px 0 4px;color:#0f172a;">Comparado con el resto de OpenRed, zona a zona</h3>
+  <p style="margin:0 0 10px;font-size:12px;color:#64748b;">
+    Cada medida lleva su tipo de zona según la malla europea de grado de urbanización (GHS-SMOD, Comisión Europea),
+    así que comparamos ciudad con ciudad y campo con campo. Del resto de OpenRed solo entran lugares con al menos
+    {{ rest_min_night }} medidas nocturnas y dos recorridos.
+  </p>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;border-collapse:collapse;">
+    <tr style="color:#64748b;">
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;"></td>
+      <td colspan="2" style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:center;color:#b45309;font-weight:600;">{{ place }}</td>
+      <td colspan="3" style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:600;">Resto de OpenRed</td>
+    </tr>
+    <tr style="color:#64748b;">
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;">Tipo de zona</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">lux</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">K</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">lux</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">K</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #e2e8f0;text-align:right;">lugares</td>
+    </tr>
+    {% for z in zones %}
+    <tr>
+      <td style="padding:5px 6px;border-bottom:1px solid #f1f5f9;">{{ z.label }}<br><span style="font-size:11px;color:#94a3b8;">{{ z.area_n }} medidas{% if z.rest %} · {{ z.rest_n }} fuera{% endif %}</span></td>
+      <td style="padding:5px 6px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600;color:#b45309;">{{ z.area_lux }}</td>
+      <td style="padding:5px 6px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600;color:#b45309;">{{ z.area_cct }}</td>
+      {% if z.rest %}
+      <td style="padding:5px 6px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ z.rest_lux }}</td>
+      <td style="padding:5px 6px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ z.rest_cct }}</td>
+      <td style="padding:5px 6px;border-bottom:1px solid #f1f5f9;text-align:right;">{{ z.rest_places }}</td>
+      {% else %}
+      <td colspan="3" style="padding:5px 6px;border-bottom:1px solid #f1f5f9;text-align:center;color:#94a3b8;">sin datos suficientes</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </table>
+  <p style="margin:8px 0 12px;font-size:12px;color:#64748b;">
+    Valores: mediana de lux y de temperatura de color. La comparación es orientativa: cada persona recorre calles
+    distintas y el sensor mide lo que llega al suelo donde pasa.
+  </p>
+  {% elif has_rest %}
+  <h3 style="font-size:15px;margin:20px 0 8px;color:#0f172a;">Y comparado con el resto de OpenRed</h3>
+  <p style="margin:0 0 12px;font-size:14px;color:#475569;">
+    Fuera de {{ place }}, OpenRed tiene {{ rest_measurements }} medidas lumínicas, con una mediana de
+    <strong>{{ rest_lux_median }} lux</strong> y <strong>{{ rest_cct_median }} K</strong>
+    ({{ rest_cct_pct_le_3000 }} % por debajo de 3.000 K).
+  </p>
+  {% endif %}
+
+  <p style="margin:20px 0 24px;">
+    Cada medida que subes hace un poco más completo el mapa abierto de OpenRed y lo convierte en un
+    dato público, reutilizable por cualquiera. Gracias por formar parte del proyecto. Seguimos midiendo.
+  </p>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+    <tr>
+      <td style="background-color:#f59e0b;border-radius:8px;">
+        <a href="{{ site_url }}" style="display:inline-block;padding:12px 24px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;">Ver el mapa</a>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:24px 0 0;font-size:13px;color:#64748b;">
+    El equipo de OpenRed<br>
+    <a href="https://ibercivis.es" style="color:#64748b;">Ibercivis</a>
+  </p>
+{% endblock %}
+{% block footer %}
+  {% if you %}Recibes este correo porque has subido medidas de contaminación lumínica a <a href="{{ site_url }}" style="color:#64748b;">OpenRed</a>, un proyecto de Ibercivis.{% else %}Recibes este correo como copia informativa del que han recibido las personas que midieron en {{ place }} con <a href="{{ site_url }}" style="color:#64748b;">OpenRed</a>, un proyecto de Ibercivis.{% endif %}
+{% endblock %}

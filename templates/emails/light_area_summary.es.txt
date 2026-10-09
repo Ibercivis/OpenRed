@@ -1,0 +1,75 @@
+{% extends "emails/base.txt" %}
+{% block content %}¡GRACIAS! La luz de {{ place }}, medida por {{ n_users }} personas
+--------------------------------------------------------
+
+{{ period|capfirst }}, {{ n_users }} personas salisteis a medir la contaminación
+lumínica en {{ place }} y sus alrededores (hasta {{ radius_km }} km). Este es el
+resultado de lo que habéis hecho entre todos.
+{% if has_baseline %}
+Es la actualización del correo del {{ baseline_date }}: las cifras acumulan todo
+el periodo y entre paréntesis va lo que ha crecido desde entonces.
+{% endif %}
+{% if you %}TU APORTACIÓN
+  Medidas: {{ you_measurements }}{% if d_you_measurements %} ({{ d_you_measurements }}){% endif %} · Recorridos: {{ you_tracks }}{% if d_you_tracks %} ({{ d_you_tracks }}){% endif %} · Distancia: {{ you_km }} km{% if d_you_km %} ({{ d_you_km }}){% endif %} · Noches: {{ you_nights }}{% if d_you_nights %} ({{ d_you_nights }}){% endif %}{% if you_new %}
+  ¡Te has sumado desde el último correo!{% endif %}{% if you_lux_median %}
+  Mediana de lo que mediste: {{ you_lux_median }} lux{% if you_cct_median %} y {{ you_cct_median }} K{% endif %}{% endif %}
+
+{% endif %}ENTRE TODOS
+  Personas: {{ n_users }}{% if d_users %} ({{ d_users }}){% endif %} · Medidas: {{ n_measurements }}{% if d_measurements %} ({{ d_measurements }}){% endif %} · Recorridos: {{ n_tracks }}{% if d_tracks %} ({{ d_tracks }}){% endif %}
+  Distancia: {{ km }} km{% if d_km %} ({{ d_km }}){% endif %} · Noches de medida: {{ n_nights }}{% if d_nights %} ({{ d_nights }}){% endif %}
+
+QUÉ LUZ HAY EN {{ place|upper }}
+(Estadísticas sobre las {{ n_night_measurements }} medidas tomadas ya de noche,
+una vez terminado el crepúsculo civil, el {{ pct_night }} % del total.)
+
+  Iluminancia en el suelo: mediana {{ lux_median }} lux
+  (la mitad de las medidas entre {{ lux_p25 }} y {{ lux_p75 }} lux).
+{% if prev_lux_median %}  Hasta el {{ baseline_date }}: {{ prev_lux_median }} lux · {{ prev_lux_pct_over_30 }} % por encima de 30 lux.
+{% endif %}{% for b in lux_bands %}    {{ b.label }}: {{ b.pct }} %
+{% endfor %}
+  Para situarlo: la norma europea de alumbrado (UNE-EN 13201-2) y el
+  reglamento español (RD 1890/2008) piden entre 2 y 15 lux de media en
+  calles peatonales según su tráfico, y consideran sobreiluminación superar
+  esa referencia en más de un 20 %. El {{ lux_pct_over_30 }} % de vuestras
+  medidas supera los 30 lux.
+
+  Temperatura de color: mediana {{ cct_median }} K
+{% if prev_cct_median %}  Hasta el {{ baseline_date }}: {{ prev_cct_median }} K · {{ prev_cct_pct_le_3000 }} % por debajo de 3.000 K.
+{% endif %}{% for b in cct_bands %}    {{ b.label }}: {{ b.pct }} %
+{% endfor %}
+  DarkSky International recomienda no superar los 3.000 K, y Francia lo
+  exige por ley en zonas urbanas desde 2018 (2.400 K en espacios
+  protegidos). El {{ cct_pct_le_3000 }} % de lo que habéis medido está por
+  debajo de 3.000 K: luz cálida, menos dañina para la fauna y el cielo.
+{% if neighbourhoods %}
+POR BARRIOS
+(Juntas con al menos {{ neighbourhood_min_night }} medidas nocturnas. Medianas; "pers." = personas que midieron allí.)
+{% for h in neighbourhoods %}  {{ h.name }}{% if h.new %} (nuevo){% endif %}: {{ h.n }} medidas{% if h.d %} ({{ h.d }}){% endif %} · {{ h.n_users }} pers. · {{ h.lux_median }} lux · {{ h.cct_median }} K · {{ h.pct_over_30 }} % por encima de 30 lux
+{% endfor %}{% endif %}{% if rings %}
+POR ZONAS (distancia al centro)
+{% for r in rings %}  {{ r.label }}: {{ r.n }} medidas{% if r.d %} ({{ r.d }}){% endif %} · {{ r.lux_median }} lux · {{ r.cct_median }} K · {{ r.pct_over_30 }} % por encima de 30 lux
+{% endfor %}{% endif %}{% if has_weather %}
+EL TIEMPO QUE HACÍA
+  Temperatura media {{ temperature }} °C · Humedad {{ humidity }} % ·
+  Nubosidad {{ cloud_cover }} % · Viento {{ wind_speed }} km/h
+{% endif %}{% if zones %}
+COMPARADO CON EL RESTO DE OPENRED, ZONA A ZONA
+(Tipo de zona según la malla europea de grado de urbanización GHS-SMOD.
+Del resto de OpenRed solo entran lugares con al menos {{ rest_min_night }}
+medidas nocturnas y dos recorridos. Medianas de lux y de temperatura de color.)
+{% for z in zones %}  {{ z.label }}: {{ place }} {{ z.area_lux }} lux / {{ z.area_cct }} K ({{ z.area_n }} medidas){% if z.rest %} · resto {{ z.rest_lux }} lux / {{ z.rest_cct }} K ({{ z.rest_n }} medidas en {{ z.rest_places }} lugares){% else %} · resto: sin datos suficientes{% endif %}
+{% endfor %}{% elif has_rest %}
+Y COMPARADO CON EL RESTO DE OPENRED
+  Fuera de {{ place }}, OpenRed tiene {{ rest_measurements }} medidas lumínicas,
+  con una mediana de {{ rest_lux_median }} lux y {{ rest_cct_median }} K
+  ({{ rest_cct_pct_le_3000 }} % por debajo de 3.000 K).
+{% endif %}
+Cada medida que subes hace un poco más completo el mapa abierto de OpenRed y
+lo convierte en un dato público, reutilizable por cualquiera. Gracias por
+formar parte del proyecto. Seguimos midiendo.
+
+Ver el mapa: {{ site_url }}
+
+El equipo de OpenRed
+Ibercivis — https://ibercivis.es{% endblock %}
+{% block footer %}{% if you %}Recibes este correo porque has subido medidas de contaminación lumínica a OpenRed, un proyecto de Ibercivis.{% else %}Recibes este correo como copia informativa del que han recibido las personas que midieron en {{ place }} con OpenRed, un proyecto de Ibercivis.{% endif %}{% endblock %}

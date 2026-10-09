@@ -631,6 +631,14 @@ class LightPollutionMeasurement(BaseMeasurement):
     temperature = models.FloatField(null=True, blank=True, verbose_name="Temperature")
     batteryMv = models.IntegerField(null=True, blank=True, verbose_name="Battery (mV)")
     speed = models.FloatField(null=True, blank=True, verbose_name="Speed")
+
+    # Degree of Urbanisation code (GHS-SMOD, 1 km grid): 30 city, 21-23 town/suburb,
+    # 11-13 rural, 10 water. Filled by the scheduled sweeper
+    # measures.urban_class.assign_pending_urban_class, never at ingest.
+    urban_class = models.PositiveSmallIntegerField(
+        null=True, blank=True, db_index=True, verbose_name="Urban class (GHS-SMOD)",
+        help_text="Degree of Urbanisation code from the GHS-SMOD grid; see measures/urban_class.py",
+    )
     
     # Campo geoespacial para consultas PostGIS y H3
     location = gis_models.PointField(

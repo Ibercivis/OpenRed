@@ -907,3 +907,13 @@ msgstr ""
 #: templates/reports/radiation_report.html:483
 msgid "Std. dev."
 msgstr "Desv. típica"
+
+#: measures/report_generators.py
+msgid "Median lux"
+msgstr "Mediana de lux"
+
+#: measures/report_generators.py
+msgid "%(n)s district with data"
+msgid_plural "%(n)s districts with data"
+msgstr[0] "%(n)s barrio con datos"
+msgstr[1] "%(n)s barrios con datos"

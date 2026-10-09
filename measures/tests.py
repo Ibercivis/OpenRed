@@ -677,3 +677,31 @@ class RctrkParserTests(TestCase):
             parse_rctrk_track(track, '{"markers": []}')
         with self.assertRaises(ValueError):
             parse_rctrk_track(track, '{not json')
+
+
+
+class UploadJsonDeviceModelTests(TestCase):
+    """upload_json resolves the DeviceModel of light-meter devices from `device.model`."""
+
+    def test_light_model_resolution(self):
+        from devices.models import DeviceModel
+        from measures.views import _light_device_model
+
+        lm3 = _light_device_model('opple_lm3', 'light')
+        lm4 = _light_device_model('opple_lm4', 'light')
+        self.assertEqual(lm3.name, 'Opple Light Master III')
+        self.assertEqual(lm4.name, 'Opple Light Master IV')
+        self.assertEqual(lm3.manufacturer, 'Opple')
+        # Idempotent: no duplicate models.
+        self.assertEqual(_light_device_model('opple_lm3', 'light').pk, lm3.pk)
+        self.assertEqual(DeviceModel.objects.filter(name__startswith='Opple').count(), 2)
+
+        # Apps that predate device.model only supported the LM3.
+        self.assertEqual(_light_device_model(None, 'light').pk, lm3.pk)
+        self.assertEqual(_light_device_model('', 'light').pk, lm3.pk)
+
+        # Unknown keys and non-light tracks keep the generic fallback.
+        self.assertIsNone(_light_device_model('opple_lm9', 'light'))
+        self.assertIsNone(_light_device_model(['x'], 'light'))
+        self.assertIsNone(_light_device_model('opple_lm3', 'radiation'))
+        self.assertIsNone(_light_device_model('opple_lm3', None))

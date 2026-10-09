@@ -1,0 +1,1 @@
+Gracias por medir la luz de {{ place }}: {{ n_measurements }} medidas entre {{ n_users }} personas

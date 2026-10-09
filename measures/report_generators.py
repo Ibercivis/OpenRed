@@ -137,6 +137,80 @@ def _finish_map(fig, ax, sm, value_label, title):
     return _fig_to_uri(fig)
 
 
+def generate_polygon_map(polygons, value_label=None, title=None, pad_ratio=0.06):
+    """
+    Choropleth of arbitrary polygons (e.g. city districts) over an OSM basemap.
+
+    polygons: [{'geom': GEOSGeometry (Polygon/MultiPolygon, WGS84), 'label': str,
+                'value': float|None}]. Polygons with value None are drawn as a
+    grey outline (no data) and do not drive the extent or the colour scale.
+    Returns a PNG data URI or None.
+    """
+    from matplotlib.patches import Polygon as MplPolygon
+    if value_label is None:
+        value_label = _('Median lux')
+    with_data = [p for p in polygons if p.get('value') is not None]
+    if not with_data:
+        return None
+    try:
+        fig, ax = plt.subplots(figsize=(9, 6.5))
+        fig.patch.set_facecolor('white')
+        vals = [p['value'] for p in with_data]
+        vmin, vmax = min(vals), max(vals)
+        if vmin == vmax:
+            vmax = vmin + 1
+        cmap = cm.YlOrRd
+        norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+
+        def rings(geom):
+            geoms = geom if geom.geom_type == 'MultiPolygon' else [geom]
+            for poly in geoms:
+                yield list(poly.exterior_ring.coords)
+
+        # Extent: polygons with data, ignoring area outliers (a huge rural district
+        # would otherwise shrink the city to a corner). Outliers are still drawn.
+        areas = sorted(p['geom'].area for p in with_data)
+        area_cap = areas[len(areas) // 2] * 8
+        west = south = float('inf'); east = north = float('-inf')
+        for p in with_data:
+            if p['geom'].area <= area_cap or len(with_data) == 1:
+                x0, y0, x1, y1 = p['geom'].extent
+                west, south, east, north = min(west, x0), min(south, y0), max(east, x1), max(north, y1)
+        dx = max((east - west) * pad_ratio, 0.002); dy = max((north - south) * pad_ratio, 0.002)
+        west, south, east, north = west - dx, south - dy, east + dx, north + dy
+        from django.contrib.gis.geos import Polygon as GeosPolygon
+        view = GeosPolygon.from_bbox((west, south, east, north))
+
+        for p in polygons:
+            has = p.get('value') is not None
+            for ring in rings(p['geom']):
+                patch = MplPolygon(ring, closed=True,
+                                   facecolor=cmap(norm(p['value'])) if has else 'none',
+                                   edgecolor='#334155' if has else '#94a3b8',
+                                   linewidth=0.9 if has else 0.6,
+                                   alpha=0.75 if has else 1.0, zorder=3 if has else 2)
+                ax.add_patch(patch)
+        for p in with_data:
+            visible = p['geom'].intersection(view)
+            if visible.empty or visible.area < p['geom'].area * 0.05:
+                continue   # (almost) out of view: no dangling label
+            c = visible.point_on_surface   # always inside, unlike the centroid of a crescent
+            ax.annotate(p['label'], (c.x, c.y), ha='center', va='center', fontsize=7.5,
+                        color='#0f172a', zorder=5,
+                        bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.75, linewidth=0))
+        ax.set_xlim(west, east); ax.set_ylim(south, north)
+        ax.set_aspect(1 / np.cos(np.radians((south + north) / 2)))
+        _add_basemap(ax)
+        sm = cm.ScalarMappable(cmap=cmap, norm=norm); sm.set_array([])
+        n = len(with_data)
+        if title is None:
+            title = ngettext('%(n)s district with data', '%(n)s districts with data', n) % {'n': n}
+        return _finish_map(fig, ax, sm, value_label, title)
+    except Exception as e:
+        logger.error(f"generate_polygon_map failed: {e}", exc_info=True)
+        return None
+
+
 def generate_h3_map(hexagons, resolution, bbox=None, tmpdir=None, value_label=None):
     """
     Choropleth of H3 hexagons coloured by avg_value.
