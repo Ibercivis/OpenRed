@@ -329,7 +329,16 @@ def compute_report(month, project_name=None, geocode=True):
     recent = [s[1] for s in r.monthly[-4:-1]] or [r.m['n']]
     rate = statistics.fmean(recent) or 1
     r.milestone = {'current': current, 'next': nxt, 'missing': nxt - current, 'pct': 100 * current / nxt,
-                   'rate': rate, 'months': (nxt - current) / rate}
+                   'rate': rate, 'months': (nxt - current) / rate, 'crossed': None}
+    # Milestone crossed during the reported month (by upload date, which is what the counter counts)
+    from .models import LightPollutionMeasurement
+    def uploaded_before(moment):
+        return (RadiationMeasurement.objects.filter(project=project, created_at__lt=moment).count()
+                + LightPollutionMeasurement.objects.filter(project=project, created_at__lt=moment).count())
+    before, after = uploaded_before(start), uploaded_before(end)
+    first = getattr(settings, 'CONTRIBUTION_MILESTONE_START', 300000)
+    crossed = [t for t in range(first, after + 1, step) if before < t <= after]
+    r.milestone['crossed'] = crossed[-1] if crossed else None
     return r
 
 
@@ -515,7 +524,8 @@ def report_context(r, charts=None):
         'plausible_max': _num(PLAUSIBLE_MAX),
         'milestone': {'next': _num(r.milestone['next']), 'current': _num(r.milestone['current']),
                       'missing': _num(r.milestone['missing']), 'pct': _num(r.milestone['pct'], 1).replace(',', '.'),
-                      'months': _num(r.milestone['months'], 1), 'rate': _num(r.milestone['rate'])} if r.milestone else None,
+                      'months': _num(r.milestone['months'], 1), 'rate': _num(r.milestone['rate']),
+                      'crossed': _num(r.milestone['crossed']) if r.milestone['crossed'] else ''} if r.milestone else None,
     }
     if r.when and sum(map(sum, r.when)):
         flat = [(r.when[d][h], d, h) for d in range(7) for h in range(24)]

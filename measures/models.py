@@ -1216,21 +1216,12 @@ class Station(models.Model):
 
 class ContributionMilestone(models.Model):
     """
-    Hito de contribuciones (medidas subidas) alcanzado por el proyecto.
+    Hito de contribuciones (medidas subidas) alcanzado por el proyecto. SOLO HISTÓRICO.
 
-    Una fila por umbral (300.000, 400.000, ...). La unicidad de ``threshold``
-    es lo que garantiza que el correo de agradecimiento a todos los usuarios
-    se envía como mucho una vez por hito aunque el chequeo corra en paralelo
-    (job programado + job encolado al terminar un track).
-
-    Flujo:
-        1. ``measures.tasks.check_contribution_milestones`` cuenta las
-           contribuciones y crea la fila del mayor umbral alcanzado que
-           aún no exista (``status='pending'``).
-        2. Encola ``send_contribution_milestone_email(milestone_id)``, que
-           manda el correo a todos los usuarios activos y marca ``sent``.
-        3. Los umbrales que ya estaban superados cuando el sistema se
-           estrenó se registran como ``backfilled`` y no se envían.
+    Hasta octubre de 2026 una tarea diaria detectaba cada hito (300.000, 400.000...) y enviaba un
+    correo de agradecimiento a todos los usuarios; esa tarea y el envío se eliminaron porque el
+    informe global mensual (``measures.monthly_report``) ya muestra el progreso y anuncia los hitos
+    superados. La tabla se conserva como registro de lo que se envió (p.ej. el hito de 400.000).
     """
     STATUS_CHOICES = [
         ('pending', 'Pendiente de envío'),

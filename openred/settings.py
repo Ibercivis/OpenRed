@@ -536,17 +536,6 @@ RQ_JOBS = {
         'result_ttl': 500,
     },
     # Station watchdog: flag base stations online/offline by reporting cadence.
-    # Contribution milestones: detect 300k/400k/... measurements of the
-    # OpenRed project and email every user a thank-you (idempotent via
-    # ContributionMilestone.threshold unique constraint).
-    'check_contribution_milestones': {
-        'func': 'measures.tasks.check_contribution_milestones',
-        'kwargs': {},
-        'interval': 86400,  # Daily
-        'repeat': None,
-        'timeout': 120,
-        'result_ttl': 500,
-    },
     # Periodic emails: monthly report (day 2, previous month) and personal digest (day 16).
     # Hourly and cheap; the windows, hours and the on/off switches live in measures.email_runs
     # and MONTHLY_REPORT_ENABLED / ACTIVITY_DIGEST_ENABLED below.
@@ -570,10 +559,10 @@ RQ_JOBS = {
     },
 }
 
-# Hitos de contribuciones: correo de agradecimiento a todos los usuarios al
-# superar CONTRIBUTION_MILESTONE_START y cada CONTRIBUTION_MILESTONE_STEP
-# (300.000, 400.000, 500.000...). Solo cuentan las medidas del proyecto
-# CONTRIBUTION_MILESTONE_PROJECT. Ver measures.tasks.check_contribution_milestones.
+# Hitos de contribuciones (300.000, 400.000, 500.000...). Ya NO se envía un correo por hito:
+# el informe global mensual (measures.monthly_report) muestra la barra hacia el próximo hito y
+# anuncia el que se haya superado durante el mes. Solo cuentan las medidas del proyecto
+# CONTRIBUTION_MILESTONE_PROJECT.
 CONTRIBUTION_MILESTONE_PROJECT = config('CONTRIBUTION_MILESTONE_PROJECT', default='Openred')
 CONTRIBUTION_MILESTONE_START = config('CONTRIBUTION_MILESTONE_START', default=300000, cast=int)
 CONTRIBUTION_MILESTONE_STEP = config('CONTRIBUTION_MILESTONE_STEP', default=100000, cast=int)

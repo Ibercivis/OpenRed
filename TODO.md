@@ -1,5 +1,17 @@
 # OpenRed TODO List
 
+## Periodic radiation emails (monthly report day 2, personal digest day 16)
+
+Live since 2026-10-16 (see `measures/email_runs.py`, queue `openred-emails`, command `scheduled_emails`).
+
+- [ ] **2026-11-02: check the first real monthly report** (October data, to every contributor)
+  - Run `manage.py scheduled_emails status`: expect `monthly_report 2026-10` as `sent`, 0 failures
+  - Check `/var/log/supervisor/openred-emails.log` if it is not
+- [ ] **2026-11-16: check the first automatic personal digest** (`activity_digest 2026-11`)
+- [ ] **GDPR for the periodic emails**: unsubscribe link / consent, honour opt-outs before the next mailing
+- [ ] **Fix under-estimated kilometres** (500 m per-segment cap in `parse_json`/`parse_csv`); proposed fix: 150 km/h speed cap + recompute tracks. The emails show km, so they are affected
+- [ ] Optional: tailor the "we miss you" email (suggest an unmeasured zone near where the person measured before)
+
 ## H3 Aggregation Enhancements
 
 ### High Priority

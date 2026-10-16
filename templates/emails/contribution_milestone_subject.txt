@@ -1,1 +1,0 @@
-¡{{ threshold_es }} contribuciones en OpenRed! · {{ threshold_en }} contributions on OpenRed!

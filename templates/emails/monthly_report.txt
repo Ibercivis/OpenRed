@@ -1,6 +1,8 @@
 OPENRED RADIACIÓN · INFORME DE {{ month_label|upper }}
 
-Desde el {{ since_label }}: {{ total_n }} medidas, {{ total_users }} personas, {{ total_tracks }} recorridos, {{ total_km }} km, {{ areas_total }} zonas.
+{% if milestone.crossed %}HITO ALCANZADO en {{ month_name }}: {{ milestone.crossed }} contribuciones. Gracias a todas las personas que habéis medido.
+
+{% endif %}Desde el {{ since_label }}: {{ total_n }} medidas, {{ total_users }} personas, {{ total_tracks }} recorridos, {{ total_km }} km, {{ areas_total }} zonas.
 En {{ month_name }}: {{ m_n }} medidas ({{ v_n }} vs mes anterior), {{ m_users }} personas ({{ m_new_users }} nuevas), {{ m_tracks }} recorridos, {{ m_km }} km, {{ areas_new }} zonas nuevas.
 {% if has_month_stats %}
 Tasa de dosis en {{ month_name }} (µSv/h): mediana {{ month_median }}, media {{ month_mean }}, percentil 95 {{ month_p95 }}.

@@ -9,6 +9,15 @@
     {% if d_total_n %}<div style="font-size:13px;font-weight:600;color:#15803d;margin-top:4px;">{{ d_total_n }} en {{ month_name }}</div>{% endif %}
   </div>
 
+  {% if milestone.crossed %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;background-color:#0f172a;border-radius:10px;">
+    <tr><td style="padding:16px 20px;text-align:center;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#facc15;">HITO ALCANZADO</div>
+      <div style="font-size:26px;font-weight:800;color:#ffffff;margin-top:4px;">{{ milestone.crossed }} contribuciones</div>
+      <div style="font-size:13px;color:#cbd5e1;margin-top:4px;">Lo conseguimos en {{ month_name }}. Gracias a cada persona que ha salido a medir.</div>
+    </td></tr>
+  </table>
+  {% endif %}
   <p style="margin:0 0 14px;">
     Cada mes te contamos qué estamos descubriendo entre todos: cuánto hemos medido, dónde, qué valores hemos encontrado y qué significan.
     Este es el balance de <strong>{{ month_name }}</strong> y de todo el camino recorrido.
