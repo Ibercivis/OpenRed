@@ -1266,5 +1266,76 @@ class ContributionMilestone(models.Model):
         ordering = ['-threshold']
 
 
+class EmailRun(models.Model):
+    """
+    Una ejecución de un correo periódico (informe global o resumen personal) para un mes.
+
+    ``(kind, period)`` es único: garantiza que el job programado crea la ejecución una sola vez
+    por mes aunque se solape con un envío manual. El detalle por destinatario está en EmailLog.
+    """
+    KIND_CHOICES = [
+        ('monthly_report', 'Informe global mensual (día 2)'),
+        ('activity_digest', 'Resumen personal (día 16)'),
+    ]
+    STATUS_CHOICES = [
+        ('sending', 'Enviando'),
+        ('sent', 'Enviado'),
+        ('partial', 'Enviado con fallos'),
+        ('failed', 'Fallido'),
+    ]
+
+    kind = models.CharField(max_length=30, choices=KIND_CHOICES)
+    period = models.CharField(max_length=7, help_text="YYYY-MM: mes del informe (global) o del envío (personal)")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='sending', db_index=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    recipients_count = models.PositiveIntegerField(default=0)
+    sent_count = models.PositiveIntegerField(default=0)
+    failed_count = models.PositiveIntegerField(default=0)
+    notes = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.kind} {self.period} ({self.status})"
+
+    class Meta:
+        verbose_name = "Ejecución de correo periódico"
+        verbose_name_plural = "Ejecuciones de correo periódico"
+        ordering = ['-period', 'kind']
+        constraints = [models.UniqueConstraint(fields=['kind', 'period'], name='unique_email_run_kind_period')]
+
+
+class EmailLog(models.Model):
+    """
+    Un correo concreto enviado (o fallido) a una persona.
+
+    Se guardan metadatos y las cifras que se calcularon para ese correo (``payload``), no el
+    HTML renderizado: las plantillas están en git y las cifras permiten reconstruirlo.
+    ``(kind, period, email)`` es único, de modo que reanudar una ejecución nunca duplica un envío.
+    """
+    STATUS_CHOICES = [('sent', 'Enviado'), ('failed', 'Fallido')]
+
+    run = models.ForeignKey(EmailRun, null=True, blank=True, on_delete=models.SET_NULL, related_name='logs')
+    kind = models.CharField(max_length=30, choices=EmailRun.KIND_CHOICES)
+    period = models.CharField(max_length=7)
+    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='email_logs')
+    email = models.EmailField()
+    variant = models.CharField(max_length=20, blank=True, help_text="report | active | miss")
+    subject = models.CharField(max_length=300, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, db_index=True)
+    error = models.TextField(blank=True)
+    payload = models.JSONField(default=dict, blank=True, help_text="Cifras usadas en el correo")
+    sent_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.kind} {self.period} -> {self.email} ({self.status})"
+
+    class Meta:
+        verbose_name = "Correo enviado"
+        verbose_name_plural = "Correos enviados"
+        ordering = ['-sent_at']
+        constraints = [models.UniqueConstraint(fields=['kind', 'period', 'email'], name='unique_email_log_kind_period_email')]
+        indexes = [models.Index(fields=['user', 'kind'])]
+
+
 # Para mantener compatibilidad temporal si es necesario
 # Measurement = RadiationMeasurement  # Alias de compatibilidad

@@ -1,0 +1,1 @@
+OpenRed Radiación · Informe de {{ month_label }}: {{ m_n }} medidas, {{ m_users }} personas

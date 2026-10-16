@@ -1,0 +1,22 @@
+OPENRED RADIACIÓN · INFORME DE {{ month_label|upper }}
+
+Desde el {{ since_label }}: {{ total_n }} medidas, {{ total_users }} personas, {{ total_tracks }} recorridos, {{ total_km }} km, {{ areas_total }} zonas.
+En {{ month_name }}: {{ m_n }} medidas ({{ v_n }} vs mes anterior), {{ m_users }} personas ({{ m_new_users }} nuevas), {{ m_tracks }} recorridos, {{ m_km }} km, {{ areas_new }} zonas nuevas.
+{% if has_month_stats %}
+Tasa de dosis en {{ month_name }} (µSv/h): mediana {{ month_median }}, media {{ month_mean }}, percentil 95 {{ month_p95 }}.
+Histórico: mediana {{ all_median }}, la mitad de las medidas entre {{ all_p25 }} y {{ all_p75 }}.
+{% endif %}{% if max %}
+Lectura máxima validada: {{ max.dose }} µSv/h el {{ max.date }} en {{ max.name }} (error relativo {{ max.err }} %).
+{% endif %}{% if zones %}
+Zonas con mayor dosis media en {{ month_name }}:{% for z in zones %}
+  {{ z.rank }}. {{ z.name }}: {{ z.mean }} µSv/h ({{ z.n }} lecturas){% endfor %}
+{% endif %}{% if alt_ratio %}
+Altitud: la dosis mediana por encima de {{ alt_hi }} es {{ alt_ratio }} veces la de {{ alt_lo }} (rayos cósmicos).
+{% endif %}
+Red: {{ devices_total }} dispositivos ({{ devices_month }} en {{ month_name }}).
+{% if milestone %}Próximo hito {{ milestone.next }}: faltan {{ milestone.missing }} (~{{ milestone.months }} meses).
+{% endif %}
+Datos: descartamos {{ n_artefacts }} lecturas inverosímiles (> {{ plausible_max }} µSv/h); los hallazgos usan solo lecturas con error relativo <= {{ max_err_pct }} %.
+
+El día 16 recibirás tus estadísticas personales.
+{{ site_url }}

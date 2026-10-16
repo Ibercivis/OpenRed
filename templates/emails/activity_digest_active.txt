@@ -1,0 +1,26 @@
+Hola{% if name %}, {{ name }}{% endif %}, ¡gracias por medir!
+
+{% if lifetime %}Resumen de todo lo que has medido con OpenRed desde el {{ since_label }} (solo radiación gamma).{% else %}Resumen de tu actividad entre el {{ period }}.{% endif %}
+
+- Medidas: {{ n }}{% if d_n %} ({{ d_n }} vs mes anterior){% endif %}
+- Recorridos: {{ tracks }}
+- Kilómetros: {{ km }}
+- Días midiendo: {{ days }}
+{% if lifetime %}- Medidas en los últimos 30 días: {{ recent_n }}
+{% endif %}{% if median %}
+Tasa de dosis (µSv/h): mediana {{ median }}, media {{ mean }}, percentil 95 {{ p95 }}{% if max %}, máxima {{ max }}{% endif %}.
+(La máxima solo considera lecturas con error relativo <= 20 %.){% if d_median %}
+Tu mediana cambia {{ d_median }} respecto al mes anterior ({{ prev_median }}).{% endif %}
+{% endif %}
+Comparado con el resto: {% if vs_project %}tu mediana está {{ vs_project }} la del proyecto ({{ project_median }} µSv/h). {% endif %}{% if lifetime %}Entre todos habéis aportado {{ project_n }} medidas y {{ project_km }} km desde el inicio.{% else %}Este mes, {{ project_users }} personas han aportado {{ project_n }} medidas y {{ project_km }} km.{% endif %}
+Cada detector y cada lugar son distintos: la comparación es orientativa, no un ranking.
+{% if best %}
+Tu lectura máxima validada: {{ best.dose }} µSv/h ({{ best.date }}, {{ best.name }}; error relativo {{ best.err }} %).
+{% endif %}{% if top_zone %}Tu zona con más dosis: {{ top_zone.name }}, media {{ top_zone.mean }} µSv/h en {{ top_zone.n }} lecturas{% if top_zone.others %} (el resto de personas en esa zona: {{ top_zone.others }}){% endif %}.
+{% endif %}{% if altitude %}Tu punto más alto: ~{{ altitude.m }} m, dosis media {{ altitude.high }} µSv/h (por debajo de 300 m: {{ altitude.low }}).
+{% endif %}{% if n_areas %}Has medido en {{ n_areas }} zonas distintas{% if areas_first %}; en {{ areas_first }} fuiste la primera persona en medir{% endif %}.
+{% endif %}{% if share_pct %}Tu parte del proyecto: {{ share_pct }} %.{% if milestone %} Faltan {{ milestone.missing }} para el hito de {{ milestone.next }}.{% endif %}
+{% endif %}{% if usual_hour %}
+Tu hora habitual para medir: {{ usual_hour }} (hora de España).
+{% endif %}
+Tus tracks y el mapa: {{ site_url }}

@@ -1,0 +1,15 @@
+{% extends "emails/base_radiation.html" %}
+{% block title %}Te echamos de menos{% endblock %}
+{% block preview %}Llevas un tiempo sin medir; esto es lo que has aportado{% endblock %}
+{% block content %}
+  <h2 style="font-size:20px;margin:0 0 10px;color:#0f172a;">Hola{% if name %}, {{ name }}{% endif %}, te echamos de menos</h2>
+  <p style="margin:0 0 12px;">
+    Tu última medida de radiación fue el {{ last_date }}. Desde {{ first_year }} has aportado a OpenRed
+    <strong>{{ total_n }} medidas</strong> en <strong>{{ total_tracks }} recorridos</strong>{% if total_km != '0' %} (unos {{ total_km }} km){% endif %}. ¡Gracias!
+  </p>
+  <p style="margin:0 0 12px;">
+    Mientras tanto, el proyecto sigue creciendo: en los últimos 30 días {{ recent_project_users }} personas han aportado {{ recent_project_n }} medidas y {{ recent_project_km }} km.
+    Si te animas a salir a medir de nuevo, cada recorrido cuenta.
+  </p>
+  <p style="margin:16px 0 0;"><a href="{{ site_url }}" style="display:inline-block;background-color:#f59e0b;color:#0f172a;text-decoration:none;font-weight:700;padding:10px 18px;border-radius:8px;">Ver el mapa</a></p>
+{% endblock %}

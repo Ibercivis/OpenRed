@@ -1955,3 +1955,91 @@ def send_contribution_milestone_email(milestone_id, recipients=None):
 
     logger.info(f"Milestone {milestone.threshold}: sent={sent} failed={failed}")
     return {'milestone_id': milestone_id, 'threshold': milestone.threshold, 'sent': sent, 'failed': failed}
+
+
+# --------------------------------------------------------------------------
+# Periodic emails: monthly report (day 2) and personal digest (day 16)
+# --------------------------------------------------------------------------
+def check_scheduled_emails(now=None):
+    """
+    Hourly check (RQ_JOBS). Enqueues the monthly report / personal digest when today falls in
+    their sending window, the hour is reasonable, the feature is enabled in settings and the
+    (kind, period) has not been sent yet. Cheap: it only compares dates and reads two rows.
+
+    Returns:
+        dict: {'monthly_report': 'enqueued'|reason, 'activity_digest': ...}
+    """
+    from django.conf import settings
+    from . import email_runs as er
+    from .models import EmailRun
+    from .monthly_report import previous_month
+
+    now = now or er.local_now()
+    result = {}
+    plan = (
+        ('monthly_report', 'MONTHLY_REPORT_ENABLED', er.REPORT_DAY, er.REPORT_LAST_DAY,
+         previous_month(now.date()), 'measures.tasks.run_monthly_report'),
+        ('activity_digest', 'ACTIVITY_DIGEST_ENABLED', er.DIGEST_DAY, er.DIGEST_LAST_DAY,
+         now.date().replace(day=1), 'measures.tasks.run_activity_digest'),
+    )
+    for kind, flag, first, last, period_date, func in plan:
+        period = period_date.strftime('%Y-%m')
+        if not getattr(settings, flag, False):
+            result[kind] = 'disabled'
+        elif not first <= now.day <= last:
+            result[kind] = 'outside window'
+        elif not er.SEND_HOUR_FROM <= now.hour < er.SEND_HOUR_TO:
+            result[kind] = 'outside hours'
+        elif EmailRun.objects.filter(kind=kind, period=period, status__in=['sent', 'sending']).exists():
+            result[kind] = 'already done'
+        else:
+            import django_rq
+            django_rq.get_queue('openred-tracks').enqueue(
+                func, period, job_timeout='60m', result_ttl=86400, job_id=f'{kind}_{period}')
+            result[kind] = 'enqueued'
+    return result
+
+
+def run_monthly_report(period):
+    """Compute and send the global report of ``period`` (YYYY-MM) to every contributor."""
+    from datetime import date
+    from . import email_runs as er
+    from .monthly_report import compute_report, report_recipients, send_report
+
+    run, claimed = er.start_run('monthly_report', period)
+    if not claimed:
+        return {'skipped': f'run is {run.status}'}
+    try:
+        report = compute_report(date.fromisoformat(period + '-01'))
+        recipients = report_recipients()
+        run.recipients_count = len(recipients)
+        run.save(update_fields=['recipients_count'])
+        result = send_report(report, recipients, run=run, period=period)
+        er.finish_run(run, len(recipients), result['sent'], result['failed'])
+        return result
+    except Exception as e:
+        er.finish_run(run, 0, 0, 1, notes=str(e)[:1000])
+        logger.error(f'run_monthly_report {period} failed: {e}', exc_info=True)
+        raise
+
+
+def run_activity_digest(period):
+    """Compute and send the personal digest (last 30 days) to people active in the last 60."""
+    from . import email_runs as er
+    from .activity_digest import compute_digest, digest_recipients, send_digest
+
+    run, claimed = er.start_run('activity_digest', period)
+    if not claimed:
+        return {'skipped': f'run is {run.status}'}
+    try:
+        digest = compute_digest(lifetime=False)
+        recipients = digest_recipients(digest, 'recent')
+        run.recipients_count = len(recipients)
+        run.save(update_fields=['recipients_count'])
+        result = send_digest(digest, recipients, run=run, period=period)
+        er.finish_run(run, len(recipients), result['sent'], result['failed'])
+        return result
+    except Exception as e:
+        er.finish_run(run, 0, 0, 1, notes=str(e)[:1000])
+        logger.error(f'run_activity_digest {period} failed: {e}', exc_info=True)
+        raise

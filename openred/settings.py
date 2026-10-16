@@ -538,6 +538,17 @@ RQ_JOBS = {
         'timeout': 120,
         'result_ttl': 500,
     },
+    # Periodic emails: monthly report (day 2, previous month) and personal digest (day 16).
+    # Hourly and cheap; the windows, hours and the on/off switches live in measures.email_runs
+    # and MONTHLY_REPORT_ENABLED / ACTIVITY_DIGEST_ENABLED below.
+    'check_scheduled_emails': {
+        'func': 'measures.tasks.check_scheduled_emails',
+        'kwargs': {},
+        'interval': 3600,
+        'repeat': None,
+        'timeout': 120,
+        'result_ttl': 500,
+    },
     'check_station_health': {
         'func': 'measures.tasks.check_station_health',
         'kwargs': {
@@ -557,6 +568,13 @@ RQ_JOBS = {
 CONTRIBUTION_MILESTONE_PROJECT = config('CONTRIBUTION_MILESTONE_PROJECT', default='Openred')
 CONTRIBUTION_MILESTONE_START = config('CONTRIBUTION_MILESTONE_START', default=300000, cast=int)
 CONTRIBUTION_MILESTONE_STEP = config('CONTRIBUTION_MILESTONE_STEP', default=100000, cast=int)
+
+# Resumen mensual de actividad (activity_digest): usernames que nunca reciben el correo
+# (cuentas de revisión de tienda, pruebas...).
+ACTIVITY_DIGEST_EXCLUDE_USERNAMES = ['appleuser', 'googleplay-review']
+# Interruptores de los correos periódicos (desactivados por defecto; activar en .env tras aprobar).
+MONTHLY_REPORT_ENABLED = config('MONTHLY_REPORT_ENABLED', default=False, cast=bool)
+ACTIVITY_DIGEST_ENABLED = config('ACTIVITY_DIGEST_ENABLED', default=False, cast=bool)
 
 # ====================
 # Default Settings

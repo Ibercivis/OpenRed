@@ -1,0 +1,84 @@
+{% extends "emails/base_radiation.html" %}
+{% block title %}Tu actividad en OpenRed{% endblock %}
+{% block preview %}{{ n }} medidas de radiación, {{ km }} km recorridos{% endblock %}
+{% block content %}
+  <h2 style="font-size:20px;margin:0 0 10px;color:#0f172a;">Hola{% if name %}, {{ name }}{% endif %}, ¡gracias por medir!</h2>
+  <p style="margin:0 0 14px;">
+    {% if lifetime %}Este es el resumen de todo lo que has medido con OpenRed desde el {{ since_label }}.{% else %}Este es el resumen de tu actividad entre el {{ period }}.{% endif %}
+    {% if lifetime %}Solo se cuentan medidas de radiación gamma.{% endif %}
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background-color:#fffbeb;border:1px solid #fde68a;border-radius:10px;">
+    <tr><td style="padding:14px 18px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#b45309;margin-bottom:8px;">{% if lifetime %}TU APORTACIÓN{% else %}TU ÚLTIMO MES{% endif %}</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+        <tr>
+          <td width="25%" style="padding:4px 8px 4px 0;"><strong style="font-size:20px;">{{ n }}</strong><br><span style="color:#64748b;">medidas</span>{% if d_n %}<br><span style="font-size:12px;font-weight:600;color:#15803d;">{{ d_n }} vs mes anterior</span>{% endif %}</td>
+          <td width="25%" style="padding:4px 8px 4px 0;"><strong style="font-size:20px;">{{ tracks }}</strong><br><span style="color:#64748b;">recorridos</span></td>
+          <td width="25%" style="padding:4px 8px 4px 0;"><strong style="font-size:20px;">{{ km }}</strong><br><span style="color:#64748b;">km</span></td>
+          <td width="25%" style="padding:4px 8px 4px 0;"><strong style="font-size:20px;">{{ days }}</strong><br><span style="color:#64748b;">día{{ days|pluralize }} midiendo</span></td>
+        </tr>
+      </table>
+      {% if lifetime %}<div style="font-size:13px;color:#475569;margin-top:8px;">En los últimos 30 días: <strong>{{ recent_n }}</strong> medidas.</div>{% endif %}
+    </td></tr>
+  </table>
+
+  {% if charts.map %}
+  <h3 style="font-size:15px;margin:20px 0 6px;color:#0f172a;">{% if lifetime %}Dónde has medido{% else %}Dónde has medido este mes{% endif %}</h3>
+  <p style="margin:0 0 4px;font-size:13px;color:#475569;">Mapa de calor con la dosis media (µSv/h) en cada zona que has recorrido: cuanto más oscuro, más dosis.{% if map_partial %} Mostramos la zona donde más has medido; tus recorridos más lejanos quedan fuera del mapa.{% endif %}</p>
+  {% if charts.map %}<img src="cid:chart_map" alt="Mapa de tus medidas" style="width:100%;max-width:544px;margin:6px 0 0;border-radius:8px;border:1px solid #e2e8f0;">{% endif %}
+  {% endif %}
+  {% if median %}
+  <h3 style="font-size:15px;margin:20px 0 6px;color:#0f172a;">Lo que has medido</h3>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;text-align:center;">
+    <tr>
+      <td style="padding:8px 4px;border:1px solid #e2e8f0;"><strong style="font-size:20px;">{{ median }}</strong><br><span style="color:#64748b;">mediana µSv/h</span></td>
+      <td style="padding:8px 4px;border:1px solid #e2e8f0;"><strong style="font-size:20px;">{{ mean }}</strong><br><span style="color:#64748b;">media µSv/h</span></td>
+      <td style="padding:8px 4px;border:1px solid #e2e8f0;"><strong style="font-size:20px;">{{ p95 }}</strong><br><span style="color:#64748b;">percentil 95</span></td>
+      {% if max %}<td style="padding:8px 4px;border:1px solid #e2e8f0;"><strong style="font-size:20px;">{{ max }}</strong><br><span style="color:#64748b;">máxima µSv/h</span></td>{% endif %}
+    </tr>
+  </table>
+  <p style="margin:8px 0 0;font-size:12px;color:#64748b;">La máxima solo considera lecturas con un error relativo ≤ 20 %, para que un pico de ruido no la desvirtúe.{% if d_median %} Tu mediana cambia {{ d_median }} µSv/h respecto al mes anterior ({{ prev_median }}).{% endif %}</p>
+  {% if charts.dose %}<img src="cid:chart_dose" alt="Distribución de tus medidas" style="width:100%;max-width:544px;margin:14px 0 0;border-radius:8px;border:1px solid #e2e8f0;">{% endif %}
+  {% endif %}
+
+  {% if best or top_zone or altitude %}
+  <h3 style="font-size:15px;margin:22px 0 6px;color:#0f172a;">Lo más destacado de lo que has medido</h3>
+  {% if best %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 10px;border:1px solid #e2e8f0;border-radius:10px;">
+    <tr><td style="padding:12px 16px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#64748b;margin-bottom:2px;">TU LECTURA MÁXIMA VALIDADA</div>
+      <strong style="font-size:22px;color:#b45309;">{{ best.dose }} µSv/h</strong> <span style="color:#64748b;">· {{ best.date }}{% if lifetime %} de {{ best.year }}{% endif %} · {{ best.name }}</span>
+      <div style="font-size:12px;color:#64748b;margin-top:2px;">Error relativo {{ best.err }} %. Solo contamos lecturas con error ≤ 20 % para que un pico de ruido no cuente como "máximo".</div>
+    </td></tr>
+  </table>
+  {% endif %}
+  {% if top_zone %}
+  <p style="margin:0 0 8px;"><strong>Tu zona con más dosis: {{ top_zone.name }}</strong>, con una media de <strong>{{ top_zone.mean }} µSv/h</strong> en {{ top_zone.n }} lecturas{% if top_zone.x %} (unas {{ top_zone.x }} veces la mediana del proyecto){% endif %}.{% if top_zone.others %} El resto de personas que midieron en esa misma zona registraron {{ top_zone.others }} µSv/h.{% endif %} La radiación natural cambia con el terreno: granitos y rocas volcánicas suelen dar valores más altos.</p>
+  {% endif %}
+  {% if altitude %}
+  <p style="margin:0 0 8px;"><strong>Tu punto más alto: ~{{ altitude.m }} m.</strong> Allí tu dosis media fue de {{ altitude.high }} µSv/h, frente a {{ altitude.low }} µSv/h por debajo de 300 m: a más altitud, más rayos cósmicos.</p>
+  {% endif %}
+  {% endif %}
+
+  {% if n_areas %}
+  <p style="margin:0 0 8px;"><strong>Territorio:</strong> has medido en {{ n_areas }} zona{{ n_areas|pluralize }} distinta{{ n_areas|pluralize }} (celdas de ~250 km²){% if areas_first %}; en <strong>{{ areas_first }}</strong> de ellas fuiste la primera persona en medir{% endif %}.</p>
+  {% endif %}
+
+  <h3 style="font-size:15px;margin:22px 0 6px;color:#0f172a;">Comparado con el resto</h3>
+  <p style="margin:0 0 8px;">
+    {% if vs_project %}Tu mediana está {{ vs_project }} la del proyecto ({{ project_median }} µSv/h). {% endif %}
+    {% if lifetime %}Entre todos habéis aportado {{ project_n }} medidas y {{ project_km }} km desde el inicio.{% else %}Entre todos, {{ project_users }} personas han aportado este mes {{ project_n }} medidas y {{ project_km }} km.{% endif %}
+  </p>
+  <p style="margin:0 0 8px;font-size:12px;color:#64748b;">Ojo: cada detector y cada lugar son distintos, así que esta comparación es solo orientativa, no un ranking.</p>
+
+  {% if charts.time or charts.hours %}<h3 style="font-size:15px;margin:22px 0 0;color:#0f172a;">Cuándo mides</h3>{% endif %}
+  {% if charts.time %}<img src="cid:chart_time" alt="Tu actividad en el tiempo" style="width:100%;max-width:544px;margin:8px 0 0;border-radius:8px;border:1px solid #e2e8f0;">{% endif %}
+  {% if charts.hours %}<img src="cid:chart_hours" alt="Tus horas de medida" style="width:100%;max-width:544px;margin:8px 0 0;border-radius:8px;border:1px solid #e2e8f0;">{% endif %}
+  {% if share_pct %}<p style="margin:12px 0 0;"><strong>Tu parte del proyecto:</strong> {{ share_pct }} % de las medidas {% if lifetime %}de todo el proyecto{% else %}de este mes{% endif %}.{% if milestone %} Estamos en {{ milestone.current }} y faltan {{ milestone.missing }} para el hito de <strong>{{ milestone.next }}</strong>.{% endif %}</p>
+  {% if milestone %}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 0;"><tr><td style="background-color:#e2e8f0;border-radius:999px;height:12px;"><div style="width:{{ milestone.pct }}%;background-color:#f59e0b;border-radius:999px;height:12px;"></div></td></tr></table>{% endif %}{% endif %}
+
+  {% if usual_hour %}<p style="margin:14px 0 0;"><strong>Tu hora habitual para medir:</strong> {{ usual_hour }} (hora de España).</p>{% endif %}
+
+  <p style="margin:20px 0 0;">Cada día 2 te mandamos también el <strong>informe global</strong> del proyecto (qué hemos medido entre todos y qué hemos encontrado). Puedes ver tus tracks y el mapa en <a href="{{ site_url }}" style="color:#b45309;">{{ site_url }}</a>. ¡Gracias por seguir midiendo!</p>
+{% endblock %}

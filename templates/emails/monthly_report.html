@@ -1,0 +1,121 @@
+{% extends "emails/base_radiation.html" %}
+{% block title %}Informe de {{ month_label }}{% endblock %}
+{% block preview %}{{ total_n }} medidas desde {{ since_label }} · {{ m_n }} en {{ month_name }}{% endblock %}
+{% block content %}
+  <div style="text-align:center;padding:4px 0 18px;">
+    <div style="display:inline-block;background-color:#fffbeb;color:#b45309;border:1px solid #f59e0b;border-radius:999px;padding:6px 16px;font-size:13px;font-weight:600;letter-spacing:1px;">INFORME · {{ month_label|upper }}</div>
+    <div style="font-size:44px;font-weight:800;color:#0f172a;margin-top:12px;line-height:1;">{{ total_n }}</div>
+    <div style="font-size:14px;color:#64748b;margin-top:6px;">medidas de radiación desde el {{ since_label }}</div>
+    {% if d_total_n %}<div style="font-size:13px;font-weight:600;color:#15803d;margin-top:4px;">{{ d_total_n }} en {{ month_name }}</div>{% endif %}
+  </div>
+
+  <p style="margin:0 0 14px;">
+    Cada mes te contamos qué estamos descubriendo entre todos: cuánto hemos medido, dónde, qué valores hemos encontrado y qué significan.
+    Este es el balance de <strong>{{ month_name }}</strong> y de todo el camino recorrido.
+  </p>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;text-align:center;margin:6px 0 4px;">
+    <tr>
+      <td width="25%" style="padding:10px 4px;border:1px solid #e2e8f0;"><strong style="font-size:22px;">{{ total_users }}</strong><br><span style="color:#64748b;">personas</span>{% if d_total_users %}<br><span style="font-size:12px;font-weight:600;color:#15803d;">{{ d_total_users }}</span>{% endif %}</td>
+      <td width="25%" style="padding:10px 4px;border:1px solid #e2e8f0;"><strong style="font-size:22px;">{{ total_tracks }}</strong><br><span style="color:#64748b;">recorridos</span>{% if d_total_tracks %}<br><span style="font-size:12px;font-weight:600;color:#15803d;">{{ d_total_tracks }}</span>{% endif %}</td>
+      <td width="25%" style="padding:10px 4px;border:1px solid #e2e8f0;"><strong style="font-size:22px;">{{ total_km }}</strong><br><span style="color:#64748b;">km</span>{% if d_total_km %}<br><span style="font-size:12px;font-weight:600;color:#15803d;">{{ d_total_km }}</span>{% endif %}</td>
+      <td width="25%" style="padding:10px 4px;border:1px solid #e2e8f0;"><strong style="font-size:22px;">{{ areas_total }}</strong><br><span style="color:#64748b;">zonas*</span>{% if areas_new %}<br><span style="font-size:12px;font-weight:600;color:#15803d;">+{{ areas_new }}</span>{% endif %}</td>
+    </tr>
+  </table>
+  <p style="margin:0 0 8px;font-size:11px;color:#94a3b8;">* Zonas distintas donde se ha medido, en celdas de unos 250 km². En verde, lo añadido en {{ month_name }}.</p>
+
+  <h2 style="font-size:18px;margin:28px 0 8px;color:#0f172a;">1 · {{ month_name|capfirst }} en cifras</h2>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;border-collapse:collapse;">
+    <tr style="background-color:#f8fafc;color:#64748b;font-size:12px;"><td style="padding:8px;"></td><td style="padding:8px;text-align:right;">{{ month_name|capfirst }}</td><td style="padding:8px;text-align:right;">Mes anterior</td><td style="padding:8px;text-align:right;">Variación</td></tr>
+    <tr><td style="padding:8px;border-top:1px solid #e2e8f0;">Medidas</td><td style="padding:8px;border-top:1px solid #e2e8f0;text-align:right;"><strong>{{ m_n }}</strong></td><td style="padding:8px;border-top:1px solid #e2e8f0;text-align:right;color:#64748b;">{{ p_n }}</td><td style="padding:8px;border-top:1px solid #e2e8f0;text-align:right;color:#64748b;">{{ v_n }}</td></tr>
+    <tr><td style="padding:8px;border-top:1px solid #e2e8f0;">Personas activas</td><td style="padding:8px;border-top:1px solid #e2e8f0;text-align:right;"><strong>{{ m_users }}</strong></td><td style="padding:8px;border-top:1px solid #e2e8f0;text-align:right;color:#64748b;">{{ p_users }}</td><td style="padding:8px;border-top:1px solid #e2e8f0;text-align:right;color:#64748b;">{{ v_users }}</td></tr>
+    <tr><td style="padding:8px;border-top:1px solid #e2e8f0;">Recorridos</td><td style="padding:8px;border-top:1px solid #e2e8f0;text-align:right;"><strong>{{ m_tracks }}</strong></td><td style="padding:8px;border-top:1px solid #e2e8f0;text-align:right;color:#64748b;">{{ p_tracks }}</td><td style="padding:8px;border-top:1px solid #e2e8f0;text-align:right;color:#64748b;">{{ v_tracks }}</td></tr>
+    <tr><td style="padding:8px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">Kilómetros</td><td style="padding:8px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;text-align:right;"><strong>{{ m_km }}</strong></td><td style="padding:8px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;text-align:right;color:#64748b;">{{ p_km }}</td><td style="padding:8px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;text-align:right;color:#64748b;">{{ v_km }}</td></tr>
+  </table>
+  <p style="margin:10px 0 0;">
+    En {{ month_name }} midieron {{ m_users }} personas: {{ m_new_users }} nueva{{ m_new_users|pluralize }} y {{ m_returning }} que ya habían medido antes.
+    {% if longest_km != '0,0' %}El recorrido más largo del mes fue de <strong>{{ longest_km }} km</strong>.{% endif %}
+  </p>
+  {% if charts.growth %}<img src="cid:chart_growth" alt="Crecimiento" style="width:100%;max-width:544px;margin:12px 0 0;border-radius:8px;border:1px solid #e2e8f0;">
+  <p style="margin:4px 0 0;font-size:12px;color:#64748b;">Barras: medidas por mes (en oscuro, {{ month_name }}). Línea verde: personas que han medido alguna vez.</p>{% endif %}
+
+  {% if charts.map %}
+  <h2 style="font-size:18px;margin:28px 0 8px;color:#0f172a;">2 · Dónde hemos medido</h2>
+  <p style="margin:0 0 6px;">Cada hexágono es una zona; su color, la dosis media registrada ahí (µSv/h). Se muestra el área donde se concentra el 96 % de las medidas.</p>
+  <img src="cid:chart_map" alt="Mapa de calor de dosis" style="width:100%;max-width:544px;border-radius:8px;border:1px solid #e2e8f0;">
+  <p style="margin:6px 0 0;font-size:12px;color:#64748b;">{% if areas_new %}En {{ month_name }} hemos llegado a <strong>{{ areas_new }}</strong> zona{{ areas_new|pluralize }} nueva{{ areas_new|pluralize }}.{% else %}En {{ month_name }} no hemos llegado a zonas nuevas.{% endif %}</p>
+  {% endif %}
+
+  <h2 style="font-size:18px;margin:28px 0 8px;color:#0f172a;">3 · Lo que hemos encontrado</h2>
+  {% if has_month_stats %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;background-color:#fffbeb;border:1px solid #fde68a;border-radius:10px;">
+    <tr><td style="padding:14px 18px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#b45309;margin-bottom:8px;">TASA DE DOSIS EN {{ month_name|upper }} (µSv/h)</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;text-align:center;">
+        <tr>
+          <td width="33%"><strong style="font-size:22px;">{{ month_median }}</strong><br><span style="color:#64748b;">mediana</span></td>
+          <td width="33%"><strong style="font-size:22px;">{{ month_mean }}</strong><br><span style="color:#64748b;">media</span></td>
+          <td width="33%"><strong style="font-size:22px;">{{ month_p95 }}</strong><br><span style="color:#64748b;">percentil 95</span></td>
+        </tr>
+      </table>
+      <div style="font-size:12px;color:#64748b;margin-top:8px;">Histórico: mediana {{ all_median }} · la mitad de las medidas entre {{ all_p25 }} y {{ all_p75 }} · percentil 95: {{ all_p95 }}.</div>
+    </td></tr>
+  </table>
+  {% endif %}
+
+  {% if max %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0;border:1px solid #e2e8f0;border-radius:10px;">
+    <tr><td style="padding:14px 18px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#64748b;margin-bottom:4px;">LECTURA MÁXIMA VALIDADA DEL MES</div>
+      <div><strong style="font-size:26px;color:#b45309;">{{ max.dose }} µSv/h</strong> <span style="color:#64748b;">· {{ max.date }} · {{ max.name }}</span></div>
+      <div style="font-size:13px;color:#475569;margin-top:4px;">Unas {{ max.x }} veces la mediana histórica, con un error relativo del {{ max.err }} %. Es una lectura puntual de un detector de campo: muy por debajo de cualquier nivel de riesgo, y lo interesante es el contraste entre zonas, no el valor aislado.</div>
+    </td></tr>
+  </table>
+  {% endif %}
+
+  {% if zones %}
+  <h3 style="font-size:15px;margin:20px 0 6px;color:#0f172a;">Las zonas con más dosis</h3>
+  <p style="margin:0 0 6px;">La radiación natural depende del terreno: granitos, tobas volcánicas y otras rocas con uranio, torio o potasio-40 dan valores más altos que calizas o suelos sedimentarios. Estas fueron las zonas de {{ month_name }} con valores medios más altos:</p>
+  {% if charts.zones %}<img src="cid:chart_zones" alt="Zonas con mayor dosis" style="width:100%;max-width:544px;border-radius:8px;border:1px solid #e2e8f0;">{% endif %}
+  <p style="margin:6px 0 0;font-size:12px;color:#64748b;">Solo zonas de ~36 km² con al menos {{ zone_min_readings }} lecturas de {{ zone_min_tracks }} recorridos distintos y error relativo ≤ {{ max_err_pct }} %, para que un único paseo ruidoso no pueda encabezar la lista. {% if low_zone %}En el extremo opuesto, la zona más baja fue {{ low_zone.name }}: {{ low_zone.mean }} µSv/h.{% endif %}</p>
+  <p style="margin:8px 0 0;">La primera, <strong>{{ zones.0.name }}</strong>, promedió <strong>{{ zones.0.mean }} µSv/h</strong>, unas {{ zones.0.x }} veces la mediana histórica ({{ zones.0.users }} persona{{ zones.0.users|pluralize }}, {{ zones.0.tracks }} recorridos). Un detector de campo no identifica la causa, pero es el tipo de patrón que los mapas geológicos explican.</p>
+  {% endif %}
+
+  {% if charts.altitude %}
+  <h3 style="font-size:15px;margin:22px 0 6px;color:#0f172a;">Más alto, más radiación</h3>
+  <p style="margin:0 0 6px;">Cuanto más subimos, menos atmósfera nos protege de los rayos cósmicos. En nuestros datos la dosis mediana por encima de {{ alt_hi }} es <strong>{{ alt_ratio }} veces</strong> la de {{ alt_lo }}.</p>
+  <img src="cid:chart_altitude" alt="Dosis por altitud" style="width:100%;max-width:544px;border-radius:8px;border:1px solid #e2e8f0;">
+  <p style="margin:6px 0 0;font-size:12px;color:#64748b;">Altitud medida por el GPS del móvil (margen de error de decenas de metros). Se mezclan zonas y geologías distintas, así que es una tendencia, no un experimento controlado.</p>
+  {% endif %}
+
+  {% if charts.dist %}
+  <h3 style="font-size:15px;margin:22px 0 6px;color:#0f172a;">¿Qué es "normal"?</h3>
+  <img src="cid:chart_dist" alt="Distribución de la tasa de dosis" style="width:100%;max-width:544px;border-radius:8px;border:1px solid #e2e8f0;">
+  <p style="margin:6px 0 0;">La gran mayoría de las medidas están entre {{ all_p25 }} y {{ all_p75 }} µSv/h. Para ponerlo en perspectiva: 0,1 µSv/h mantenido todo el año son unos 0,9 mSv, una parte de los ~2,4 mSv/año que recibimos de media en el mundo por la radiación natural (UNSCEAR), que además incluye el radón y los alimentos, que este detector no mide.</p>
+  {% endif %}
+
+  {% if charts.when %}
+  <h2 style="font-size:18px;margin:28px 0 8px;color:#0f172a;">4 · Cuándo medimos</h2>
+  <img src="cid:chart_when" alt="Actividad por día y hora" style="width:100%;max-width:544px;border-radius:8px;border:1px solid #e2e8f0;">
+  {% if busiest %}<p style="margin:6px 0 0;">El momento más activo de {{ month_name }} fue <strong>{{ busiest }}</strong>; un {{ weekend_pct }} % de las medidas se tomó en fin de semana.</p>{% endif %}
+  {% endif %}
+
+  <h2 style="font-size:18px;margin:28px 0 8px;color:#0f172a;">5 · La red de detectores</h2>
+  <p style="margin:0 0 6px;">{{ devices_total }} dispositivos han aportado medidas, {{ devices_month }} de ellos en {{ month_name }}.
+    {% for mo in models %}{% if forloop.first %}Modelos: {% endif %}<strong>{{ mo.name }}</strong> ({{ mo.pct }} %){% if not forloop.last %}, {% endif %}{% endfor %}.
+    Que casi todos usen el mismo tipo de detector hace que las medidas de distintas personas sean comparables entre sí.</p>
+
+  <h2 style="font-size:18px;margin:28px 0 8px;color:#0f172a;">6 · Cómo cuidamos los datos</h2>
+  <p style="margin:0 0 6px;font-size:14px;">Antes de calcular nada descartamos {{ n_artefacts }} lecturas con valores físicamente inverosímiles (más de {{ plausible_max }} µSv/h, casi siempre fallos del sensor). Para los hallazgos solo usamos lecturas con error relativo ≤ {{ max_err_pct }} % (el {{ noisy_pct }} % de todas las medidas supera ese error) y exigimos varias lecturas y recorridos por zona.</p>
+
+  {% if milestone %}
+  <h2 style="font-size:18px;margin:28px 0 8px;color:#0f172a;">7 · Próximo hito: {{ milestone.next }}</h2>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td style="background-color:#e2e8f0;border-radius:999px;height:14px;"><div style="width:{{ milestone.pct }}%;background-color:#f59e0b;border-radius:999px;height:14px;"></div></td>
+  </tr></table>
+  <p style="margin:8px 0 0;">Llevamos {{ milestone.current }} contribuciones; faltan <strong>{{ milestone.missing }}</strong>. Al ritmo de los últimos meses (~{{ milestone.rate }} al mes) lo alcanzaremos en unos {{ milestone.months }} meses.</p>
+  {% endif %}
+
+  <p style="margin:26px 0 0;">Gracias por hacer posible esto. El día 16 recibirás tus estadísticas personales.</p>
+  <p style="margin:12px 0 0;"><a href="{{ site_url }}" style="display:inline-block;background-color:#f59e0b;color:#0f172a;text-decoration:none;font-weight:700;padding:10px 18px;border-radius:8px;">Ver el mapa</a></p>
+{% endblock %}

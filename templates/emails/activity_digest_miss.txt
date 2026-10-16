@@ -1,0 +1,7 @@
+Hola{% if name %}, {{ name }}{% endif %}, te echamos de menos.
+
+Tu última medida de radiación fue el {{ last_date }}. Desde {{ first_year }} has aportado a OpenRed {{ total_n }} medidas en {{ total_tracks }} recorridos{% if total_km != '0' %} (unos {{ total_km }} km){% endif %}. ¡Gracias!
+
+El proyecto sigue creciendo: en los últimos 30 días {{ recent_project_users }} personas han aportado {{ recent_project_n }} medidas y {{ recent_project_km }} km. Si te animas a salir a medir de nuevo, cada recorrido cuenta.
+
+{{ site_url }}

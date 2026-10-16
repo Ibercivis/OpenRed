@@ -1,0 +1,1 @@
+{% if lifetime %}Tu huella en OpenRed: {{ n }} medidas de radiación desde {{ since_label }}{% else %}Tu mes en OpenRed: {{ n }} medidas de radiación{% endif %}
