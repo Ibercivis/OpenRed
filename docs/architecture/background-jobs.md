@@ -20,6 +20,13 @@ OpenRed uses **RQ (Redis Queue)** for background job processing with **two separ
 - **Workers:** 1 worker sufficient
 - **Timeout:** 5-30 minutes per job
 
+**3. `openred-emails` (Periodic emails)**
+- **Purpose:** Monthly global report (days 2-9) and personal digest (days 16-23); see `measures/email_runs.py`
+- **Priority:** LOW - heavy (matplotlib, map tiles, geocoding) but nobody waits for it
+- **Workers:** 1 (`openred-emails`, supervisor config in `deploy/supervisor/openred-emails.conf`)
+- **Timeout:** 60 minutes per job
+- The hourly decision job `check_scheduled_emails` runs on `openred-weather`; it only enqueues the real work here.
+
 **Why separate queues?**
 - ✅ Prioritization: Track uploads are user-facing, weather is background
 - ✅ Independent scaling: More workers for tracks, fewer for weather

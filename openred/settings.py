@@ -462,6 +462,15 @@ RQ_QUEUES = {
         'DB': config('REDIS_DB', default=4, cast=int),  # openred's slot — see openred-tracks above
         'DEFAULT_TIMEOUT': '30m',  # 30 minutes timeout for weather fetching
     },
+    # Periodic emails (monthly report, personal digest): heavy (matplotlib, map tiles,
+    # geocoding) and slow, so they get their own queue and worker instead of competing
+    # with track processing (openred-tracks) or the weather/station watchdog (openred-weather).
+    'openred-emails': {
+        'HOST': config('REDIS_HOST', default='localhost'),
+        'PORT': config('REDIS_PORT', default=6379, cast=int),
+        'DB': config('REDIS_DB', default=4, cast=int),  # openred's slot — see openred-tracks above
+        'DEFAULT_TIMEOUT': '60m',
+    },
 }
 
 # RQ Scheduler - Periodic tasks

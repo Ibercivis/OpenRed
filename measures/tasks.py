@@ -1964,7 +1964,7 @@ def check_scheduled_emails(now=None):
     """
     Hourly check (RQ_JOBS). Enqueues the monthly report / personal digest when today falls in
     their sending window, the hour is reasonable, the feature is enabled in settings and the
-    (kind, period) has not been sent yet. Cheap: it only compares dates and reads two rows.
+    (kind, period) has not been sent yet. The heavy jobs go to the dedicated 'openred-emails' queue. Cheap: it only compares dates and reads two rows.
 
     Returns:
         dict: {'monthly_report': 'enqueued'|reason, 'activity_digest': ...}
@@ -1994,7 +1994,7 @@ def check_scheduled_emails(now=None):
             result[kind] = 'already done'
         else:
             import django_rq
-            django_rq.get_queue('openred-tracks').enqueue(
+            django_rq.get_queue('openred-emails').enqueue(
                 func, period, job_timeout='60m', result_ttl=86400, job_id=f'{kind}_{period}')
             result[kind] = 'enqueued'
     return result
