@@ -53,7 +53,7 @@ from .timeseries import (
     resolve_interval,
 )
 from django.core.paginator import Paginator
-from django.db import connection, transaction
+from django.db import connection, transaction, IntegrityError
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .models import RadiationMeasurement, LightPollutionMeasurement, Track, Spectrum, Station
@@ -3184,6 +3184,16 @@ class TrackViewSet(viewsets.ModelViewSet):
             'end_time': track.end_time,
         })
     
+    @staticmethod
+    def _duplicate_upload_response(track):
+        """200 with the already-created track, shaped like a fresh upload."""
+        return Response({
+            'id': track.id,
+            'job_id': f'track_{track.id}',
+            'status': track.status,
+            'message': 'Track already uploaded (duplicate clientTrackId).',
+        }, status=status.HTTP_200_OK)
+
     @swagger_auto_schema(
         tags=['Tracks'],
         operation_description="Upload track data as JSON (RadiaCode mobile app format)",
@@ -3267,6 +3277,7 @@ class TrackViewSet(viewsets.ModelViewSet):
                         }
                     )
                 ),
+                'clientTrackId': openapi.Schema(type=openapi.TYPE_STRING, description='UUID from the app; a repeated value for the same user returns 200 with the existing track instead of creating a duplicate'),
                 'trackType': openapi.Schema(
                     type=openapi.TYPE_STRING,
                     description='Track type (defaults to radiation if omitted)',
@@ -3309,6 +3320,16 @@ class TrackViewSet(viewsets.ModelViewSet):
         from django.core.files.base import ContentFile
         
         data = request.data
+
+        # Idempotent retries: the app resends the same clientTrackId after a timeout.
+        client_track_id = data.get('clientTrackId')
+        client_track_id = str(client_track_id).strip()[:36] if client_track_id else None
+        if client_track_id:
+            existing = Track.objects.filter(
+                created_by=request.user, client_track_id=client_track_id
+            ).first()
+            if existing:
+                return self._duplicate_upload_response(existing)
 
         max_bytes = getattr(settings, 'TRACK_UPLOAD_MAX_BYTES', 10 * 1024 * 1024)
         content_length = request.META.get('CONTENT_LENGTH')
@@ -3471,10 +3492,21 @@ class TrackViewSet(viewsets.ModelViewSet):
             synced_at=parse_datetime(data['syncedAt']) if data.get('syncedAt') else None,
             cloud_track_id=data.get('cloudTrackId'),
             required_gps_accuracy_meters=data.get('requiredGpsAccuracyMeters'),
+            client_track_id=client_track_id,
         )
 
-        track.full_clean()
-        track.save()
+        track.full_clean(exclude=['client_track_id'])
+        try:
+            with transaction.atomic():
+                track.save()
+        except IntegrityError:
+            # A concurrent request with the same clientTrackId won the race.
+            existing = Track.objects.filter(
+                created_by=request.user, client_track_id=client_track_id
+            ).first() if client_track_id else None
+            if existing is None:
+                raise
+            return self._duplicate_upload_response(existing)
         
         # Enqueue processing task with RQ
         queue = django_rq.get_queue('openred-tracks')

@@ -14,7 +14,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
 from decimal import Decimal
-from datetime import datetime, timezone as dt_timezone
+from datetime import date, datetime, timezone as dt_timezone
 import h3
 
 from .models import RadiationMeasurement, LightPollutionMeasurement, Track
@@ -705,3 +705,82 @@ class UploadJsonDeviceModelTests(TestCase):
         self.assertIsNone(_light_device_model(['x'], 'light'))
         self.assertIsNone(_light_device_model('opple_lm3', 'radiation'))
         self.assertIsNone(_light_device_model('opple_lm3', None))
+
+
+class UploadJsonIdempotencyTests(TestCase):
+    """A repeated clientTrackId from the same user must not create a second Track."""
+
+    URL = '/api/tracks/upload_json/'
+
+    def setUp(self):
+        from unittest import mock
+        self.user = User.objects.create_user('uploader', password='x')
+        self.other = User.objects.create_user('other', password='x')
+        self.project = Project.objects.create(name='P', project_type='radiation')
+        self.mission = Mission.objects.create(name='M', project=self.project,
+                                              start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
+        self.campaign = Campaign.objects.create(name='C', mission=self.mission,
+                                                start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
+        patcher = mock.patch('measures.views.django_rq.get_queue')
+        self.queue = patcher.start().return_value
+        self.queue.enqueue.side_effect = lambda *a, **kw: mock.Mock(id=kw.get('job_id'))
+        self.addCleanup(patcher.stop)
+        self.client = APIClient()
+        self.client.force_authenticate(self.user)
+
+    def payload(self, **extra):
+        body = {
+            'trackType': 'radiation',
+            'device': {'id': 'AA:BB:CC:DD:EE:FF', 'name': 'RC'},
+            'project': self.project.id,
+            'mission': self.mission.id,
+            'campaign': self.campaign.id,
+            'name': 'ruta',
+            'points': [{'latitude': 41.0, 'longitude': -1.0, 'doseRate': 0.1,
+                        'timestamp': '2026-10-01T10:00:00Z'}],
+        }
+        body.update(extra)
+        return body
+
+    def post(self, client=None, **extra):
+        return (client or self.client).post(self.URL, self.payload(**extra), format='json', secure=True)
+
+    def test_retry_returns_existing_track(self):
+        first = self.post(clientTrackId='3f2c9a1e-7b4d-4e8a-9c21-5d0f6b8e1a47')
+        self.assertEqual(first.status_code, 202, first.content)
+        second = self.post(clientTrackId='3f2c9a1e-7b4d-4e8a-9c21-5d0f6b8e1a47')
+        self.assertEqual(second.status_code, 200, second.content)
+        self.assertEqual(second.data['id'], first.data['id'])
+        self.assertEqual(Track.objects.count(), 1)
+        self.assertEqual(self.queue.enqueue.call_count, 1)
+
+    def test_same_id_for_different_users_creates_two_tracks(self):
+        self.post(clientTrackId='dup-id')
+        other = APIClient()
+        other.force_authenticate(self.other)
+        resp = self.post(client=other, clientTrackId='dup-id')
+        self.assertEqual(resp.status_code, 202, resp.content)
+        self.assertEqual(Track.objects.count(), 2)
+
+    def test_without_client_track_id_behaves_as_before(self):
+        self.assertEqual(self.post().status_code, 202)
+        self.assertEqual(self.post().status_code, 202)
+        self.assertEqual(Track.objects.count(), 2)
+        self.assertEqual(Track.objects.filter(client_track_id__isnull=True).count(), 2)
+
+    def test_unique_constraint_race_returns_existing(self):
+        """If the pre-check misses (concurrent request), IntegrityError maps to 200."""
+        from unittest import mock
+        first = self.post(clientTrackId='race-id')
+        real_filter = Track.objects.filter
+        calls = {'n': 0}
+
+        def blind_first_lookup(*a, **kw):
+            calls['n'] += 1
+            return real_filter(pk__in=[]) if calls['n'] == 1 else real_filter(*a, **kw)
+
+        with mock.patch.object(Track.objects, 'filter', side_effect=blind_first_lookup):
+            resp = self.post(clientTrackId='race-id')
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertEqual(resp.data['id'], first.data['id'])
+        self.assertEqual(Track.objects.count(), 1)
