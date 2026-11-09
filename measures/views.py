@@ -44,6 +44,10 @@ from django.utils.translation import gettext
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, BasePermission, SAFE_METHODS
 from .scoping import scope_capture_mode_qs, scope_capture_mode_sql
+from .compact import (
+    CompactMeasurementsMixin, RADIATION_COMPACT_FIELDS, LIGHT_POLLUTION_COMPACT_FIELDS, jit_off,
+)
+from drf_spectacular.utils import extend_schema
 from .timeseries import (
     RAW_READINGS_CAP,
     bucketed_readings,
@@ -110,7 +114,7 @@ def report_generated_at(now, lang):
     return now.strftime(REPORT_DATETIME_FORMATS.get(lang, REPORT_DATETIME_FORMATS['en']))
 
 
-class RadiationMeasurementViewSet(viewsets.ModelViewSet):
+class RadiationMeasurementViewSet(CompactMeasurementsMixin, viewsets.ModelViewSet):
     """
     API ViewSet for gamma radiation measurements.
     
@@ -136,12 +140,14 @@ class RadiationMeasurementViewSet(viewsets.ModelViewSet):
     """
     queryset = RadiationMeasurement.objects.select_related('weather_cache').all()
     serializer_class = RadiationMeasurementSerializer
+    compact_fields = RADIATION_COMPACT_FIELDS
+    compact_default_fields = ('id', 'lat', 'lon', 'dose_rate')
 
     def get_permissions(self):
         """
         GET is public, write operations require authentication
         """
-        if self.action in ['list', 'retrieve', 'h3_aggregation', 'h3_aggregation_vertex', 'count', 'paginated', 'report', 'histogram']:
+        if self.action in ['list', 'retrieve', 'compact', 'h3_aggregation', 'h3_aggregation_vertex', 'count', 'paginated', 'report', 'histogram']:
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -218,7 +224,9 @@ class RadiationMeasurementViewSet(viewsets.ModelViewSet):
             try:
                 bbox = Polygon.from_bbox((float(west), float(south), float(east), float(north)))
                 bbox.srid = 4326
-                queryset = queryset.filter(location__within=bbox)
+                # intersects on the geography column uses its GiST index; within
+                # casts it to geometry, skips the index and misleads the planner
+                queryset = queryset.filter(location__intersects=bbox)
             except ValueError:
                 pass
         else:
@@ -308,6 +316,13 @@ class RadiationMeasurementViewSet(viewsets.ModelViewSet):
         
         return instance
 
+    @extend_schema(
+        deprecated=True,
+        description=(
+            'Full measurements, unpaginated. Deprecated for bulk reads (map, track downloads): '
+            'use the compact/ endpoint, which takes the same filters. Kept for existing clients.'
+        ),
+    )
     @swagger_auto_schema(
         tags=['Measurements - Radiation'],
         operation_description="List all radiation measurements (public access)",
@@ -338,20 +353,22 @@ class RadiationMeasurementViewSet(viewsets.ModelViewSet):
 
         queryset = self.filter_queryset(self.get_queryset())
 
-        # Apply pagination
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            response = self.get_paginated_response(serializer.data)
-        else:
-            serializer = self.get_serializer(queryset, many=True)
-            response = Response(serializer.data)
+        with jit_off():
+            # Apply pagination
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                response = self.get_paginated_response(serializer.data)
+            else:
+                serializer = self.get_serializer(queryset, many=True)
+                response = Response(serializer.data)
         
         # Performance metrics
         end_time = time.time()
         total_queries = len(connection.queries) - start_queries
         elapsed_ms = (end_time - start_time) * 1000
-        result_count = queryset.count()
+        # Rows actually serialized; a queryset.count() here cost an extra query
+        result_count = len(serializer.data)
         
         logger.info(f"📊 GET /api/radiation-measurements/ | "
                    f"Time: {elapsed_ms:.2f}ms | "
@@ -1452,7 +1469,7 @@ class RadiationMeasurementViewSet(viewsets.ModelViewSet):
         return response
 
 
-class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
+class LightPollutionMeasurementViewSet(CompactMeasurementsMixin, viewsets.ModelViewSet):
     """
     ViewSet for light pollution measurements.
     - GET: Public access (anyone can view all measurements)
@@ -1461,12 +1478,14 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
     """
     queryset = LightPollutionMeasurement.objects.select_related('weather_cache').all()
     serializer_class = LightPollutionMeasurementSerializer
+    compact_fields = LIGHT_POLLUTION_COMPACT_FIELDS
+    compact_default_fields = ('id', 'lat', 'lon', 'lux', 'cct')
 
     def get_permissions(self):
         """
         GET is public, write operations require authentication
         """
-        if self.action in ['list', 'retrieve', 'h3_aggregation', 'h3_aggregation_vertex', 'count', 'paginated']:
+        if self.action in ['list', 'retrieve', 'compact', 'h3_aggregation', 'h3_aggregation_vertex', 'count', 'paginated']:
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -1543,7 +1562,9 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
             try:
                 bbox = Polygon.from_bbox((float(west), float(south), float(east), float(north)))
                 bbox.srid = 4326
-                queryset = queryset.filter(location__within=bbox)
+                # intersects on the geography column uses its GiST index; within
+                # casts it to geometry, skips the index and misleads the planner
+                queryset = queryset.filter(location__intersects=bbox)
             except ValueError:
                 pass
         else:
@@ -1627,6 +1648,13 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
         
         return instance
 
+    @extend_schema(
+        deprecated=True,
+        description=(
+            'Full measurements, unpaginated. Deprecated for bulk reads (map, track downloads): '
+            'use the compact/ endpoint, which takes the same filters. Kept for existing clients.'
+        ),
+    )
     @swagger_auto_schema(
         tags=['Measurements - Light Pollution'],
         operation_description="List all light pollution measurements (public access)",
@@ -1653,14 +1681,15 @@ class LightPollutionMeasurementViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
 
-        # Apply pagination
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
+        with jit_off():
+            # Apply pagination
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
 
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
     
     @swagger_auto_schema(
         tags=['Measurements - Light Pollution'],
