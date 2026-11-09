@@ -275,6 +275,9 @@ else:
     CORS_ALLOWED_ORIGINS = [config('FRONTEND_URL')]
     CORS_ALLOW_CREDENTIALS = True
 
+# Let browser clients read the download filename (track ZIP export)
+CORS_EXPOSE_HEADERS = ['Content-Disposition']
+
 CORS_ALLOW_METHODS = [
     'DELETE',
     'GET',

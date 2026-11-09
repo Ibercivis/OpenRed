@@ -3150,6 +3150,46 @@ class TrackViewSet(viewsets.ModelViewSet):
     
     @swagger_auto_schema(
         tags=['Tracks'],
+        operation_description=(
+            "Download your own tracks as a ZIP: tracks.csv, measurements.csv, spectra.csv "
+            "and the original uploaded files. Optional ?ids=1,2,3 to limit to some tracks; "
+            "without it, all your tracks. Only tracks you created are ever included."
+        ),
+        security=[{'Token': []}],
+    )
+    @action(detail=False, methods=['get'], url_path='export')
+    def export_all(self, request):
+        from django.http import FileResponse
+        from .export import build_tracks_zip
+        qs = self.get_queryset()  # already restricted to request.user's tracks
+        ids = request.query_params.get('ids')
+        if ids:
+            try:
+                qs = qs.filter(id__in=[int(i) for i in ids.split(',') if i.strip()])
+            except ValueError:
+                return Response({'error': 'ids must be comma-separated integers'}, status=400)
+        if not qs.exists():
+            return Response({'error': 'No tracks to export'}, status=404)
+        fname = f"openred_tracks_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+        return FileResponse(build_tracks_zip(qs.order_by('id')), as_attachment=True,
+                            filename=fname, content_type='application/zip')
+
+    @swagger_auto_schema(
+        tags=['Tracks'],
+        operation_description="Download one of your tracks as a ZIP (CSV + spectra + original file).",
+        security=[{'Token': []}],
+    )
+    @action(detail=True, methods=['get'], url_path='export')
+    def export_one(self, request, pk=None):
+        from django.http import FileResponse
+        from .export import build_tracks_zip
+        track = self.get_object()  # 404 if not the user's own track
+        return FileResponse(build_tracks_zip(Track.objects.filter(pk=track.pk)),
+                            as_attachment=True, filename=f'openred_track_{track.id}.zip',
+                            content_type='application/zip')
+
+    @swagger_auto_schema(
+        tags=['Tracks'],
         operation_description="Get the processing status of a track",
         responses={
             200: openapi.Response(
