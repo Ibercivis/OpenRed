@@ -146,6 +146,9 @@ class TrackSerializer(serializers.ModelSerializer):
     mission_name = serializers.CharField(source='mission.name', read_only=True)
     campaign_name = serializers.CharField(source='campaign.name', read_only=True)
     campaign_has_password = serializers.SerializerMethodField()
+    # Number of gamma spectra (RadiaCode). Annotated in TrackViewSet querysets;
+    # falls back to a COUNT query when the instance was not annotated (e.g. upload).
+    spectra_count = serializers.SerializerMethodField()
     
     # Password field for protected campaigns (write-only)
     campaign_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
@@ -160,16 +163,21 @@ class TrackSerializer(serializers.ModelSerializer):
             'start_time', 'end_time', 'total_distance', 'average_speed', 'measurements_count',
             'min_dose_rate', 'max_dose_rate', 'avg_dose_rate', 'std_dose_rate',
             'synced', 'synced_at', 'cloud_track_id', 'required_gps_accuracy_meters',
-            'status', 'error_message',
+            'status', 'error_message', 'spectra_count',
             'created_at', 'created_by', 'updated_at'
         ]
         read_only_fields = [
             'created_by', 'status', 'error_message', 'start_time', 'end_time', 
             'total_distance', 'average_speed', 'min_dose_rate', 'max_dose_rate', 
             'avg_dose_rate', 'std_dose_rate', 'created_at', 'updated_at', 
-            'name', 'mission_name', 'campaign_name', 'campaign_has_password'
+            'name', 'mission_name', 'campaign_name', 'campaign_has_password', 'spectra_count'
         ]
     
+    def get_spectra_count(self, obj):
+        """Number of spectra in this track; uses the queryset annotation when present."""
+        count = getattr(obj, 'spectra_count', None)
+        return count if count is not None else obj.spectra.count()
+
     def get_campaign_has_password(self, obj):
         """Return True if campaign has a password, False otherwise."""
         return bool(obj.campaign and obj.campaign.password) if obj.campaign else False

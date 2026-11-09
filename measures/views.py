@@ -2791,7 +2791,9 @@ class TrackViewSet(viewsets.ModelViewSet):
         if self.request.user.is_authenticated:
             return Track.objects.filter(
                 created_by=self.request.user
-            ).select_related('project', 'device', 'campaign', 'created_by')
+            ).select_related('project', 'device', 'campaign', 'created_by').annotate(
+                spectra_count=Count('spectra', distinct=True)
+            )
         return Track.objects.none()
 
     def perform_create(self, serializer):
@@ -2943,7 +2945,7 @@ class TrackViewSet(viewsets.ModelViewSet):
         # Base queryset: only user's tracks
         queryset = Track.objects.filter(created_by=request.user).select_related(
             'project', 'device', 'mission', 'campaign', 'created_by'
-        ).order_by('-created_at')
+        ).annotate(spectra_count=Count('spectra', distinct=True)).order_by('-created_at')
         
         # Apply filters from query parameters
         project_id = request.query_params.get('project')
