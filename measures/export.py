@@ -28,7 +28,7 @@ SPECTRUM_META = [
 README = """OpenRed track export
 ====================
 
-This archive contains your own tracks exported from OpenRed (https://open-red.es).
+This archive contains your own tracks exported from OpenRed (https://map.open-red.es).
 Only tracks created by your account are included.
 
 Files
