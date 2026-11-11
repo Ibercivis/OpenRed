@@ -63,7 +63,12 @@ services:
       SECRET_KEY: "local-development-only-not-a-secret"
       DEBUG: "True"
       ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0,api,[::1]"
-      FRONTEND_URL: "http://localhost:3000"
+      # The React app runs on 3010, not 3000: see openred-react/LOCAL-DEV.md.
+      FRONTEND_URL: "http://localhost:3010"
+      # settings.py hardcodes its DEBUG CSRF origin list and 3010 is not in it,
+      # so a browser POST from the dev server is refused with
+      # "Origin checking failed". These are added to that list.
+      CSRF_TRUSTED_ORIGINS_EXTRA: "http://localhost:3010,http://127.0.0.1:3010"
       DB_NAME: openred_db
       DB_USER: openred_user
       DB_PASSWORD: openred

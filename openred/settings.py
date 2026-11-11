@@ -312,6 +312,18 @@ if DEBUG:
         'http://127.0.0.1:3000',
         'http://192.168.1.2:3000',
     ]
+    # The list above is hardcoded, so a dev server on any other port is refused
+    # with "CSRF Failed: Origin checking failed". That is easy to miss, because
+    # curl sends no Origin header and only a browser trips it. The local
+    # composition serves the React app on 3010 (3000 and 3001 are taken by the
+    # other Ibercivis front ends), so it adds its origin through this variable
+    # instead of editing the list. Comma-separated; empty by default, so
+    # behaviour is unchanged for anyone not setting it.
+    CSRF_TRUSTED_ORIGINS += [
+        origin.strip()
+        for origin in config('CSRF_TRUSTED_ORIGINS_EXTRA', default='').split(',')
+        if origin.strip()
+    ]
 else:
     # Producción: solo FRONTEND_URL
     CSRF_TRUSTED_ORIGINS = [config('FRONTEND_URL')]
