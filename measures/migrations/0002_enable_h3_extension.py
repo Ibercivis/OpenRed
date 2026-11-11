@@ -13,10 +13,16 @@ That is what happens on any PostgreSQL that does not package h3-pg -- the
 official ``postgis/postgis`` images among them -- so a fresh local or CI database
 could not be migrated at all.
 
-Nothing in the project needs the extension. H3 indexing is done in Python with
-the ``h3`` package (``measures/views_stats.py``, ``measures/activity_digest.py``);
-no query calls a server-side ``h3_*`` function. So this migration now tries, then
-logs and continues on failure, which is what its comment always claimed it did.
+The extension is not optional at runtime: ``measures/views.py`` calls
+``h3_lat_lng_to_cell()`` in raw SQL for the H3 aggregation endpoints, so without
+it those endpoints fail. But a migration that aborts is strictly worse than an
+endpoint that fails, because it means the database cannot be created at all --
+including on a server where the rest of the application would work fine. So this
+migration now tries, then logs and continues on failure, which is what its
+comment always claimed it did; the aggregation endpoints are left to fail on
+their own terms, loudly, where the missing extension is the obvious cause.
+
+The pilot's local database image installs h3-pg for exactly this reason.
 
 A server that *does* have the extension still gets it created, so production
 behaviour is unchanged.
