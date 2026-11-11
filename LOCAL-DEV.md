@@ -297,15 +297,30 @@ touched.
    production was never affected — but the query log completely buried the output of
    `seed_local` and of every other management command.
 
-6. **`TRACK_UPLOAD_NOTIFY_EMAILS` defaults to three named staff addresses** in `settings.py`.
+6. **`CSRF_TRUSTED_ORIGINS` is a hardcoded list, and a dev server on any other port is refused.**
+   *Fixed here*, minimally. Under `DEBUG` the list named only ports 8001 and 3000, so a browser
+   POST from the app on 3010 came back as
+   `CSRF Failed: Origin checking failed - http://localhost:3010 does not match any trusted origins`.
+   The level is now extended by `config('CSRF_TRUSTED_ORIGINS_EXTRA', default='')`, empty by default
+   so nothing changes for anyone not setting it, and `compose.yaml` adds the two 3010 origins.
+
+   **Two things make this hard to find.** `curl` sends no `Origin` header, so the API answers 200
+   from a shell and fails only in a browser. And it does not fail for everyone: DRF enforces CSRF
+   only once `SessionAuthentication` has authenticated somebody from the session, so an anonymous
+   POST sails through. What turns it on is having logged into `/admin/` first — **cookies ignore the
+   port**, so the `sessionid` set on `localhost:8020` is sent to `localhost:3010` as well, the API
+   authenticates that session, and the origin check then runs. Reproduce it with
+   `-H "Origin: http://localhost:3010"` and a logged-in session cookie, not with a bare `curl`.
+
+7. **`TRACK_UPLOAD_NOTIFY_EMAILS` defaults to three named staff addresses** in `settings.py`.
    `compose.yaml` sets it empty so a local track upload cannot try to mail anybody.
 
-7. **A measurement exactly on the equator or the prime meridian gets no PostGIS point.**
+8. **A measurement exactly on the equator or the prime meridian gets no PostGIS point.**
    `BaseMeasurement.save()` guards with `if self.latitude and self.longitude:`, and `0.0` is falsy.
    Found because Globe at Night had a row at latitude 0.0: it seeded with `location` NULL, and
    `stats/global` then returned `min_lat: null`. Harmless for Spain; wrong in principle.
 
-8. **Deprecation warning on every management command** — allauth's
+9. **Deprecation warning on every management command** — allauth's
    `adapter.get_email_confirmation_redirect_url`. Harmless today.
 
 ## Limits of the local instance
