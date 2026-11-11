@@ -643,9 +643,13 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        'django.db.backends': {  # Log ALL SQL queries
+        'django.db.backends': {
+            # Logs every SQL query. Django only emits these when DEBUG is True,
+            # so this is a development setting; it is left at DEBUG by default so
+            # behaviour is unchanged, and the local composition sets it to INFO
+            # because the query log buries the output of management commands.
             'handlers': ['console'],
-            'level': 'DEBUG',  # Cambia a INFO para desactivar queries SQL
+            'level': config('DB_LOG_LEVEL', default='DEBUG'),
             'propagate': False,
         },
     },
