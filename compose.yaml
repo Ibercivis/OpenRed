@@ -1,0 +1,157 @@
+# OpenRed, running locally with a seeded sample dataset.
+#
+# For local development and for the pilot composition (ADR-0009 in
+# citsci-federation). Not production: OpenRed runs under gunicorn + supervisor on
+# a VM, and this file is on the `federation` branch only.
+#
+# Host ports are deliberately unusual. A development laptop already has the
+# other Ibercivis stacks on 8000, 8010 and 5432, so this one takes 8020 and 5436
+# and collides with none of them.
+#
+#   docker compose up -d --build
+#   docker compose exec api python manage.py seed_local
+#
+# Everything in here is a development constant, on purpose: the secret key, the
+# database password and the seeded accounts' password are all in the file. There
+# is no production data and no personal data in this composition.
+
+name: openred-local
+
+services:
+  db:
+    # PostgreSQL with BOTH extensions this project's SQL needs.
+    #
+    # Not `postgis/postgis`: OpenRed also calls the server-side function
+    # `h3_lat_lng_to_cell` in raw SQL (measures/views.py) for the h3-aggregation
+    # endpoints and for the PDF reports, and h3-pg is not in those images --
+    # nor can it be added to them, because every postgis/postgis tag is Debian
+    # bullseye and apt.postgresql.org no longer serves a bullseye-pgdg Release
+    # file. local_dev/postgis-h3/ builds it on bookworm instead, which also
+    # gets a native arm64 image rather than an emulated amd64 one.
+    #
+    # The init script creates both extensions: OpenRed has no CreateExtension
+    # migration, so without it the first migrate fails on the three PointFields.
+    build: ./local_dev/postgis-h3
+    environment:
+      POSTGRES_DB: openred_db
+      POSTGRES_USER: openred_user
+      POSTGRES_PASSWORD: openred
+    ports:
+      - "5436:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openred_user -d openred_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    command: ["api"]
+    environment: &django-env
+      # python-decouple reads these from the environment. SECRET_KEY has no
+      # default in settings.py, so it has to be given.
+      SECRET_KEY: "local-development-only-not-a-secret"
+      DEBUG: "True"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0,api,[::1]"
+      FRONTEND_URL: "http://localhost:3000"
+      DB_NAME: openred_db
+      DB_USER: openred_user
+      DB_PASSWORD: openred
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_DB: "4"
+      # Mail goes to this container's stdout. settings.py defines no EMAIL_HOST,
+      # so a mail catcher could not be pointed at without editing settings, and
+      # the console backend is settings.py's own default anyway.
+      EMAIL_BACKEND: "django.core.mail.backends.console.EmailBackend"
+      DEFAULT_FROM_EMAIL: "openred@openred.invalid"
+      SERVER_EMAIL: "openred@openred.invalid"
+      # settings.py hardcodes three real staff addresses as the default for this.
+      # Override it so a local track upload cannot try to mail anybody.
+      TRACK_UPLOAD_NOTIFY_EMAILS: ""
+      REPORT_DEFAULT_LANGUAGE: "en"
+      # settings.py logs every SQL query at DEBUG. Useful, but it buries the
+      # output of `seed_local` and of every other management command.
+      DB_LOG_LEVEL: "INFO"
+    ports:
+      - "8020:8000"
+    volumes:
+      - .:/app
+      - media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # One worker per queue, as openred/settings.py declares them and as
+  # deploy/supervisor/ runs them on the VM. The emails queue is separate because
+  # its jobs are slow (matplotlib, map tiles, geocoding) and would otherwise
+  # block track processing.
+  worker-tracks:
+    build: .
+    command: ["worker", "openred-tracks"]
+    environment: *django-env
+    volumes:
+      - .:/app
+      - media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-weather:
+    build: .
+    command: ["worker", "openred-weather"]
+    environment: *django-env
+    volumes:
+      - .:/app
+      - media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-emails:
+    build: .
+    command: ["worker", "openred-emails"]
+    environment: *django-env
+    volumes:
+      - .:/app
+      - media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  scheduler:
+    build: .
+    command: ["scheduler"]
+    environment: *django-env
+    volumes:
+      - .:/app
+      - media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  media:

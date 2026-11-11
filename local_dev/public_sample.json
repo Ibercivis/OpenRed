@@ -1,0 +1,5215 @@
+{
+ "built_by": "local_dev/fetch_public_sample.py",
+ "retrieved": "2026-11-11",
+ "note": "Nothing in this file names a person. The fields that identify a contributor or an instrument (Safecast user_id, device_id and record id; Globe at Night SQMSerial, SkyComment and LocationComment) are dropped at fetch time by an allow-list and an assertion, so they never reach this repository. The people, devices, projects and missions in the local dataset are invented by seed_local.",
+ "sources": {
+  "radiation": {
+   "name": "Safecast",
+   "api": "https://api.safecast.org/measurements.json",
+   "licence": "CC0 1.0 (public domain) -- https://safecast.org/data/",
+   "attribution": "Not required under CC0. Data collected by Safecast volunteers.",
+   "api_key": "none needed (verified by request)",
+   "regions": {
+    "madrid": {
+     "centre": [
+      40.42,
+      -3.7
+     ],
+     "radius_m": 250000
+    },
+    "zaragoza-ebro": {
+     "centre": [
+      41.65,
+      -0.89
+     ],
+     "radius_m": 250000
+    },
+    "barcelona": {
+     "centre": [
+      41.39,
+      2.17
+     ],
+     "radius_m": 200000
+    },
+    "andalusia": {
+     "centre": [
+      37.39,
+      -5.98
+     ],
+     "radius_m": 250000
+    },
+    "galicia": {
+     "centre": [
+      42.88,
+      -8.54
+     ],
+     "radius_m": 200000
+    },
+    "valencia": {
+     "centre": [
+      39.47,
+      -0.38
+     ],
+     "radius_m": 200000
+    },
+    "canarias": {
+     "centre": [
+      28.29,
+      -16.63
+     ],
+     "radius_m": 200000
+    },
+    "pyrenees": {
+     "centre": [
+      42.65,
+      0.6
+     ],
+     "radius_m": 150000
+    }
+   },
+   "fields_kept": [
+    "value",
+    "unit",
+    "latitude",
+    "longitude",
+    "height",
+    "devicetype_id",
+    "captured_at",
+    "ref",
+    "region"
+   ],
+   "records": [
+    {
+     "value": 35.0,
+     "unit": "cpm",
+     "latitude": 43.05553833333333,
+     "longitude": -7.555706666666667,
+     "captured_at": "2014-08-01T16:51:49.000Z",
+     "ref": "4a8be6e71a18",
+     "region": "galicia"
+    },
+    {
+     "value": 44.0,
+     "unit": "cpm",
+     "latitude": 43.061011666666666,
+     "longitude": -7.565131666666667,
+     "captured_at": "2014-08-01T16:52:19.000Z",
+     "ref": "11d8aff8f048",
+     "region": "galicia"
+    },
+    {
+     "value": 39.0,
+     "unit": "cpm",
+     "latitude": 43.06538,
+     "longitude": -7.570471666666666,
+     "captured_at": "2014-08-01T16:52:39.000Z",
+     "ref": "29fed99d0351",
+     "region": "galicia"
+    },
+    {
+     "value": 42.0,
+     "unit": "cpm",
+     "latitude": 43.07347166666667,
+     "longitude": -7.575206666666666,
+     "captured_at": "2014-08-01T16:53:09.000Z",
+     "ref": "a0f10862ac53",
+     "region": "galicia"
+    },
+    {
+     "value": 36.0,
+     "unit": "cpm",
+     "latitude": 43.07601833333333,
+     "longitude": -7.577168333333334,
+     "captured_at": "2014-08-01T16:53:19.000Z",
+     "ref": "fcc6150785be",
+     "region": "galicia"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 43.085905,
+     "longitude": -7.58215,
+     "captured_at": "2014-08-01T16:53:55.000Z",
+     "ref": "a3bd22be0130",
+     "region": "galicia"
+    },
+    {
+     "value": 43.0,
+     "unit": "cpm",
+     "latitude": 43.08976,
+     "longitude": -7.585263333333334,
+     "captured_at": "2014-08-01T16:54:10.000Z",
+     "ref": "d1c07bfc428e",
+     "region": "galicia"
+    },
+    {
+     "value": 45.0,
+     "unit": "cpm",
+     "latitude": 43.09522333333334,
+     "longitude": -7.592046666666667,
+     "captured_at": "2014-08-01T16:54:35.000Z",
+     "ref": "a723b9770864",
+     "region": "galicia"
+    },
+    {
+     "value": 39.0,
+     "unit": "cpm",
+     "latitude": 43.09815666666667,
+     "longitude": -7.596323333333333,
+     "captured_at": "2014-08-01T16:54:50.000Z",
+     "ref": "ba83b605f74c",
+     "region": "galicia"
+    },
+    {
+     "value": 28.0,
+     "unit": "cpm",
+     "latitude": 43.10597833333333,
+     "longitude": -7.60306,
+     "captured_at": "2014-08-01T16:55:25.000Z",
+     "ref": "abca5eb40fb2",
+     "region": "galicia"
+    },
+    {
+     "value": 32.0,
+     "unit": "cpm",
+     "latitude": 43.11423166666667,
+     "longitude": -7.605531666666667,
+     "captured_at": "2014-08-01T16:55:55.000Z",
+     "ref": "7e624089c387",
+     "region": "galicia"
+    },
+    {
+     "value": 31.0,
+     "unit": "cpm",
+     "latitude": 43.115581666666664,
+     "longitude": -7.606315,
+     "captured_at": "2014-08-01T16:56:00.000Z",
+     "ref": "1b9d127fe41a",
+     "region": "galicia"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 43.125385,
+     "longitude": -7.614468333333333,
+     "captured_at": "2014-08-01T16:56:40.000Z",
+     "ref": "44c8b4d8407f",
+     "region": "galicia"
+    },
+    {
+     "value": 36.0,
+     "unit": "cpm",
+     "latitude": 43.12649666666667,
+     "longitude": -7.61566,
+     "captured_at": "2014-08-01T16:56:45.000Z",
+     "ref": "2ec5942a0fb6",
+     "region": "galicia"
+    },
+    {
+     "value": 32.0,
+     "unit": "cpm",
+     "latitude": 43.12979,
+     "longitude": -7.626455,
+     "captured_at": "2014-08-01T16:57:15.000Z",
+     "ref": "bb5ef57dabf0",
+     "region": "galicia"
+    },
+    {
+     "value": 28.0,
+     "unit": "cpm",
+     "latitude": 43.13486833333333,
+     "longitude": -7.636246666666667,
+     "captured_at": "2014-08-01T16:57:45.000Z",
+     "ref": "48bb12833613",
+     "region": "galicia"
+    },
+    {
+     "value": 32.0,
+     "unit": "cpm",
+     "latitude": 43.13606,
+     "longitude": -7.637576666666667,
+     "captured_at": "2014-08-01T16:57:50.000Z",
+     "ref": "7cedfb5d8461",
+     "region": "galicia"
+    },
+    {
+     "value": 39.0,
+     "unit": "cpm",
+     "latitude": 43.140456666666665,
+     "longitude": -7.645946666666666,
+     "captured_at": "2014-08-01T16:58:15.000Z",
+     "ref": "b432977a6a27",
+     "region": "galicia"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 43.14554,
+     "longitude": -7.65353,
+     "captured_at": "2014-08-01T16:58:40.000Z",
+     "ref": "a481f5d9b99d",
+     "region": "galicia"
+    },
+    {
+     "value": 39.0,
+     "unit": "cpm",
+     "latitude": 43.14695666666667,
+     "longitude": -7.655055,
+     "captured_at": "2014-08-01T16:58:46.000Z",
+     "ref": "e2802476cbaa",
+     "region": "galicia"
+    },
+    {
+     "value": 31.0,
+     "unit": "cpm",
+     "latitude": 43.15214,
+     "longitude": -7.665123333333334,
+     "captured_at": "2014-08-01T16:59:21.000Z",
+     "ref": "e04f82fba57b",
+     "region": "galicia"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 43.15374833333333,
+     "longitude": -7.676891666666666,
+     "captured_at": "2014-08-01T16:59:51.000Z",
+     "ref": "828ae5b3e425",
+     "region": "galicia"
+    },
+    {
+     "value": 35.0,
+     "unit": "cpm",
+     "latitude": 43.15513,
+     "longitude": -7.680431666666666,
+     "captured_at": "2014-08-01T17:00:01.000Z",
+     "ref": "03eef1f14497",
+     "region": "galicia"
+    },
+    {
+     "value": 38.0,
+     "unit": "cpm",
+     "latitude": 43.159353333333335,
+     "longitude": -7.685906666666667,
+     "captured_at": "2014-08-01T17:00:21.000Z",
+     "ref": "acfee9b5ce84",
+     "region": "galicia"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 43.16533,
+     "longitude": -7.6917816666666665,
+     "captured_at": "2014-08-01T17:00:46.000Z",
+     "ref": "d8c0329b5547",
+     "region": "galicia"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 43.168198333333336,
+     "longitude": -7.696346666666667,
+     "captured_at": "2014-08-01T17:01:01.000Z",
+     "ref": "42d70c95fe2a",
+     "region": "galicia"
+    },
+    {
+     "value": 30.0,
+     "unit": "cpm",
+     "latitude": 43.192953333333335,
+     "longitude": -7.874485,
+     "captured_at": "2014-08-01T17:08:53.000Z",
+     "ref": "dd0702e1c9ee",
+     "region": "galicia"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 43.19303,
+     "longitude": -7.876505,
+     "captured_at": "2014-08-01T17:08:58.000Z",
+     "ref": "1e5764d92904",
+     "region": "galicia"
+    },
+    {
+     "value": 36.0,
+     "unit": "cpm",
+     "latitude": 43.19142333333333,
+     "longitude": -7.886285,
+     "captured_at": "2014-08-01T17:09:23.000Z",
+     "ref": "492d46c0f7bd",
+     "region": "galicia"
+    },
+    {
+     "value": 36.0,
+     "unit": "cpm",
+     "latitude": 43.190398333333334,
+     "longitude": -7.89517,
+     "captured_at": "2014-08-01T17:09:48.000Z",
+     "ref": "35be74c8744e",
+     "region": "galicia"
+    },
+    {
+     "value": 30.0,
+     "unit": "cpm",
+     "latitude": 43.18973,
+     "longitude": -7.906298333333333,
+     "captured_at": "2014-08-01T17:10:18.000Z",
+     "ref": "c748860accfb",
+     "region": "galicia"
+    },
+    {
+     "value": 25.0,
+     "unit": "cpm",
+     "latitude": 43.18839166666667,
+     "longitude": -7.915413333333333,
+     "captured_at": "2014-08-01T17:10:43.000Z",
+     "ref": "8072e57bb46d",
+     "region": "galicia"
+    },
+    {
+     "value": 27.0,
+     "unit": "cpm",
+     "latitude": 43.187905,
+     "longitude": -7.925126666666666,
+     "captured_at": "2014-08-01T17:11:08.000Z",
+     "ref": "160593cb1dce",
+     "region": "galicia"
+    },
+    {
+     "value": 28.0,
+     "unit": "cpm",
+     "latitude": 43.19027833333333,
+     "longitude": -7.935883333333333,
+     "captured_at": "2014-08-01T17:11:38.000Z",
+     "ref": "15533e5747a6",
+     "region": "galicia"
+    },
+    {
+     "value": 25.0,
+     "unit": "cpm",
+     "latitude": 43.19245166666666,
+     "longitude": -7.94681,
+     "captured_at": "2014-08-01T17:12:08.000Z",
+     "ref": "933933842f33",
+     "region": "galicia"
+    },
+    {
+     "value": 20.0,
+     "unit": "cpm",
+     "latitude": 43.194451666666666,
+     "longitude": -7.95564,
+     "captured_at": "2014-08-01T17:12:33.000Z",
+     "ref": "f048f256e681",
+     "region": "galicia"
+    },
+    {
+     "value": 22.0,
+     "unit": "cpm",
+     "latitude": 43.19383166666667,
+     "longitude": -7.9659683333333335,
+     "captured_at": "2014-08-01T17:12:59.000Z",
+     "ref": "9d90a879098f",
+     "region": "galicia"
+    },
+    {
+     "value": 24.0,
+     "unit": "cpm",
+     "latitude": 43.189665,
+     "longitude": -7.97678,
+     "captured_at": "2014-08-01T17:13:29.000Z",
+     "ref": "79fe96ddfc6b",
+     "region": "galicia"
+    },
+    {
+     "value": 25.0,
+     "unit": "cpm",
+     "latitude": 43.188878333333335,
+     "longitude": -7.986766666666667,
+     "captured_at": "2014-08-01T17:13:54.000Z",
+     "ref": "3abc07a60e84",
+     "region": "galicia"
+    },
+    {
+     "value": 26.0,
+     "unit": "cpm",
+     "latitude": 43.19002833333333,
+     "longitude": -7.9966816666666665,
+     "captured_at": "2014-08-01T17:14:19.000Z",
+     "ref": "6aeacac3cddb",
+     "region": "galicia"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 43.18921,
+     "longitude": -8.006433333333334,
+     "captured_at": "2014-08-01T17:14:44.000Z",
+     "ref": "a3721b16fbb2",
+     "region": "galicia"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 43.191495,
+     "longitude": -8.015726666666668,
+     "captured_at": "2014-08-01T17:15:09.000Z",
+     "ref": "a1695bb51025",
+     "region": "galicia"
+    },
+    {
+     "value": 28.0,
+     "unit": "cpm",
+     "latitude": 43.195095,
+     "longitude": -8.022436666666668,
+     "captured_at": "2014-08-01T17:15:29.000Z",
+     "ref": "311d8f76709c",
+     "region": "galicia"
+    },
+    {
+     "value": 23.0,
+     "unit": "cpm",
+     "latitude": 43.196108333333335,
+     "longitude": -8.026093333333334,
+     "captured_at": "2014-08-01T17:15:39.000Z",
+     "ref": "27cd7121bb8e",
+     "region": "galicia"
+    },
+    {
+     "value": 28.0,
+     "unit": "cpm",
+     "latitude": 43.203066666666665,
+     "longitude": -8.035401666666667,
+     "captured_at": "2014-08-01T17:16:14.000Z",
+     "ref": "ce51455f894c",
+     "region": "galicia"
+    },
+    {
+     "value": 27.0,
+     "unit": "cpm",
+     "latitude": 43.205675,
+     "longitude": -8.037276666666667,
+     "captured_at": "2014-08-01T17:16:24.000Z",
+     "ref": "61c5422fc8e1",
+     "region": "galicia"
+    },
+    {
+     "value": 23.0,
+     "unit": "cpm",
+     "latitude": 43.211495,
+     "longitude": -8.045748333333334,
+     "captured_at": "2014-08-01T17:16:54.000Z",
+     "ref": "c2fdcb598622",
+     "region": "galicia"
+    },
+    {
+     "value": 27.0,
+     "unit": "cpm",
+     "latitude": 43.215965,
+     "longitude": -8.052571666666667,
+     "captured_at": "2014-08-01T17:17:19.000Z",
+     "ref": "f1bb70cea26a",
+     "region": "galicia"
+    },
+    {
+     "value": 61.0,
+     "unit": "cpm",
+     "latitude": 43.52032,
+     "longitude": -8.270406666666666,
+     "captured_at": "2014-08-08T12:22:24.000Z",
+     "ref": "097ff46b6e14",
+     "region": "galicia"
+    },
+    {
+     "value": 47.0,
+     "unit": "cpm",
+     "latitude": 43.51451,
+     "longitude": -8.271383333333333,
+     "captured_at": "2014-08-08T14:45:40.000Z",
+     "ref": "f81e7fbe0be2",
+     "region": "galicia"
+    },
+    {
+     "value": 47.0,
+     "unit": "cpm",
+     "latitude": 43.509526666666666,
+     "longitude": -8.27527,
+     "captured_at": "2014-08-08T14:46:20.000Z",
+     "ref": "50deeb954a42",
+     "region": "galicia"
+    },
+    {
+     "value": 52.0,
+     "unit": "cpm",
+     "latitude": 43.504781666666666,
+     "longitude": -8.2788,
+     "captured_at": "2014-08-08T14:47:00.000Z",
+     "ref": "27931975ce23",
+     "region": "galicia"
+    },
+    {
+     "value": 31.0,
+     "unit": "cpm",
+     "latitude": 43.49688,
+     "longitude": -8.274468333333333,
+     "captured_at": "2014-08-08T14:50:26.000Z",
+     "ref": "53909214c792",
+     "region": "galicia"
+    },
+    {
+     "value": 32.0,
+     "unit": "cpm",
+     "latitude": 41.679472,
+     "longitude": -1.257498,
+     "captured_at": "2014-12-10T09:04:45.000Z",
+     "ref": "81dbb3c48c27",
+     "region": "madrid"
+    },
+    {
+     "value": 32.0,
+     "unit": "cpm",
+     "latitude": 41.215787,
+     "longitude": -2.266152,
+     "captured_at": "2014-12-10T09:31:45.000Z",
+     "ref": "367210fbb99f",
+     "region": "madrid"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 41.208193,
+     "longitude": -2.254729,
+     "captured_at": "2014-12-10T09:35:45.000Z",
+     "ref": "fd930765d7cd",
+     "region": "madrid"
+    },
+    {
+     "value": 35.0,
+     "unit": "cpm",
+     "latitude": 41.156443,
+     "longitude": -2.304598,
+     "captured_at": "2014-12-10T09:36:45.000Z",
+     "ref": "5075137b13d6",
+     "region": "madrid"
+    },
+    {
+     "value": 31.0,
+     "unit": "cpm",
+     "latitude": 41.231049,
+     "longitude": -2.231642,
+     "captured_at": "2015-02-02T17:32:08.000Z",
+     "ref": "6745d18e5e23",
+     "region": "madrid"
+    },
+    {
+     "value": 38.0,
+     "unit": "cpm",
+     "latitude": 41.232221,
+     "longitude": -2.205918,
+     "captured_at": "2015-02-17T11:18:36.000Z",
+     "ref": "382fcb2021be",
+     "region": "madrid"
+    },
+    {
+     "value": 40.0,
+     "unit": "cpm",
+     "latitude": 40.382183,
+     "longitude": -3.686056,
+     "captured_at": "2015-02-17T11:58:36.000Z",
+     "ref": "71dc02d69199",
+     "region": "madrid"
+    },
+    {
+     "value": 51.0,
+     "unit": "cpm",
+     "latitude": 40.345054,
+     "longitude": -3.612527,
+     "captured_at": "2015-03-17T15:38:44.000Z",
+     "ref": "35c81e097d2c",
+     "region": "madrid"
+    },
+    {
+     "value": 43.0,
+     "unit": "cpm",
+     "latitude": 41.169709,
+     "longitude": -2.284152,
+     "captured_at": "2015-03-17T16:09:44.000Z",
+     "ref": "6c2cc30cf540",
+     "region": "madrid"
+    },
+    {
+     "value": 48.0,
+     "unit": "cpm",
+     "latitude": 41.24585,
+     "longitude": -1.97649,
+     "captured_at": "2015-03-17T16:14:44.000Z",
+     "ref": "d0854e2656ea",
+     "region": "madrid"
+    },
+    {
+     "value": 38.0,
+     "unit": "cpm",
+     "latitude": 40.38518666666667,
+     "longitude": -3.6891583333333333,
+     "captured_at": "2015-07-10T06:52:03.000Z",
+     "ref": "d92361f527e0",
+     "region": "madrid"
+    },
+    {
+     "value": 32.0,
+     "unit": "cpm",
+     "latitude": 40.37631,
+     "longitude": -3.68367,
+     "captured_at": "2015-07-10T06:52:58.000Z",
+     "ref": "77174109d37d",
+     "region": "madrid"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 40.37029833333333,
+     "longitude": -3.6791366666666665,
+     "captured_at": "2015-07-10T06:53:28.000Z",
+     "ref": "db3bee15e554",
+     "region": "madrid"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 40.35979833333333,
+     "longitude": -3.6791133333333335,
+     "captured_at": "2015-07-10T06:54:18.000Z",
+     "ref": "e71b179a3158",
+     "region": "madrid"
+    },
+    {
+     "value": 42.0,
+     "unit": "cpm",
+     "latitude": 40.367738333333335,
+     "longitude": -3.6587083333333332,
+     "captured_at": "2015-07-10T06:55:49.000Z",
+     "ref": "da00c526289b",
+     "region": "madrid"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 40.37450333333334,
+     "longitude": -3.653121666666667,
+     "captured_at": "2015-07-10T06:57:54.000Z",
+     "ref": "fd3c230e712e",
+     "region": "madrid"
+    },
+    {
+     "value": 32.0,
+     "unit": "cpm",
+     "latitude": 40.37851166666667,
+     "longitude": -3.6451366666666667,
+     "captured_at": "2015-07-10T07:09:22.000Z",
+     "ref": "990f487457ad",
+     "region": "madrid"
+    },
+    {
+     "value": 44.0,
+     "unit": "cpm",
+     "latitude": 40.38352,
+     "longitude": -3.6362083333333333,
+     "captured_at": "2015-07-10T07:15:14.000Z",
+     "ref": "42e1c8c7a629",
+     "region": "madrid"
+    },
+    {
+     "value": 31.0,
+     "unit": "cpm",
+     "latitude": 40.391576666666666,
+     "longitude": -3.625825,
+     "captured_at": "2015-07-10T07:18:30.000Z",
+     "ref": "bfa48f8761a7",
+     "region": "madrid"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 40.38935,
+     "longitude": -3.615378333333333,
+     "captured_at": "2015-07-10T07:19:05.000Z",
+     "ref": "158cd45e25be",
+     "region": "madrid"
+    },
+    {
+     "value": 43.0,
+     "unit": "cpm",
+     "latitude": 40.385081666666665,
+     "longitude": -3.605226666666667,
+     "captured_at": "2015-07-10T07:19:40.000Z",
+     "ref": "e8882b3ff5d4",
+     "region": "madrid"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 40.376736666666666,
+     "longitude": -3.6007433333333334,
+     "captured_at": "2015-07-10T07:20:15.000Z",
+     "ref": "d56edd76464e",
+     "region": "madrid"
+    },
+    {
+     "value": 29.0,
+     "unit": "cpm",
+     "latitude": 40.37454666666667,
+     "longitude": -3.599135,
+     "captured_at": "2015-07-10T07:20:25.000Z",
+     "ref": "8b7f93b1f4b2",
+     "region": "madrid"
+    },
+    {
+     "value": 36.0,
+     "unit": "cpm",
+     "latitude": 40.370395,
+     "longitude": -3.5907666666666667,
+     "captured_at": "2015-07-10T07:20:55.000Z",
+     "ref": "ea22ca3c972f",
+     "region": "madrid"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 40.36709,
+     "longitude": -3.580346666666667,
+     "captured_at": "2015-07-10T07:21:30.000Z",
+     "ref": "904b29bc1855",
+     "region": "madrid"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 41.247261,
+     "longitude": -1.969449,
+     "captured_at": "2015-09-07T21:13:52.000Z",
+     "ref": "61168e7ee351",
+     "region": "madrid"
+    },
+    {
+     "value": 44.0,
+     "unit": "cpm",
+     "latitude": 41.170885,
+     "longitude": -2.265025,
+     "captured_at": "2015-09-10T16:16:34.000Z",
+     "ref": "f1d85d262d6c",
+     "region": "madrid"
+    },
+    {
+     "value": 32.0,
+     "unit": "cpm",
+     "latitude": 41.200492,
+     "longitude": -2.153564,
+     "captured_at": "2015-09-10T16:18:34.000Z",
+     "ref": "4d53451851fa",
+     "region": "madrid"
+    },
+    {
+     "value": 43.0,
+     "unit": "cpm",
+     "latitude": 40.335016,
+     "longitude": -3.637495,
+     "captured_at": "2015-10-29T18:02:19.000Z",
+     "ref": "a729e5d0df33",
+     "region": "madrid"
+    },
+    {
+     "value": 42.0,
+     "unit": "cpm",
+     "latitude": 41.28946833333333,
+     "longitude": -3.9999866666666666,
+     "captured_at": "2016-03-30T05:44:51.000Z",
+     "ref": "4ba01742892d",
+     "region": "madrid"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 41.28713,
+     "longitude": -3.9949766666666666,
+     "captured_at": "2016-03-30T05:45:06.000Z",
+     "ref": "f467e261f92d",
+     "region": "madrid"
+    },
+    {
+     "value": 46.0,
+     "unit": "cpm",
+     "latitude": 41.24762,
+     "longitude": -3.85641,
+     "captured_at": "2016-03-30T05:53:59.000Z",
+     "ref": "18cb8c60cb24",
+     "region": "madrid"
+    },
+    {
+     "value": 36.0,
+     "unit": "cpm",
+     "latitude": 41.245115,
+     "longitude": -3.8457933333333334,
+     "captured_at": "2016-03-30T05:54:44.000Z",
+     "ref": "615200311c3a",
+     "region": "madrid"
+    },
+    {
+     "value": 40.0,
+     "unit": "cpm",
+     "latitude": 41.242375,
+     "longitude": -3.8353816666666667,
+     "captured_at": "2016-03-30T05:55:14.000Z",
+     "ref": "6ed7bf268ae9",
+     "region": "madrid"
+    },
+    {
+     "value": 48.0,
+     "unit": "cpm",
+     "latitude": 41.24138166666667,
+     "longitude": -3.8255833333333333,
+     "captured_at": "2016-03-30T05:55:44.000Z",
+     "ref": "9b9cae25bcbd",
+     "region": "madrid"
+    },
+    {
+     "value": 45.0,
+     "unit": "cpm",
+     "latitude": 41.243656666666666,
+     "longitude": -3.8163583333333335,
+     "captured_at": "2016-03-30T05:56:10.000Z",
+     "ref": "631180042bc1",
+     "region": "madrid"
+    },
+    {
+     "value": 44.0,
+     "unit": "cpm",
+     "latitude": 41.24453,
+     "longitude": -3.8127666666666666,
+     "captured_at": "2016-03-30T05:56:20.000Z",
+     "ref": "5c850523a54b",
+     "region": "madrid"
+    },
+    {
+     "value": 40.0,
+     "unit": "cpm",
+     "latitude": 41.24626333333333,
+     "longitude": -3.80557,
+     "captured_at": "2016-03-30T05:56:40.000Z",
+     "ref": "251388ef7d90",
+     "region": "madrid"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 41.24579833333333,
+     "longitude": -3.798385,
+     "captured_at": "2016-03-30T05:57:00.000Z",
+     "ref": "201c81a3a4ba",
+     "region": "madrid"
+    },
+    {
+     "value": 46.0,
+     "unit": "cpm",
+     "latitude": 41.24336666666667,
+     "longitude": -3.785945,
+     "captured_at": "2016-03-30T05:58:00.000Z",
+     "ref": "cd3df6d213a0",
+     "region": "madrid"
+    },
+    {
+     "value": 45.0,
+     "unit": "cpm",
+     "latitude": 41.24138666666666,
+     "longitude": -3.7775583333333334,
+     "captured_at": "2016-03-30T05:58:30.000Z",
+     "ref": "d18ea0bd0fb2",
+     "region": "madrid"
+    },
+    {
+     "value": 40.0,
+     "unit": "cpm",
+     "latitude": 41.238503333333334,
+     "longitude": -3.7657233333333333,
+     "captured_at": "2016-03-30T05:59:06.000Z",
+     "ref": "32e0422a4cf8",
+     "region": "madrid"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 41.23981,
+     "longitude": -3.7583083333333334,
+     "captured_at": "2016-03-30T05:59:31.000Z",
+     "ref": "0f0676566dc8",
+     "region": "madrid"
+    },
+    {
+     "value": 39.0,
+     "unit": "cpm",
+     "latitude": 41.23936166666667,
+     "longitude": -3.7450966666666665,
+     "captured_at": "2016-03-30T06:00:11.000Z",
+     "ref": "1098a54c9c26",
+     "region": "madrid"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 41.239628333333336,
+     "longitude": -3.7434083333333334,
+     "captured_at": "2016-03-30T06:00:16.000Z",
+     "ref": "135211f74d75",
+     "region": "madrid"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 41.242356666666666,
+     "longitude": -3.7258733333333334,
+     "captured_at": "2016-03-30T06:01:06.000Z",
+     "ref": "c1a6a550aeda",
+     "region": "madrid"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 41.242628333333336,
+     "longitude": -3.7241483333333334,
+     "captured_at": "2016-03-30T06:01:11.000Z",
+     "ref": "43d734c74ad4",
+     "region": "madrid"
+    },
+    {
+     "value": 29.0,
+     "unit": "cpm",
+     "latitude": 41.244038333333336,
+     "longitude": -3.7093483333333332,
+     "captured_at": "2016-03-30T06:01:51.000Z",
+     "ref": "b15bd0b9eb60",
+     "region": "madrid"
+    },
+    {
+     "value": 35.0,
+     "unit": "cpm",
+     "latitude": 41.23754666666667,
+     "longitude": -3.6952783333333334,
+     "captured_at": "2016-03-30T06:02:37.000Z",
+     "ref": "0571e68caf89",
+     "region": "madrid"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 41.238725,
+     "longitude": -3.68673,
+     "captured_at": "2016-03-30T06:03:02.000Z",
+     "ref": "f22902f5fb6f",
+     "region": "madrid"
+    },
+    {
+     "value": 50.0,
+     "unit": "cpm",
+     "latitude": 41.238436666666665,
+     "longitude": -3.677765,
+     "captured_at": "2016-03-30T06:03:32.000Z",
+     "ref": "673390ed3bfa",
+     "region": "madrid"
+    },
+    {
+     "value": 40.0,
+     "unit": "cpm",
+     "latitude": 41.235013333333335,
+     "longitude": -3.6669783333333332,
+     "captured_at": "2016-03-30T06:04:07.000Z",
+     "ref": "722101e2602a",
+     "region": "madrid"
+    },
+    {
+     "value": 26.0,
+     "unit": "cpm",
+     "latitude": 41.231318333333334,
+     "longitude": -3.6553333333333335,
+     "captured_at": "2016-03-30T06:04:42.000Z",
+     "ref": "9e132fadefa6",
+     "region": "madrid"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 41.230891666666665,
+     "longitude": -3.6450383333333334,
+     "captured_at": "2016-03-30T06:05:17.000Z",
+     "ref": "0c8c38aeeddc",
+     "region": "madrid"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 41.229796666666665,
+     "longitude": -3.6401733333333333,
+     "captured_at": "2016-03-30T06:05:33.000Z",
+     "ref": "6e6bf2d9139c",
+     "region": "madrid"
+    },
+    {
+     "value": 53.0,
+     "unit": "cpm",
+     "latitude": 41.22615,
+     "longitude": -3.625655,
+     "captured_at": "2016-03-30T06:06:13.000Z",
+     "ref": "a30aa4b6e933",
+     "region": "madrid"
+    },
+    {
+     "value": 47.0,
+     "unit": "cpm",
+     "latitude": 41.22568833333333,
+     "longitude": -3.6238016666666666,
+     "captured_at": "2016-03-30T06:06:18.000Z",
+     "ref": "a26b328296ab",
+     "region": "madrid"
+    },
+    {
+     "value": 39.0,
+     "unit": "cpm",
+     "latitude": 41.223863333333334,
+     "longitude": -3.616605,
+     "captured_at": "2016-03-30T06:06:38.000Z",
+     "ref": "45ff3c12bdd2",
+     "region": "madrid"
+    },
+    {
+     "value": 40.0,
+     "unit": "cpm",
+     "latitude": 41.215268333333334,
+     "longitude": -3.5876483333333336,
+     "captured_at": "2016-03-30T06:08:59.000Z",
+     "ref": "66e7fc18d645",
+     "region": "madrid"
+    },
+    {
+     "value": 35.0,
+     "unit": "cpm",
+     "latitude": 41.213863333333336,
+     "longitude": -3.58594,
+     "captured_at": "2016-03-30T06:09:09.000Z",
+     "ref": "daf1eb6ec86b",
+     "region": "madrid"
+    },
+    {
+     "value": 38.0,
+     "unit": "cpm",
+     "latitude": 41.20559166666666,
+     "longitude": -3.580655,
+     "captured_at": "2016-03-30T06:09:54.000Z",
+     "ref": "54459888acde",
+     "region": "madrid"
+    },
+    {
+     "value": 42.0,
+     "unit": "cpm",
+     "latitude": 41.19934,
+     "longitude": -3.5818833333333333,
+     "captured_at": "2016-03-30T06:10:19.000Z",
+     "ref": "90ad059623f8",
+     "region": "madrid"
+    },
+    {
+     "value": 53.0,
+     "unit": "cpm",
+     "latitude": 41.18762666666667,
+     "longitude": -3.584835,
+     "captured_at": "2016-03-30T06:10:59.000Z",
+     "ref": "63ffd0232ef3",
+     "region": "madrid"
+    },
+    {
+     "value": 52.0,
+     "unit": "cpm",
+     "latitude": 41.186075,
+     "longitude": -3.5850416666666667,
+     "captured_at": "2016-03-30T06:11:04.000Z",
+     "ref": "6eedfee28c63",
+     "region": "madrid"
+    },
+    {
+     "value": 49.0,
+     "unit": "cpm",
+     "latitude": 41.17875333333333,
+     "longitude": -3.5831666666666666,
+     "captured_at": "2016-03-30T06:11:29.000Z",
+     "ref": "4d2dcde119ff",
+     "region": "madrid"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 41.17044666666666,
+     "longitude": -3.582273333333333,
+     "captured_at": "2016-03-30T06:12:00.000Z",
+     "ref": "e2a3bef52f30",
+     "region": "madrid"
+    },
+    {
+     "value": 46.0,
+     "unit": "cpm",
+     "latitude": 41.158721666666665,
+     "longitude": -3.5849766666666665,
+     "captured_at": "2016-03-30T06:12:50.000Z",
+     "ref": "e7a7ff39d4ef",
+     "region": "madrid"
+    },
+    {
+     "value": 50.0,
+     "unit": "cpm",
+     "latitude": 41.15539,
+     "longitude": -3.5855916666666667,
+     "captured_at": "2016-03-30T06:13:05.000Z",
+     "ref": "173e31998445",
+     "region": "madrid"
+    },
+    {
+     "value": 47.0,
+     "unit": "cpm",
+     "latitude": 41.15303333333333,
+     "longitude": -3.5852116666666665,
+     "captured_at": "2016-03-30T06:13:15.000Z",
+     "ref": "59f65e948521",
+     "region": "madrid"
+    },
+    {
+     "value": 47.0,
+     "unit": "cpm",
+     "latitude": 41.14691666666667,
+     "longitude": -3.5838266666666665,
+     "captured_at": "2016-03-30T06:13:40.000Z",
+     "ref": "250c10f42072",
+     "region": "madrid"
+    },
+    {
+     "value": 421.0,
+     "unit": "cpm",
+     "latitude": 41.232845,
+     "longitude": -2.169,
+     "captured_at": "2016-05-09T14:42:12.000Z",
+     "ref": "51ecddd46ed7",
+     "region": "madrid"
+    },
+    {
+     "value": 427.0,
+     "unit": "cpm",
+     "latitude": 41.243161666666666,
+     "longitude": -2.1620066666666666,
+     "captured_at": "2016-05-09T14:42:17.000Z",
+     "ref": "337738598e28",
+     "region": "madrid"
+    },
+    {
+     "value": 563.0,
+     "unit": "cpm",
+     "latitude": 41.72389166666667,
+     "longitude": -1.7086283333333334,
+     "captured_at": "2016-05-09T14:46:33.000Z",
+     "ref": "8ac86935c58d",
+     "region": "madrid"
+    },
+    {
+     "value": 535.0,
+     "unit": "cpm",
+     "latitude": 41.73265,
+     "longitude": -1.6986466666666666,
+     "captured_at": "2016-05-09T14:46:38.000Z",
+     "ref": "2d83451b6c1c",
+     "region": "madrid"
+    },
+    {
+     "value": 535.0,
+     "unit": "cpm",
+     "latitude": 41.750193333333335,
+     "longitude": -1.6785066666666666,
+     "captured_at": "2016-05-09T14:46:48.000Z",
+     "ref": "cb501334341d",
+     "region": "madrid"
+    },
+    {
+     "value": 38.0,
+     "unit": "cpm",
+     "latitude": 40.495352,
+     "longitude": 0.415463,
+     "captured_at": "2016-11-20T14:37:03.000Z",
+     "ref": "3b543d88e1d9",
+     "region": "valencia"
+    },
+    {
+     "value": 24.0,
+     "unit": "cpm",
+     "latitude": 36.8453,
+     "longitude": -3.497028333333333,
+     "captured_at": "2017-01-06T15:03:54.000Z",
+     "ref": "db03c4a0fc99",
+     "region": "andalusia"
+    },
+    {
+     "value": 23.0,
+     "unit": "cpm",
+     "latitude": 36.83665833333333,
+     "longitude": -3.5048483333333333,
+     "captured_at": "2017-01-06T15:04:34.000Z",
+     "ref": "f40586893dc4",
+     "region": "andalusia"
+    },
+    {
+     "value": 22.0,
+     "unit": "cpm",
+     "latitude": 36.83535166666667,
+     "longitude": -3.5051666666666668,
+     "captured_at": "2017-01-06T15:04:39.000Z",
+     "ref": "cb788535578f",
+     "region": "andalusia"
+    },
+    {
+     "value": 18.0,
+     "unit": "cpm",
+     "latitude": 36.827421666666666,
+     "longitude": -3.5046583333333334,
+     "captured_at": "2017-01-06T15:05:09.000Z",
+     "ref": "8118bdc316dc",
+     "region": "andalusia"
+    },
+    {
+     "value": 19.0,
+     "unit": "cpm",
+     "latitude": 36.82616,
+     "longitude": -3.5053616666666665,
+     "captured_at": "2017-01-06T15:05:14.000Z",
+     "ref": "9d459f29f96b",
+     "region": "andalusia"
+    },
+    {
+     "value": 107.0,
+     "unit": "cpm",
+     "latitude": 40.27174333333333,
+     "longitude": -3.9428833333333335,
+     "captured_at": "2017-03-25T11:21:03.000Z",
+     "ref": "751cd1a0c9ca",
+     "region": "madrid"
+    },
+    {
+     "value": 117.0,
+     "unit": "cpm",
+     "latitude": 40.279833333333336,
+     "longitude": -3.987521666666667,
+     "captured_at": "2017-03-25T11:21:23.000Z",
+     "ref": "a546f3d5b572",
+     "region": "madrid"
+    },
+    {
+     "value": 114.0,
+     "unit": "cpm",
+     "latitude": 40.283343333333335,
+     "longitude": -3.9981066666666667,
+     "captured_at": "2017-03-25T11:21:28.000Z",
+     "ref": "ae37466f3059",
+     "region": "madrid"
+    },
+    {
+     "value": 120.0,
+     "unit": "cpm",
+     "latitude": 40.30475833333333,
+     "longitude": -4.035826666666667,
+     "captured_at": "2017-03-25T11:21:48.000Z",
+     "ref": "824594d3b992",
+     "region": "madrid"
+    },
+    {
+     "value": 671.0,
+     "unit": "cpm",
+     "latitude": 42.879065,
+     "longitude": 0.6152033333333333,
+     "captured_at": "2017-03-26T14:50:57.000Z",
+     "ref": "32205af74ee5",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 653.0,
+     "unit": "cpm",
+     "latitude": 41.17896666666667,
+     "longitude": 0.17752,
+     "captured_at": "2017-03-26T15:05:38.000Z",
+     "ref": "9777311f8196",
+     "region": "valencia"
+    },
+    {
+     "value": 650.0,
+     "unit": "cpm",
+     "latitude": 41.169228333333336,
+     "longitude": 0.175145,
+     "captured_at": "2017-03-26T15:05:43.000Z",
+     "ref": "e1f912d2630c",
+     "region": "valencia"
+    },
+    {
+     "value": 608.0,
+     "unit": "cpm",
+     "latitude": 41.11166333333333,
+     "longitude": 0.15746,
+     "captured_at": "2017-03-26T15:06:13.000Z",
+     "ref": "9631e375a591",
+     "region": "valencia"
+    },
+    {
+     "value": 596.0,
+     "unit": "cpm",
+     "latitude": 41.092965,
+     "longitude": 0.15003333333333332,
+     "captured_at": "2017-03-26T15:06:23.000Z",
+     "ref": "4c4475acd5ad",
+     "region": "valencia"
+    },
+    {
+     "value": 596.0,
+     "unit": "cpm",
+     "latitude": 41.07255833333333,
+     "longitude": 0.14171,
+     "captured_at": "2017-03-26T15:06:34.000Z",
+     "ref": "a331032c77b1",
+     "region": "valencia"
+    },
+    {
+     "value": 591.0,
+     "unit": "cpm",
+     "latitude": 41.06328666666667,
+     "longitude": 0.13804833333333333,
+     "captured_at": "2017-03-26T15:06:39.000Z",
+     "ref": "8ad8b8d11623",
+     "region": "valencia"
+    },
+    {
+     "value": 615.0,
+     "unit": "cpm",
+     "latitude": 40.501488333333334,
+     "longitude": 0.04005333333333334,
+     "captured_at": "2017-03-26T15:11:29.000Z",
+     "ref": "717bf88bbf49",
+     "region": "valencia"
+    },
+    {
+     "value": 596.0,
+     "unit": "cpm",
+     "latitude": 40.49137833333333,
+     "longitude": 0.03984666666666667,
+     "captured_at": "2017-03-26T15:11:34.000Z",
+     "ref": "b385f9ae1b7a",
+     "region": "valencia"
+    },
+    {
+     "value": 602.0,
+     "unit": "cpm",
+     "latitude": 40.481231666666666,
+     "longitude": 0.03966666666666667,
+     "captured_at": "2017-03-26T15:11:39.000Z",
+     "ref": "c7d1ca921914",
+     "region": "valencia"
+    },
+    {
+     "value": 600.0,
+     "unit": "cpm",
+     "latitude": 40.47105833333333,
+     "longitude": 0.039483333333333336,
+     "captured_at": "2017-03-26T15:11:44.000Z",
+     "ref": "51c5411141a7",
+     "region": "valencia"
+    },
+    {
+     "value": 596.0,
+     "unit": "cpm",
+     "latitude": 40.43042666666667,
+     "longitude": 0.038788333333333334,
+     "captured_at": "2017-03-26T15:12:04.000Z",
+     "ref": "95c0abb5938b",
+     "region": "valencia"
+    },
+    {
+     "value": 601.0,
+     "unit": "cpm",
+     "latitude": 40.42025666666667,
+     "longitude": 0.038731666666666664,
+     "captured_at": "2017-03-26T15:12:09.000Z",
+     "ref": "ff596ef4c5ea",
+     "region": "valencia"
+    },
+    {
+     "value": 607.0,
+     "unit": "cpm",
+     "latitude": 40.410065,
+     "longitude": 0.039108333333333335,
+     "captured_at": "2017-03-26T15:12:14.000Z",
+     "ref": "691567b3f024",
+     "region": "valencia"
+    },
+    {
+     "value": 602.0,
+     "unit": "cpm",
+     "latitude": 40.38961,
+     "longitude": 0.041275,
+     "captured_at": "2017-03-26T15:12:24.000Z",
+     "ref": "fd715da7c41c",
+     "region": "valencia"
+    },
+    {
+     "value": 42.0,
+     "unit": "cpm",
+     "latitude": 40.305901666666664,
+     "longitude": -3.6579916666666668,
+     "captured_at": "2017-06-11T09:44:35.000Z",
+     "ref": "789eb1b4db4f",
+     "region": "madrid"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 42.767918333333334,
+     "longitude": 1.4886366666666666,
+     "captured_at": "2017-08-18T13:13:50.000Z",
+     "ref": "6dfb5dc1fb74",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 42.768861666666666,
+     "longitude": 1.498055,
+     "captured_at": "2017-08-18T13:21:50.000Z",
+     "ref": "2db6506594ef",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 24.0,
+     "unit": "cpm",
+     "latitude": 42.767091666666666,
+     "longitude": 1.478885,
+     "captured_at": "2017-08-18T16:24:04.000Z",
+     "ref": "3d1c3ce0fe4e",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 50.0,
+     "unit": "cpm",
+     "latitude": 42.76474833333333,
+     "longitude": 1.4836033333333334,
+     "captured_at": "2017-08-18T16:32:21.000Z",
+     "ref": "b19989e7fe74",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 42.77474,
+     "longitude": 1.5144,
+     "captured_at": "2017-08-20T12:28:02.000Z",
+     "ref": "51f889ca3034",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 46.0,
+     "unit": "cpm",
+     "latitude": 42.778835,
+     "longitude": 1.5286466666666667,
+     "captured_at": "2017-08-20T12:28:58.000Z",
+     "ref": "b6824c6a80fa",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 43.0,
+     "unit": "cpm",
+     "latitude": 42.78282166666666,
+     "longitude": 1.5443916666666666,
+     "captured_at": "2017-08-20T12:29:58.000Z",
+     "ref": "6745bed7891f",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 42.0,
+     "unit": "cpm",
+     "latitude": 42.78397,
+     "longitude": 1.5594066666666666,
+     "captured_at": "2017-08-20T12:30:58.000Z",
+     "ref": "b98461a1ca61",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 28.0,
+     "unit": "cpm",
+     "latitude": 42.789896666666664,
+     "longitude": 1.5724133333333334,
+     "captured_at": "2017-08-20T12:31:58.000Z",
+     "ref": "e24b2714b01f",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 52.0,
+     "unit": "cpm",
+     "latitude": 42.79324,
+     "longitude": 1.5814416666666666,
+     "captured_at": "2017-08-20T12:32:54.000Z",
+     "ref": "696e4cfe739b",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 20.0,
+     "unit": "cpm",
+     "latitude": 39.82208,
+     "longitude": 2.8658183333333334,
+     "captured_at": "2017-12-26T13:01:55.000Z",
+     "ref": "9a97e248dc9d",
+     "region": "barcelona"
+    },
+    {
+     "value": 25.0,
+     "unit": "cpm",
+     "latitude": 39.822208333333336,
+     "longitude": 2.855366666666667,
+     "captured_at": "2017-12-26T13:03:35.000Z",
+     "ref": "0015e52a29e5",
+     "region": "barcelona"
+    },
+    {
+     "value": 38.0,
+     "unit": "cpm",
+     "latitude": 39.82335333333333,
+     "longitude": 2.8524133333333332,
+     "captured_at": "2017-12-26T13:03:56.000Z",
+     "ref": "2573cf76baa7",
+     "region": "barcelona"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 39.826245,
+     "longitude": 2.847435,
+     "captured_at": "2017-12-26T13:04:41.000Z",
+     "ref": "4aa62239ae0c",
+     "region": "barcelona"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 39.82861833333333,
+     "longitude": 2.83654,
+     "captured_at": "2017-12-26T13:06:26.000Z",
+     "ref": "c18bec7a94c3",
+     "region": "barcelona"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 39.825698333333335,
+     "longitude": 2.82944,
+     "captured_at": "2017-12-26T13:07:36.000Z",
+     "ref": "58115b703a7f",
+     "region": "barcelona"
+    },
+    {
+     "value": 31.0,
+     "unit": "cpm",
+     "latitude": 39.824145,
+     "longitude": 2.8283733333333334,
+     "captured_at": "2017-12-26T13:08:16.000Z",
+     "ref": "eae09cac11e9",
+     "region": "barcelona"
+    },
+    {
+     "value": 29.0,
+     "unit": "cpm",
+     "latitude": 39.80581166666666,
+     "longitude": 2.8174116666666666,
+     "captured_at": "2017-12-26T13:14:02.000Z",
+     "ref": "0fd3e43f794c",
+     "region": "barcelona"
+    },
+    {
+     "value": 28.0,
+     "unit": "cpm",
+     "latitude": 39.80482,
+     "longitude": 2.8165333333333336,
+     "captured_at": "2017-12-26T13:14:12.000Z",
+     "ref": "29efdd5e4bd9",
+     "region": "barcelona"
+    },
+    {
+     "value": 36.0,
+     "unit": "cpm",
+     "latitude": 39.79572833333334,
+     "longitude": 2.80945,
+     "captured_at": "2017-12-26T13:15:58.000Z",
+     "ref": "458b42ec4918",
+     "region": "barcelona"
+    },
+    {
+     "value": 44.0,
+     "unit": "cpm",
+     "latitude": 39.79295333333334,
+     "longitude": 2.8069766666666665,
+     "captured_at": "2017-12-26T13:16:28.000Z",
+     "ref": "b7c03ee384e7",
+     "region": "barcelona"
+    },
+    {
+     "value": 30.0,
+     "unit": "cpm",
+     "latitude": 39.78861333333333,
+     "longitude": 2.796775,
+     "captured_at": "2017-12-26T13:45:08.000Z",
+     "ref": "4c6426d91621",
+     "region": "barcelona"
+    },
+    {
+     "value": 26.0,
+     "unit": "cpm",
+     "latitude": 39.777296666666665,
+     "longitude": 2.7049966666666667,
+     "captured_at": "2017-12-26T14:07:51.000Z",
+     "ref": "20f4f3899546",
+     "region": "barcelona"
+    },
+    {
+     "value": 25.0,
+     "unit": "cpm",
+     "latitude": 39.77543,
+     "longitude": 2.705565,
+     "captured_at": "2017-12-26T14:08:06.000Z",
+     "ref": "212a93305da8",
+     "region": "barcelona"
+    },
+    {
+     "value": 23.0,
+     "unit": "cpm",
+     "latitude": 39.767385,
+     "longitude": 2.707673333333333,
+     "captured_at": "2017-12-26T14:09:17.000Z",
+     "ref": "0066b28d8565",
+     "region": "barcelona"
+    },
+    {
+     "value": 38.0,
+     "unit": "cpm",
+     "latitude": 39.76173,
+     "longitude": 2.710405,
+     "captured_at": "2017-12-26T14:10:22.000Z",
+     "ref": "ba253ff6bc89",
+     "region": "barcelona"
+    },
+    {
+     "value": 30.0,
+     "unit": "cpm",
+     "latitude": 39.74903166666667,
+     "longitude": 2.702895,
+     "captured_at": "2017-12-26T14:13:58.000Z",
+     "ref": "b4ab6fc83add",
+     "region": "barcelona"
+    },
+    {
+     "value": 31.0,
+     "unit": "cpm",
+     "latitude": 39.73260833333333,
+     "longitude": 2.7851583333333334,
+     "captured_at": "2017-12-29T10:45:13.000Z",
+     "ref": "a72af845bb5a",
+     "region": "barcelona"
+    },
+    {
+     "value": 25.0,
+     "unit": "cpm",
+     "latitude": 39.73281166666667,
+     "longitude": 2.784753333333333,
+     "captured_at": "2017-12-29T10:46:13.000Z",
+     "ref": "7888421ae3d4",
+     "region": "barcelona"
+    },
+    {
+     "value": 17.0,
+     "unit": "cpm",
+     "latitude": 39.771728333333336,
+     "longitude": 2.6928633333333334,
+     "captured_at": "2018-06-13T16:38:59.000Z",
+     "ref": "68ba4b57eae9",
+     "region": "barcelona"
+    },
+    {
+     "value": 21.0,
+     "unit": "cpm",
+     "latitude": 39.765735,
+     "longitude": 2.6968083333333333,
+     "captured_at": "2018-06-13T16:40:04.000Z",
+     "ref": "ac42be3960e7",
+     "region": "barcelona"
+    },
+    {
+     "value": 22.0,
+     "unit": "cpm",
+     "latitude": 39.76246,
+     "longitude": 2.70484,
+     "captured_at": "2018-06-13T16:41:55.000Z",
+     "ref": "b7591f04d20d",
+     "region": "barcelona"
+    },
+    {
+     "value": 15.0,
+     "unit": "cpm",
+     "latitude": 39.742535,
+     "longitude": 2.69603,
+     "captured_at": "2018-06-13T16:51:48.000Z",
+     "ref": "ba7305dee5c4",
+     "region": "barcelona"
+    },
+    {
+     "value": 746.0,
+     "unit": "cpm",
+     "latitude": 40.4667,
+     "longitude": 0.8844366666666666,
+     "captured_at": "2018-07-03T12:45:34.000Z",
+     "ref": "ef00015f5cee",
+     "region": "valencia"
+    },
+    {
+     "value": 704.0,
+     "unit": "cpm",
+     "latitude": 40.414161666666665,
+     "longitude": 0.80963,
+     "captured_at": "2018-07-03T12:46:19.000Z",
+     "ref": "4a028520dc9c",
+     "region": "valencia"
+    },
+    {
+     "value": 713.0,
+     "unit": "cpm",
+     "latitude": 40.40237833333333,
+     "longitude": 0.7929666666666667,
+     "captured_at": "2018-07-03T12:46:29.000Z",
+     "ref": "c384e8c302e2",
+     "region": "valencia"
+    },
+    {
+     "value": 707.0,
+     "unit": "cpm",
+     "latitude": 40.38478333333333,
+     "longitude": 0.7679466666666667,
+     "captured_at": "2018-07-03T12:46:44.000Z",
+     "ref": "2e42bcbcf078",
+     "region": "valencia"
+    },
+    {
+     "value": 688.0,
+     "unit": "cpm",
+     "latitude": 40.378955,
+     "longitude": 0.7596133333333334,
+     "captured_at": "2018-07-03T12:46:49.000Z",
+     "ref": "e9cf04cbba82",
+     "region": "valencia"
+    },
+    {
+     "value": 718.0,
+     "unit": "cpm",
+     "latitude": 40.373105,
+     "longitude": 0.75127,
+     "captured_at": "2018-07-03T12:46:54.000Z",
+     "ref": "3e8d063c3b75",
+     "region": "valencia"
+    },
+    {
+     "value": 704.0,
+     "unit": "cpm",
+     "latitude": 40.36723666666666,
+     "longitude": 0.7429233333333334,
+     "captured_at": "2018-07-03T12:46:59.000Z",
+     "ref": "2aaa636a373a",
+     "region": "valencia"
+    },
+    {
+     "value": 702.0,
+     "unit": "cpm",
+     "latitude": 40.34374833333333,
+     "longitude": 0.709635,
+     "captured_at": "2018-07-03T12:47:19.000Z",
+     "ref": "b01935cda827",
+     "region": "valencia"
+    },
+    {
+     "value": 778.0,
+     "unit": "cpm",
+     "latitude": 40.28514333333333,
+     "longitude": 0.62645,
+     "captured_at": "2018-07-03T12:48:09.000Z",
+     "ref": "6fb17e24d49a",
+     "region": "valencia"
+    },
+    {
+     "value": 805.0,
+     "unit": "cpm",
+     "latitude": 40.27928,
+     "longitude": 0.61814,
+     "captured_at": "2018-07-03T12:48:14.000Z",
+     "ref": "8869ba64a875",
+     "region": "valencia"
+    },
+    {
+     "value": 756.0,
+     "unit": "cpm",
+     "latitude": 40.25586166666667,
+     "longitude": 0.58495,
+     "captured_at": "2018-07-03T12:48:34.000Z",
+     "ref": "570a5004512d",
+     "region": "valencia"
+    },
+    {
+     "value": 726.0,
+     "unit": "cpm",
+     "latitude": 40.24998333333333,
+     "longitude": 0.5766583333333334,
+     "captured_at": "2018-07-03T12:48:39.000Z",
+     "ref": "08b9857038a8",
+     "region": "valencia"
+    },
+    {
+     "value": 704.0,
+     "unit": "cpm",
+     "latitude": 40.214681666666664,
+     "longitude": 0.5269483333333334,
+     "captured_at": "2018-07-03T12:49:09.000Z",
+     "ref": "47d32bd54a3a",
+     "region": "valencia"
+    },
+    {
+     "value": 720.0,
+     "unit": "cpm",
+     "latitude": 40.191065,
+     "longitude": 0.49379666666666666,
+     "captured_at": "2018-07-03T12:49:29.000Z",
+     "ref": "c3dc8634cd17",
+     "region": "valencia"
+    },
+    {
+     "value": 704.0,
+     "unit": "cpm",
+     "latitude": 40.155703333333335,
+     "longitude": 0.44423833333333335,
+     "captured_at": "2018-07-03T12:49:59.000Z",
+     "ref": "bf8eb2588c32",
+     "region": "valencia"
+    },
+    {
+     "value": 898.0,
+     "unit": "cpm",
+     "latitude": 41.70229833333333,
+     "longitude": -1.76013,
+     "captured_at": "2018-07-10T18:38:20.000Z",
+     "ref": "e2da40c821e1",
+     "region": "madrid"
+    },
+    {
+     "value": 49.0,
+     "unit": "cpm",
+     "latitude": 42.901943333333335,
+     "longitude": 0.633985,
+     "captured_at": "2018-07-11T11:37:33.000Z",
+     "ref": "af441eab7a52",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 42.0,
+     "unit": "cpm",
+     "latitude": 42.87435166666667,
+     "longitude": 0.6126716666666666,
+     "captured_at": "2018-07-11T16:13:39.000Z",
+     "ref": "80407644aada",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 42.880925,
+     "longitude": 0.61362,
+     "captured_at": "2018-07-11T16:14:15.000Z",
+     "ref": "9fc903d9dfa3",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 50.0,
+     "unit": "cpm",
+     "latitude": 42.892403333333334,
+     "longitude": 0.62125,
+     "captured_at": "2018-07-11T16:15:45.000Z",
+     "ref": "40380ad1c2b3",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 39.0,
+     "unit": "cpm",
+     "latitude": 42.54549,
+     "longitude": 1.5912816666666667,
+     "captured_at": "2018-09-13T19:48:21.000Z",
+     "ref": "63e274b77650",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 47.0,
+     "unit": "cpm",
+     "latitude": 42.904131666666665,
+     "longitude": 0.767795,
+     "captured_at": "2019-02-13T15:24:17.000Z",
+     "ref": "8cc7da14654d",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 31.0,
+     "unit": "cpm",
+     "latitude": 42.90743666666667,
+     "longitude": 0.7680983333333333,
+     "captured_at": "2019-02-13T15:27:23.000Z",
+     "ref": "052a36ed41ce",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 380.0,
+     "unit": "cpm",
+     "latitude": 40.47099,
+     "longitude": -0.09866333333333334,
+     "captured_at": "2019-03-15T14:57:37.000Z",
+     "ref": "40865c1546a5",
+     "region": "valencia"
+    },
+    {
+     "value": 365.0,
+     "unit": "cpm",
+     "latitude": 40.460361666666664,
+     "longitude": -0.10288666666666667,
+     "captured_at": "2019-03-15T14:57:42.000Z",
+     "ref": "e9ed27e6ea8c",
+     "region": "valencia"
+    },
+    {
+     "value": 349.0,
+     "unit": "cpm",
+     "latitude": 40.44977166666666,
+     "longitude": -0.10707666666666667,
+     "captured_at": "2019-03-15T14:57:47.000Z",
+     "ref": "9e9b50b8ac90",
+     "region": "valencia"
+    },
+    {
+     "value": 316.0,
+     "unit": "cpm",
+     "latitude": 40.346288333333334,
+     "longitude": -0.14831333333333332,
+     "captured_at": "2019-03-15T14:58:37.000Z",
+     "ref": "985b64c2b0d9",
+     "region": "valencia"
+    },
+    {
+     "value": 302.0,
+     "unit": "cpm",
+     "latitude": 40.31709,
+     "longitude": -0.163625,
+     "captured_at": "2019-03-15T14:58:52.000Z",
+     "ref": "e4f64f01ff2a",
+     "region": "valencia"
+    },
+    {
+     "value": 268.0,
+     "unit": "cpm",
+     "latitude": 40.28961666666667,
+     "longitude": -0.18249833333333335,
+     "captured_at": "2019-03-15T14:59:07.000Z",
+     "ref": "7e9af2fe8b2d",
+     "region": "valencia"
+    },
+    {
+     "value": 970.0,
+     "unit": "cpm",
+     "latitude": 42.899076666666666,
+     "longitude": 0.9245466666666666,
+     "captured_at": "2019-03-20T17:02:06.000Z",
+     "ref": "01f728682bce",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 42.88867,
+     "longitude": 1.6275533333333334,
+     "captured_at": "2019-05-27T14:56:51.000Z",
+     "ref": "e9fdadd479e9",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 45.0,
+     "unit": "cpm",
+     "latitude": 42.880871666666664,
+     "longitude": 1.6226166666666666,
+     "captured_at": "2019-05-27T14:57:27.000Z",
+     "ref": "9e3e76df6666",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 50.0,
+     "unit": "cpm",
+     "latitude": 42.85236,
+     "longitude": 1.5913083333333333,
+     "captured_at": "2019-05-27T15:00:47.000Z",
+     "ref": "e8182d176bcd",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 42.85095166666667,
+     "longitude": 1.5965533333333333,
+     "captured_at": "2019-05-27T15:01:22.000Z",
+     "ref": "127624161d05",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 51.0,
+     "unit": "cpm",
+     "latitude": 42.80628166666666,
+     "longitude": 1.64463,
+     "captured_at": "2019-05-27T15:08:39.000Z",
+     "ref": "18b9c22eb546",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 42.80105,
+     "longitude": 1.65118,
+     "captured_at": "2019-05-27T15:09:19.000Z",
+     "ref": "ab7fba6478a4",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 40.0,
+     "unit": "cpm",
+     "latitude": 42.79961,
+     "longitude": 1.6576133333333334,
+     "captured_at": "2019-05-27T15:09:59.000Z",
+     "ref": "e7c6832c1e4f",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 36.0,
+     "unit": "cpm",
+     "latitude": 42.79515166666667,
+     "longitude": 1.6734516666666666,
+     "captured_at": "2019-05-27T15:11:20.000Z",
+     "ref": "d4a5acb1913f",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 38.0,
+     "unit": "cpm",
+     "latitude": 42.79405333333333,
+     "longitude": 1.67753,
+     "captured_at": "2019-05-27T15:11:40.000Z",
+     "ref": "40ef9778a5eb",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 46.0,
+     "unit": "cpm",
+     "latitude": 42.783231666666666,
+     "longitude": 1.6949916666666667,
+     "captured_at": "2019-05-27T15:13:10.000Z",
+     "ref": "8e8bb80e4a58",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 50.0,
+     "unit": "cpm",
+     "latitude": 42.77898833333333,
+     "longitude": 1.6958766666666667,
+     "captured_at": "2019-05-27T15:13:30.000Z",
+     "ref": "413c285a88d6",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 42.773485,
+     "longitude": 1.7025966666666668,
+     "captured_at": "2019-05-27T15:14:25.000Z",
+     "ref": "8da82883d23b",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 42.772436666666664,
+     "longitude": 1.7078333333333333,
+     "captured_at": "2019-05-27T15:14:55.000Z",
+     "ref": "e109a5b4052e",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 39.0,
+     "unit": "cpm",
+     "latitude": 42.7716,
+     "longitude": 1.7181916666666666,
+     "captured_at": "2019-05-27T15:15:40.000Z",
+     "ref": "9dbf315fd0f3",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 42.77106666666667,
+     "longitude": 1.7268416666666666,
+     "captured_at": "2019-05-27T15:16:26.000Z",
+     "ref": "65e3e22dbf89",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 40.0,
+     "unit": "cpm",
+     "latitude": 42.537411666666664,
+     "longitude": 1.5901916666666667,
+     "captured_at": "2019-05-27T17:09:34.000Z",
+     "ref": "8127e1c87d27",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 44.0,
+     "unit": "cpm",
+     "latitude": 42.53360166666667,
+     "longitude": 1.5854,
+     "captured_at": "2019-05-27T17:10:40.000Z",
+     "ref": "25de48284d2a",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 43.0,
+     "unit": "cpm",
+     "latitude": 42.53172333333333,
+     "longitude": 1.5768133333333334,
+     "captured_at": "2019-05-27T17:12:25.000Z",
+     "ref": "1cfd17152c3c",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 28.0,
+     "unit": "cpm",
+     "latitude": 42.52906,
+     "longitude": 1.570995,
+     "captured_at": "2019-05-27T17:13:20.000Z",
+     "ref": "989784fdeb94",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 39.0,
+     "unit": "cpm",
+     "latitude": 42.52532166666666,
+     "longitude": 1.5641233333333333,
+     "captured_at": "2019-05-27T17:14:15.000Z",
+     "ref": "67de61e05421",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 42.52106,
+     "longitude": 1.5582966666666667,
+     "captured_at": "2019-05-27T17:15:11.000Z",
+     "ref": "28857a167025",
+     "region": "zaragoza-ebro"
+    },
+    {
+     "value": 1026.0,
+     "unit": "cpm",
+     "latitude": 41.241436666666665,
+     "longitude": -2.17977,
+     "captured_at": "2019-06-23T18:08:08.000Z",
+     "ref": "73072f93e12e",
+     "region": "madrid"
+    },
+    {
+     "value": 963.0,
+     "unit": "cpm",
+     "latitude": 41.406303333333334,
+     "longitude": -2.0308183333333334,
+     "captured_at": "2019-06-23T18:09:43.000Z",
+     "ref": "3b52249e4f64",
+     "region": "madrid"
+    },
+    {
+     "value": 932.0,
+     "unit": "cpm",
+     "latitude": 41.665605,
+     "longitude": -1.7503033333333333,
+     "captured_at": "2019-06-23T18:12:23.000Z",
+     "ref": "bd4f185c82e5",
+     "region": "madrid"
+    },
+    {
+     "value": 935.0,
+     "unit": "cpm",
+     "latitude": 41.67305833333333,
+     "longitude": -1.7403033333333333,
+     "captured_at": "2019-06-23T18:12:28.000Z",
+     "ref": "f3c14394e65c",
+     "region": "madrid"
+    },
+    {
+     "value": 943.0,
+     "unit": "cpm",
+     "latitude": 41.6805,
+     "longitude": -1.7303283333333332,
+     "captured_at": "2019-06-23T18:12:33.000Z",
+     "ref": "31481cfccc99",
+     "region": "madrid"
+    },
+    {
+     "value": 942.0,
+     "unit": "cpm",
+     "latitude": 41.74731166666667,
+     "longitude": -1.6398683333333333,
+     "captured_at": "2019-06-23T18:13:18.000Z",
+     "ref": "d53fb2d7928a",
+     "region": "madrid"
+    },
+    {
+     "value": 722.0,
+     "unit": "cpm",
+     "latitude": 40.136135,
+     "longitude": 0.43644,
+     "captured_at": "2021-03-07T17:28:51.000Z",
+     "ref": "2edaf9103199",
+     "region": "valencia"
+    },
+    {
+     "value": 728.0,
+     "unit": "cpm",
+     "latitude": 40.14365333333333,
+     "longitude": 0.445755,
+     "captured_at": "2021-03-07T17:28:56.000Z",
+     "ref": "f611b70f22ae",
+     "region": "valencia"
+    },
+    {
+     "value": 726.0,
+     "unit": "cpm",
+     "latitude": 40.15115333333333,
+     "longitude": 0.4550516666666667,
+     "captured_at": "2021-03-07T17:29:01.000Z",
+     "ref": "9a50696f002e",
+     "region": "valencia"
+    },
+    {
+     "value": 719.0,
+     "unit": "cpm",
+     "latitude": 40.15866333333334,
+     "longitude": 0.46435666666666664,
+     "captured_at": "2021-03-07T17:29:06.000Z",
+     "ref": "864dfe69f628",
+     "region": "valencia"
+    },
+    {
+     "value": 733.0,
+     "unit": "cpm",
+     "latitude": 40.166158333333335,
+     "longitude": 0.47366833333333336,
+     "captured_at": "2021-03-07T17:29:11.000Z",
+     "ref": "b17ee5136656",
+     "region": "valencia"
+    },
+    {
+     "value": 767.0,
+     "unit": "cpm",
+     "latitude": 40.173671666666664,
+     "longitude": 0.4830083333333333,
+     "captured_at": "2021-03-07T17:29:16.000Z",
+     "ref": "c0aa5194b4aa",
+     "region": "valencia"
+    },
+    {
+     "value": 764.0,
+     "unit": "cpm",
+     "latitude": 40.181185,
+     "longitude": 0.492345,
+     "captured_at": "2021-03-07T17:29:21.000Z",
+     "ref": "bc1a57c13615",
+     "region": "valencia"
+    },
+    {
+     "value": 769.0,
+     "unit": "cpm",
+     "latitude": 40.18868833333333,
+     "longitude": 0.5016666666666667,
+     "captured_at": "2021-03-07T17:29:26.000Z",
+     "ref": "ba7d6fad7c9a",
+     "region": "valencia"
+    },
+    {
+     "value": 756.0,
+     "unit": "cpm",
+     "latitude": 40.196243333333335,
+     "longitude": 0.5110166666666667,
+     "captured_at": "2021-03-07T17:29:31.000Z",
+     "ref": "02dae6717859",
+     "region": "valencia"
+    },
+    {
+     "value": 762.0,
+     "unit": "cpm",
+     "latitude": 40.203765,
+     "longitude": 0.52036,
+     "captured_at": "2021-03-07T17:29:36.000Z",
+     "ref": "c9f43b16d58c",
+     "region": "valencia"
+    },
+    {
+     "value": 755.0,
+     "unit": "cpm",
+     "latitude": 40.218785,
+     "longitude": 0.53906,
+     "captured_at": "2021-03-07T17:29:46.000Z",
+     "ref": "0423af399907",
+     "region": "valencia"
+    },
+    {
+     "value": 758.0,
+     "unit": "cpm",
+     "latitude": 40.22629,
+     "longitude": 0.54841,
+     "captured_at": "2021-03-07T17:29:51.000Z",
+     "ref": "f0f9fa76082e",
+     "region": "valencia"
+    },
+    {
+     "value": 771.0,
+     "unit": "cpm",
+     "latitude": 40.233795,
+     "longitude": 0.5577683333333333,
+     "captured_at": "2021-03-07T17:29:56.000Z",
+     "ref": "429b2b3711c6",
+     "region": "valencia"
+    },
+    {
+     "value": 771.0,
+     "unit": "cpm",
+     "latitude": 40.241281666666666,
+     "longitude": 0.5671283333333333,
+     "captured_at": "2021-03-07T17:30:01.000Z",
+     "ref": "deb911f3bd97",
+     "region": "valencia"
+    },
+    {
+     "value": 769.0,
+     "unit": "cpm",
+     "latitude": 40.256168333333335,
+     "longitude": 0.5860566666666667,
+     "captured_at": "2021-03-07T17:30:11.000Z",
+     "ref": "196b09b254b3",
+     "region": "valencia"
+    },
+    {
+     "value": 759.0,
+     "unit": "cpm",
+     "latitude": 40.26486,
+     "longitude": 0.5977533333333334,
+     "captured_at": "2021-03-07T17:30:17.000Z",
+     "ref": "52926dbbb29a",
+     "region": "valencia"
+    },
+    {
+     "value": 765.0,
+     "unit": "cpm",
+     "latitude": 40.271968333333334,
+     "longitude": 0.6076883333333334,
+     "captured_at": "2021-03-07T17:30:22.000Z",
+     "ref": "227825d6277c",
+     "region": "valencia"
+    },
+    {
+     "value": 755.0,
+     "unit": "cpm",
+     "latitude": 40.29309166666667,
+     "longitude": 0.6375983333333334,
+     "captured_at": "2021-03-07T17:30:37.000Z",
+     "ref": "02244160c7d8",
+     "region": "valencia"
+    },
+    {
+     "value": 785.0,
+     "unit": "cpm",
+     "latitude": 40.300153333333334,
+     "longitude": 0.64757,
+     "captured_at": "2021-03-07T17:30:42.000Z",
+     "ref": "b96fe5e29702",
+     "region": "valencia"
+    },
+    {
+     "value": 779.0,
+     "unit": "cpm",
+     "latitude": 40.307201666666664,
+     "longitude": 0.6575416666666667,
+     "captured_at": "2021-03-07T17:30:47.000Z",
+     "ref": "efd0272b900d",
+     "region": "valencia"
+    },
+    {
+     "value": 775.0,
+     "unit": "cpm",
+     "latitude": 40.31426333333334,
+     "longitude": 0.6675183333333333,
+     "captured_at": "2021-03-07T17:30:52.000Z",
+     "ref": "39f58ed87615",
+     "region": "valencia"
+    },
+    {
+     "value": 738.0,
+     "unit": "cpm",
+     "latitude": 40.321325,
+     "longitude": 0.6774933333333333,
+     "captured_at": "2021-03-07T17:30:57.000Z",
+     "ref": "4ddf85b558be",
+     "region": "valencia"
+    },
+    {
+     "value": 756.0,
+     "unit": "cpm",
+     "latitude": 40.32839166666667,
+     "longitude": 0.68748,
+     "captured_at": "2021-03-07T17:31:02.000Z",
+     "ref": "64bcb32eaf93",
+     "region": "valencia"
+    },
+    {
+     "value": 781.0,
+     "unit": "cpm",
+     "latitude": 40.440865,
+     "longitude": 0.86669,
+     "captured_at": "2021-03-07T17:32:27.000Z",
+     "ref": "d93f5bc42214",
+     "region": "valencia"
+    },
+    {
+     "value": 789.0,
+     "unit": "cpm",
+     "latitude": 40.445755,
+     "longitude": 0.8788216666666666,
+     "captured_at": "2021-03-07T17:32:32.000Z",
+     "ref": "4a5118fd780e",
+     "region": "valencia"
+    },
+    {
+     "value": 812.0,
+     "unit": "cpm",
+     "latitude": 40.45039833333333,
+     "longitude": 0.8911216666666667,
+     "captured_at": "2021-03-07T17:32:37.000Z",
+     "ref": "eb6eea1843a0",
+     "region": "valencia"
+    },
+    {
+     "value": 803.0,
+     "unit": "cpm",
+     "latitude": 40.45486833333333,
+     "longitude": 0.903485,
+     "captured_at": "2021-03-07T17:32:42.000Z",
+     "ref": "4aaa0a11b750",
+     "region": "valencia"
+    },
+    {
+     "value": 809.0,
+     "unit": "cpm",
+     "latitude": 40.459361666666666,
+     "longitude": 0.9158716666666666,
+     "captured_at": "2021-03-07T17:32:47.000Z",
+     "ref": "67cc15fca756",
+     "region": "valencia"
+    },
+    {
+     "value": 793.0,
+     "unit": "cpm",
+     "latitude": 40.46384833333333,
+     "longitude": 0.92823,
+     "captured_at": "2021-03-07T17:32:52.000Z",
+     "ref": "17430a98bf0a",
+     "region": "valencia"
+    },
+    {
+     "value": 794.0,
+     "unit": "cpm",
+     "latitude": 40.468336666666666,
+     "longitude": 0.94058,
+     "captured_at": "2021-03-07T17:32:57.000Z",
+     "ref": "a8135221861e",
+     "region": "valencia"
+    },
+    {
+     "value": 779.0,
+     "unit": "cpm",
+     "latitude": 40.47282833333333,
+     "longitude": 0.952935,
+     "captured_at": "2021-03-07T17:33:02.000Z",
+     "ref": "dcbe6a6950ab",
+     "region": "valencia"
+    },
+    {
+     "value": 755.0,
+     "unit": "cpm",
+     "latitude": 40.477333333333334,
+     "longitude": 0.9652983333333334,
+     "captured_at": "2021-03-07T17:33:07.000Z",
+     "ref": "0ebf29f474bb",
+     "region": "valencia"
+    },
+    {
+     "value": 766.0,
+     "unit": "cpm",
+     "latitude": 40.481815,
+     "longitude": 0.9776583333333333,
+     "captured_at": "2021-03-07T17:33:12.000Z",
+     "ref": "f02824c8ef60",
+     "region": "valencia"
+    },
+    {
+     "value": 761.0,
+     "unit": "cpm",
+     "latitude": 40.48629666666667,
+     "longitude": 0.990015,
+     "captured_at": "2021-03-07T17:33:17.000Z",
+     "ref": "b375e6d96653",
+     "region": "valencia"
+    },
+    {
+     "value": 751.0,
+     "unit": "cpm",
+     "latitude": 40.490811666666666,
+     "longitude": 1.002395,
+     "captured_at": "2021-03-07T17:33:22.000Z",
+     "ref": "523cd46ab7e1",
+     "region": "valencia"
+    },
+    {
+     "value": 743.0,
+     "unit": "cpm",
+     "latitude": 40.49532333333333,
+     "longitude": 1.0148033333333333,
+     "captured_at": "2021-03-07T17:33:27.000Z",
+     "ref": "98c7a262e2b3",
+     "region": "valencia"
+    },
+    {
+     "value": 754.0,
+     "unit": "cpm",
+     "latitude": 40.49984166666667,
+     "longitude": 1.02724,
+     "captured_at": "2021-03-07T17:33:32.000Z",
+     "ref": "0a9b0171e69b",
+     "region": "valencia"
+    },
+    {
+     "value": 741.0,
+     "unit": "cpm",
+     "latitude": 40.50434833333333,
+     "longitude": 1.0396916666666667,
+     "captured_at": "2021-03-07T17:33:37.000Z",
+     "ref": "da0c23f3d836",
+     "region": "valencia"
+    },
+    {
+     "value": 22.0,
+     "unit": "cpm",
+     "latitude": 43.6044622,
+     "longitude": 1.4442469,
+     "captured_at": "2021-06-04T11:39:34.338Z",
+     "ref": "432ed7641255",
+     "region": "pyrenees"
+    },
+    {
+     "value": 46.0,
+     "unit": "cpm",
+     "latitude": 36.850921666666665,
+     "longitude": -4.815113333333334,
+     "captured_at": "2022-03-30T12:59:53.000Z",
+     "ref": "77eff111509f",
+     "region": "andalusia"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 36.84645833333333,
+     "longitude": -4.805056666666666,
+     "captured_at": "2022-03-30T13:03:34.000Z",
+     "ref": "4c48dd453745",
+     "region": "andalusia"
+    },
+    {
+     "value": 32.0,
+     "unit": "cpm",
+     "latitude": 36.84724,
+     "longitude": -4.794853333333333,
+     "captured_at": "2022-03-30T13:06:05.000Z",
+     "ref": "b6c338061aa9",
+     "region": "andalusia"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 36.845185,
+     "longitude": -4.796348333333333,
+     "captured_at": "2022-03-30T13:06:40.000Z",
+     "ref": "5afd1f7acb9c",
+     "region": "andalusia"
+    },
+    {
+     "value": 25.0,
+     "unit": "cpm",
+     "latitude": 36.84359333333333,
+     "longitude": -4.7951983333333335,
+     "captured_at": "2022-03-30T13:07:10.000Z",
+     "ref": "acadd5395b73",
+     "region": "andalusia"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 36.84084166666667,
+     "longitude": -4.791415,
+     "captured_at": "2022-03-30T13:09:26.000Z",
+     "ref": "c9bdcb553bb6",
+     "region": "andalusia"
+    },
+    {
+     "value": 30.0,
+     "unit": "cpm",
+     "latitude": 36.835065,
+     "longitude": -4.747616666666667,
+     "captured_at": "2022-03-30T13:32:22.000Z",
+     "ref": "4db071bbd0e4",
+     "region": "andalusia"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 36.83384,
+     "longitude": -4.74711,
+     "captured_at": "2022-03-30T13:32:32.000Z",
+     "ref": "53594d581146",
+     "region": "andalusia"
+    },
+    {
+     "value": 31.0,
+     "unit": "cpm",
+     "latitude": 36.83470833333333,
+     "longitude": -4.737586666666667,
+     "captured_at": "2022-03-30T13:33:53.000Z",
+     "ref": "153e70b5047a",
+     "region": "andalusia"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 36.836798333333334,
+     "longitude": -4.7355,
+     "captured_at": "2022-03-30T13:34:08.000Z",
+     "ref": "f2aa4d626098",
+     "region": "andalusia"
+    },
+    {
+     "value": 35.0,
+     "unit": "cpm",
+     "latitude": 36.839261666666665,
+     "longitude": -4.725393333333333,
+     "captured_at": "2022-03-30T13:35:23.000Z",
+     "ref": "5b507a0354bd",
+     "region": "andalusia"
+    },
+    {
+     "value": 38.0,
+     "unit": "cpm",
+     "latitude": 36.839,
+     "longitude": -4.715625,
+     "captured_at": "2022-03-30T13:36:23.000Z",
+     "ref": "0ddac7e87d05",
+     "region": "andalusia"
+    },
+    {
+     "value": 40.0,
+     "unit": "cpm",
+     "latitude": 36.835726666666666,
+     "longitude": -4.711586666666666,
+     "captured_at": "2022-03-30T13:37:09.000Z",
+     "ref": "40395a0e44ce",
+     "region": "andalusia"
+    },
+    {
+     "value": 42.0,
+     "unit": "cpm",
+     "latitude": 36.825023333333334,
+     "longitude": -4.706606666666667,
+     "captured_at": "2022-03-30T13:40:05.000Z",
+     "ref": "01bd42017296",
+     "region": "andalusia"
+    },
+    {
+     "value": 36.0,
+     "unit": "cpm",
+     "latitude": 36.816093333333335,
+     "longitude": -4.707598333333333,
+     "captured_at": "2022-03-30T13:42:45.000Z",
+     "ref": "cdd3c08b453a",
+     "region": "andalusia"
+    },
+    {
+     "value": 35.0,
+     "unit": "cpm",
+     "latitude": 36.811995,
+     "longitude": -4.705756666666667,
+     "captured_at": "2022-03-30T13:43:05.000Z",
+     "ref": "c0c22bbe1c6c",
+     "region": "andalusia"
+    },
+    {
+     "value": 31.0,
+     "unit": "cpm",
+     "latitude": 36.84979666666667,
+     "longitude": -4.825453333333333,
+     "captured_at": "2022-04-01T17:32:52.000Z",
+     "ref": "ccd282ba5124",
+     "region": "andalusia"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 36.84278833333333,
+     "longitude": -4.815831666666667,
+     "captured_at": "2022-04-01T17:33:38.000Z",
+     "ref": "b455f06035e5",
+     "region": "andalusia"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 36.84120166666667,
+     "longitude": -4.812461666666667,
+     "captured_at": "2022-04-01T17:33:53.000Z",
+     "ref": "1cb4e8673751",
+     "region": "andalusia"
+    },
+    {
+     "value": 36.0,
+     "unit": "cpm",
+     "latitude": 36.829675,
+     "longitude": -4.805213333333334,
+     "captured_at": "2022-04-01T17:34:53.000Z",
+     "ref": "e46efdcb3904",
+     "region": "andalusia"
+    },
+    {
+     "value": 31.0,
+     "unit": "cpm",
+     "latitude": 36.82778166666667,
+     "longitude": -4.8023983333333335,
+     "captured_at": "2022-04-01T17:35:08.000Z",
+     "ref": "b689698239ff",
+     "region": "andalusia"
+    },
+    {
+     "value": 24.0,
+     "unit": "cpm",
+     "latitude": 40.26478,
+     "longitude": 0.23659,
+     "captured_at": "2022-06-30T15:37:35.000Z",
+     "ref": "d13642b98a27",
+     "region": "valencia"
+    },
+    {
+     "value": 27.0,
+     "unit": "cpm",
+     "latitude": 40.271968333333334,
+     "longitude": 0.23562666666666668,
+     "captured_at": "2022-06-30T15:37:59.000Z",
+     "ref": "243ea6191112",
+     "region": "valencia"
+    },
+    {
+     "value": 32.0,
+     "unit": "cpm",
+     "latitude": 40.273615,
+     "longitude": 0.23490166666666668,
+     "captured_at": "2022-06-30T15:38:04.000Z",
+     "ref": "90da0c41b66b",
+     "region": "valencia"
+    },
+    {
+     "value": 27.0,
+     "unit": "cpm",
+     "latitude": 40.283698333333334,
+     "longitude": 0.22865333333333332,
+     "captured_at": "2022-06-30T15:38:40.000Z",
+     "ref": "80ab00a3a719",
+     "region": "valencia"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 40.294988333333336,
+     "longitude": 0.2321,
+     "captured_at": "2022-06-30T15:39:25.000Z",
+     "ref": "2c66a8c1270f",
+     "region": "valencia"
+    },
+    {
+     "value": 40.0,
+     "unit": "cpm",
+     "latitude": 40.298768333333335,
+     "longitude": 0.23495,
+     "captured_at": "2022-06-30T15:39:40.000Z",
+     "ref": "44ebab5daaf9",
+     "region": "valencia"
+    },
+    {
+     "value": 31.0,
+     "unit": "cpm",
+     "latitude": 40.304525,
+     "longitude": 0.23825833333333332,
+     "captured_at": "2022-06-30T15:40:00.000Z",
+     "ref": "d7b4e87fc19d",
+     "region": "valencia"
+    },
+    {
+     "value": 29.0,
+     "unit": "cpm",
+     "latitude": 40.312545,
+     "longitude": 0.24415666666666666,
+     "captured_at": "2022-06-30T15:40:30.000Z",
+     "ref": "c96070664e6a",
+     "region": "valencia"
+    },
+    {
+     "value": 25.0,
+     "unit": "cpm",
+     "latitude": 40.313795,
+     "longitude": 0.24541666666666667,
+     "captured_at": "2022-06-30T15:40:35.000Z",
+     "ref": "8441ab4da745",
+     "region": "valencia"
+    },
+    {
+     "value": 24.0,
+     "unit": "cpm",
+     "latitude": 40.321095,
+     "longitude": 0.2522183333333333,
+     "captured_at": "2022-06-30T15:41:05.000Z",
+     "ref": "41e62dfda6b8",
+     "region": "valencia"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 40.333571666666664,
+     "longitude": 0.26442,
+     "captured_at": "2022-06-30T15:42:00.000Z",
+     "ref": "f3dbd22d754f",
+     "region": "valencia"
+    },
+    {
+     "value": 40.0,
+     "unit": "cpm",
+     "latitude": 40.33441,
+     "longitude": 0.2653183333333333,
+     "captured_at": "2022-06-30T15:42:05.000Z",
+     "ref": "3dcac994256e",
+     "region": "valencia"
+    },
+    {
+     "value": 43.0,
+     "unit": "cpm",
+     "latitude": 40.342795,
+     "longitude": 0.2747583333333333,
+     "captured_at": "2022-06-30T15:42:45.000Z",
+     "ref": "dbce3f0d09e7",
+     "region": "valencia"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 40.344965,
+     "longitude": 0.2801883333333333,
+     "captured_at": "2022-06-30T15:43:00.000Z",
+     "ref": "4572894e5f0e",
+     "region": "valencia"
+    },
+    {
+     "value": 28.0,
+     "unit": "cpm",
+     "latitude": 40.345843333333335,
+     "longitude": 0.2841166666666667,
+     "captured_at": "2022-06-30T15:43:10.000Z",
+     "ref": "a6626e2c4542",
+     "region": "valencia"
+    },
+    {
+     "value": 29.0,
+     "unit": "cpm",
+     "latitude": 40.349338333333336,
+     "longitude": 0.2948733333333333,
+     "captured_at": "2022-06-30T15:43:40.000Z",
+     "ref": "d9cd89c578e6",
+     "region": "valencia"
+    },
+    {
+     "value": 24.0,
+     "unit": "cpm",
+     "latitude": 40.35213666666667,
+     "longitude": 0.303625,
+     "captured_at": "2022-06-30T15:44:06.000Z",
+     "ref": "ddd1e1ee5139",
+     "region": "valencia"
+    },
+    {
+     "value": 24.0,
+     "unit": "cpm",
+     "latitude": 40.35442666666667,
+     "longitude": 0.31192,
+     "captured_at": "2022-06-30T15:44:30.000Z",
+     "ref": "231e8c15af1f",
+     "region": "valencia"
+    },
+    {
+     "value": 27.0,
+     "unit": "cpm",
+     "latitude": 40.355225,
+     "longitude": 0.3135133333333333,
+     "captured_at": "2022-06-30T15:44:35.000Z",
+     "ref": "bab72f64b6b2",
+     "region": "valencia"
+    },
+    {
+     "value": 39.0,
+     "unit": "cpm",
+     "latitude": 40.36288833333333,
+     "longitude": 0.3239066666666667,
+     "captured_at": "2022-06-30T15:45:16.000Z",
+     "ref": "476482fb9fb4",
+     "region": "valencia"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 40.36489666666667,
+     "longitude": 0.32666,
+     "captured_at": "2022-06-30T15:45:26.000Z",
+     "ref": "e3647d79b460",
+     "region": "valencia"
+    },
+    {
+     "value": 40.0,
+     "unit": "cpm",
+     "latitude": 40.37347833333333,
+     "longitude": 0.33394833333333335,
+     "captured_at": "2022-06-30T15:46:01.000Z",
+     "ref": "68ad4a1253a5",
+     "region": "valencia"
+    },
+    {
+     "value": 44.0,
+     "unit": "cpm",
+     "latitude": 40.37461,
+     "longitude": 0.3352016666666667,
+     "captured_at": "2022-06-30T15:46:06.000Z",
+     "ref": "15627b777b37",
+     "region": "valencia"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 40.38392,
+     "longitude": 0.343725,
+     "captured_at": "2022-06-30T15:46:46.000Z",
+     "ref": "601036e7ad67",
+     "region": "valencia"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 40.38515666666667,
+     "longitude": 0.34464333333333336,
+     "captured_at": "2022-06-30T15:46:51.000Z",
+     "ref": "71d766bcb438",
+     "region": "valencia"
+    },
+    {
+     "value": 29.0,
+     "unit": "cpm",
+     "latitude": 40.391115,
+     "longitude": 0.35395666666666664,
+     "captured_at": "2022-06-30T15:47:26.000Z",
+     "ref": "68d125ec9c03",
+     "region": "valencia"
+    },
+    {
+     "value": 26.0,
+     "unit": "cpm",
+     "latitude": 40.39328,
+     "longitude": 0.364655,
+     "captured_at": "2022-06-30T15:48:01.000Z",
+     "ref": "2843bbf4296b",
+     "region": "valencia"
+    },
+    {
+     "value": 28.0,
+     "unit": "cpm",
+     "latitude": 40.39494666666667,
+     "longitude": 0.36766666666666664,
+     "captured_at": "2022-06-30T15:48:11.000Z",
+     "ref": "bb341ca52087",
+     "region": "valencia"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 40.40417166666667,
+     "longitude": 0.3707816666666667,
+     "captured_at": "2022-06-30T15:48:46.000Z",
+     "ref": "72f5f925e3f6",
+     "region": "valencia"
+    },
+    {
+     "value": 35.0,
+     "unit": "cpm",
+     "latitude": 40.41377333333333,
+     "longitude": 0.3728516666666667,
+     "captured_at": "2022-06-30T15:49:21.000Z",
+     "ref": "5e7ce965b095",
+     "region": "valencia"
+    },
+    {
+     "value": 34.0,
+     "unit": "cpm",
+     "latitude": 40.41624,
+     "longitude": 0.3747083333333333,
+     "captured_at": "2022-06-30T15:49:31.000Z",
+     "ref": "9c1101686cd4",
+     "region": "valencia"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 40.42436333333333,
+     "longitude": 0.38209166666666666,
+     "captured_at": "2022-06-30T15:50:06.000Z",
+     "ref": "cf0cf33e00f2",
+     "region": "valencia"
+    },
+    {
+     "value": 36.0,
+     "unit": "cpm",
+     "latitude": 40.42806,
+     "longitude": 0.3846966666666667,
+     "captured_at": "2022-06-30T15:50:21.000Z",
+     "ref": "b510db487fe7",
+     "region": "valencia"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 40.434423333333335,
+     "longitude": 0.38798666666666665,
+     "captured_at": "2022-06-30T15:50:46.000Z",
+     "ref": "b7edb9abc042",
+     "region": "valencia"
+    },
+    {
+     "value": 35.0,
+     "unit": "cpm",
+     "latitude": 40.444968333333335,
+     "longitude": 0.3947016666666667,
+     "captured_at": "2022-06-30T15:51:26.000Z",
+     "ref": "e8ff16bd4b5d",
+     "region": "valencia"
+    },
+    {
+     "value": 23.0,
+     "unit": "cpm",
+     "latitude": 40.45403666666667,
+     "longitude": 0.40313333333333334,
+     "captured_at": "2022-06-30T15:52:02.000Z",
+     "ref": "ad62bbbb79cc",
+     "region": "valencia"
+    },
+    {
+     "value": 28.0,
+     "unit": "cpm",
+     "latitude": 40.45541,
+     "longitude": 0.404105,
+     "captured_at": "2022-06-30T15:52:07.000Z",
+     "ref": "7fe16e00d545",
+     "region": "valencia"
+    },
+    {
+     "value": 36.0,
+     "unit": "cpm",
+     "latitude": 40.46498833333333,
+     "longitude": 0.41219333333333336,
+     "captured_at": "2022-06-30T15:52:47.000Z",
+     "ref": "de78f417dcd6",
+     "region": "valencia"
+    },
+    {
+     "value": 41.0,
+     "unit": "cpm",
+     "latitude": 40.46714,
+     "longitude": 0.41474833333333333,
+     "captured_at": "2022-06-30T15:52:57.000Z",
+     "ref": "6fa6138b75a9",
+     "region": "valencia"
+    },
+    {
+     "value": 36.0,
+     "unit": "cpm",
+     "latitude": 40.474963333333335,
+     "longitude": 0.41909,
+     "captured_at": "2022-06-30T15:53:27.000Z",
+     "ref": "695bd82a3be3",
+     "region": "valencia"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 40.48487166666666,
+     "longitude": 0.416605,
+     "captured_at": "2022-06-30T15:54:02.000Z",
+     "ref": "2777fbdb092c",
+     "region": "valencia"
+    },
+    {
+     "value": 30.0,
+     "unit": "cpm",
+     "latitude": 40.49191833333333,
+     "longitude": 0.415,
+     "captured_at": "2022-06-30T15:54:27.000Z",
+     "ref": "13594f3bc746",
+     "region": "valencia"
+    },
+    {
+     "value": 29.0,
+     "unit": "cpm",
+     "latitude": 40.494365,
+     "longitude": 0.4151166666666667,
+     "captured_at": "2022-06-30T15:54:37.000Z",
+     "ref": "3dc5e4b373d7",
+     "region": "valencia"
+    },
+    {
+     "value": 37.0,
+     "unit": "cpm",
+     "latitude": 40.51366,
+     "longitude": 0.41545333333333334,
+     "captured_at": "2022-06-30T15:55:47.000Z",
+     "ref": "075c21fa58cb",
+     "region": "valencia"
+    },
+    {
+     "value": 361.0,
+     "unit": "cpm",
+     "latitude": 26.723735,
+     "longitude": -15.839425,
+     "captured_at": "2022-11-10T16:05:41.000Z",
+     "ref": "698e9e1b5c03",
+     "region": "canarias"
+    },
+    {
+     "value": 17.0,
+     "unit": "cpm",
+     "latitude": 28.054751666666668,
+     "longitude": -16.734813333333335,
+     "captured_at": "2025-03-06T11:42:33.000Z",
+     "ref": "12266fd17767",
+     "region": "canarias"
+    },
+    {
+     "value": 33.0,
+     "unit": "cpm",
+     "latitude": 28.054206666666666,
+     "longitude": -16.735015,
+     "captured_at": "2025-03-06T11:42:53.000Z",
+     "ref": "862f5b759853",
+     "region": "canarias"
+    },
+    {
+     "value": 50.0,
+     "unit": "cpm",
+     "latitude": 28.058141666666668,
+     "longitude": -16.73369,
+     "captured_at": "2025-03-06T11:44:43.000Z",
+     "ref": "8975f3468df9",
+     "region": "canarias"
+    },
+    {
+     "value": 40.0,
+     "unit": "cpm",
+     "latitude": 28.058238333333332,
+     "longitude": -16.73635833333333,
+     "captured_at": "2025-03-06T13:11:43.000Z",
+     "ref": "a3ac6a7dd4dc",
+     "region": "canarias"
+    }
+   ]
+  },
+  "light_pollution": {
+   "name": "Globe at Night",
+   "file": "https://globeatnight.org/documents/1190/GaN2025.csv",
+   "year": 2025,
+   "licence": "CC BY 4.0 -- https://globeatnight.org/maps-data/",
+   "attribution": "Globe at Night, https://globeatnight.org -- data made available under CC BY 4.0. Files generated by Dennis L. Ward, (c) Copyright 2007 University Corporation for Atmospheric Research.",
+   "api_key": "none needed (plain CSV download, verified by request)",
+   "fields_kept": [
+    "Latitude",
+    "Longitude",
+    "Elevation(m)",
+    "UTDate",
+    "UTTime",
+    "LimitingMag",
+    "SQMReading",
+    "CloudCover",
+    "Constellation",
+    "Country",
+    "ref"
+   ],
+   "records": [
+    {
+     "Latitude": "40.47857890960269",
+     "Longitude": "-3.3664978150774694",
+     "Elevation(m)": "588.31",
+     "UTDate": "2025-01-02",
+     "UTTime": "19:00",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Pegasus",
+     "Country": "Spain",
+     "ref": "df435aff87b5"
+    },
+    {
+     "Latitude": "40.4821088",
+     "Longitude": "-3.3643486",
+     "Elevation(m)": "586.77",
+     "UTDate": "2025-01-04",
+     "UTTime": "18:57",
+     "LimitingMag": "0",
+     "CloudCover": "over 1/2 of sky",
+     "Constellation": "Pegasus",
+     "Country": "Spain",
+     "ref": "3a5111c99eae"
+    },
+    {
+     "Latitude": "40.469972742745384",
+     "Longitude": "-3.3614452125768812",
+     "Elevation(m)": "584.38",
+     "UTDate": "2025-01-09",
+     "UTTime": "20:17",
+     "LimitingMag": "5",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "786ca397dee5"
+    },
+    {
+     "Latitude": "40.33544305115129",
+     "Longitude": "-3.3796789062492327",
+     "Elevation(m)": "786.45",
+     "UTDate": "2025-01-10",
+     "UTTime": "19:36",
+     "LimitingMag": "5",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "2e5d6811bd7e"
+    },
+    {
+     "Latitude": "40.23531917464027",
+     "Longitude": "-3.4330076194745196",
+     "Elevation(m)": "604.59",
+     "UTDate": "2025-01-11",
+     "UTTime": "18:02",
+     "LimitingMag": "5",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "3ddc845bffa8"
+    },
+    {
+     "Latitude": "40.4200261",
+     "Longitude": "-3.7129314",
+     "Elevation(m)": "632.89",
+     "UTDate": "2025-01-11",
+     "UTTime": "19:12",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "74d552f0abe9"
+    },
+    {
+     "Latitude": "40.366903649653636",
+     "Longitude": "-3.2614526601680094",
+     "Elevation(m)": "833.08",
+     "UTDate": "2025-01-11",
+     "UTTime": "19:36",
+     "LimitingMag": "2",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "6fc1ce8fd7fa"
+    },
+    {
+     "Latitude": "40.3525973",
+     "Longitude": "-3.4239584",
+     "Elevation(m)": "643.36",
+     "UTDate": "2025-01-11",
+     "UTTime": "20:30",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "78d790a83fba"
+    },
+    {
+     "Latitude": "40.4865329",
+     "Longitude": "-3.3698618",
+     "Elevation(m)": "589.12",
+     "UTDate": "2025-01-13",
+     "UTTime": "18:47",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "f9a09eb9ee98"
+    },
+    {
+     "Latitude": "40.4699745",
+     "Longitude": "-3.3657576",
+     "Elevation(m)": "583.17",
+     "UTDate": "2025-01-13",
+     "UTTime": "19:01",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "e65ac9326f3c"
+    },
+    {
+     "Latitude": "40.4685759",
+     "Longitude": "-3.3649636",
+     "Elevation(m)": "583.67",
+     "UTDate": "2025-01-13",
+     "UTTime": "21:10",
+     "LimitingMag": "2",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "08f37fe7047f"
+    },
+    {
+     "Latitude": "40.46936406507354",
+     "Longitude": "-3.371631988717201",
+     "Elevation(m)": "581.88",
+     "UTDate": "2025-01-14",
+     "UTTime": "20:55",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "b2c7510d2213"
+    },
+    {
+     "Latitude": "40.47220677016614",
+     "Longitude": "-3.372921300591304",
+     "Elevation(m)": "584.13",
+     "UTDate": "2025-01-15",
+     "UTTime": "18:17",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "25a10d33b502"
+    },
+    {
+     "Latitude": "40.47513625169279",
+     "Longitude": "-3.3602630504155595",
+     "Elevation(m)": "583.34",
+     "UTDate": "2025-01-15",
+     "UTTime": "20:49",
+     "LimitingMag": "5",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "eeb1cb4be373"
+    },
+    {
+     "Latitude": "40.4694954",
+     "Longitude": "-3.3645778",
+     "Elevation(m)": "583.86",
+     "UTDate": "2025-01-15",
+     "UTTime": "21:12",
+     "LimitingMag": "1",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "c2abc10dcc20"
+    },
+    {
+     "Latitude": "28.1235459",
+     "Longitude": "-15.4362574",
+     "Elevation(m)": "61.4",
+     "UTDate": "2025-01-16",
+     "UTTime": "17:38",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "ef1d6752d77e"
+    },
+    {
+     "Latitude": "28.097720651142723",
+     "Longitude": "-15.440300969321036",
+     "Elevation(m)": "167.11",
+     "UTDate": "2025-01-16",
+     "UTTime": "17:50",
+     "LimitingMag": "0",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "b8546e3b79b7"
+    },
+    {
+     "Latitude": "28.0616461",
+     "Longitude": "-15.5459718",
+     "Elevation(m)": "588.29",
+     "UTDate": "2025-01-17",
+     "UTTime": "09:27",
+     "LimitingMag": "2",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "cd42c2e64b76"
+    },
+    {
+     "Latitude": "40.5094102",
+     "Longitude": "-3.3628686",
+     "Elevation(m)": "610.73",
+     "UTDate": "2025-01-17",
+     "UTTime": "21:07",
+     "LimitingMag": "1",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "874a71a3204f"
+    },
+    {
+     "Latitude": "40.36915258557899",
+     "Longitude": "-3.591299489533617",
+     "Elevation(m)": "647.89",
+     "UTDate": "2025-01-18",
+     "UTTime": "20:50",
+     "LimitingMag": "2",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "616500ecbf3a"
+    },
+    {
+     "Latitude": "40.4756879",
+     "Longitude": "-3.384194",
+     "Elevation(m)": "583.8",
+     "UTDate": "2025-01-19",
+     "UTTime": "21:32",
+     "LimitingMag": "1",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "41031afa5211"
+    },
+    {
+     "Latitude": "40.43636643937924",
+     "Longitude": "-3.3052869813133623",
+     "Elevation(m)": "792.92",
+     "UTDate": "2025-01-20",
+     "UTTime": "18:22",
+     "LimitingMag": "4",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "a0e62780db5f"
+    },
+    {
+     "Latitude": "40.42058686657195",
+     "Longitude": "-3.1762248161353512",
+     "Elevation(m)": "843.7",
+     "UTDate": "2025-01-20",
+     "UTTime": "20:41",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "0e9355f90114"
+    },
+    {
+     "Latitude": "38.39632895538918",
+     "Longitude": "-0.5967748181856591",
+     "Elevation(m)": "170.26",
+     "UTDate": "2025-01-24",
+     "UTTime": "19:00",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "e2aac932d062"
+    },
+    {
+     "Latitude": "40.4843898",
+     "Longitude": "-3.3688023",
+     "Elevation(m)": "586.61",
+     "UTDate": "2025-01-24",
+     "UTTime": "19:52",
+     "LimitingMag": "0",
+     "CloudCover": "over 1/2 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "89f935b1e333"
+    },
+    {
+     "Latitude": "36.69625420027551",
+     "Longitude": "-6.114916002838586",
+     "Elevation(m)": "39.73",
+     "UTDate": "2025-01-24",
+     "UTTime": "19:54",
+     "LimitingMag": "4",
+     "SQMReading": "17.87",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "987093067e77"
+    },
+    {
+     "Latitude": "40.4840113",
+     "Longitude": "-3.3620722",
+     "Elevation(m)": "589.35",
+     "UTDate": "2025-01-25",
+     "UTTime": "19:17",
+     "LimitingMag": "3",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "1eef8f401b25"
+    },
+    {
+     "Latitude": "40.4725624",
+     "Longitude": "-3.4426694",
+     "Elevation(m)": "593.75",
+     "UTDate": "2025-01-25",
+     "UTTime": "20:45",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "da2247802117"
+    },
+    {
+     "Latitude": "40.4745461",
+     "Longitude": "-3.3863224",
+     "Elevation(m)": "585.81",
+     "UTDate": "2025-01-25",
+     "UTTime": "21:01",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "2b18c2cf1fb4"
+    },
+    {
+     "Latitude": "40.4843898",
+     "Longitude": "-3.3688023",
+     "Elevation(m)": "586.61",
+     "UTDate": "2025-01-25",
+     "UTTime": "22:49",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "064fc17ed28a"
+    },
+    {
+     "Latitude": "40.2774625",
+     "Longitude": "-3.7943157",
+     "Elevation(m)": "666.58",
+     "UTDate": "2025-01-27",
+     "UTTime": "21:12",
+     "LimitingMag": "5",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "bb021fb105b2"
+    },
+    {
+     "Latitude": "40.4770036",
+     "Longitude": "-3.3724516",
+     "Elevation(m)": "587.39",
+     "UTDate": "2025-01-28",
+     "UTTime": "19:18",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "e079aee2e6a9"
+    },
+    {
+     "Latitude": "40.6456116",
+     "Longitude": "-3.3370028",
+     "Elevation(m)": "721.96",
+     "UTDate": "2025-01-28",
+     "UTTime": "19:40",
+     "LimitingMag": "3",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "76864b71fadf"
+    },
+    {
+     "Latitude": "36.686310233524694",
+     "Longitude": "-6.134797415443893",
+     "Elevation(m)": "49.45",
+     "UTDate": "2025-01-28",
+     "UTTime": "22:51",
+     "LimitingMag": "4",
+     "SQMReading": "17.93",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "797f89457f72"
+    },
+    {
+     "Latitude": "40.5474107",
+     "Longitude": "-3.3766851",
+     "Elevation(m)": "635.43",
+     "UTDate": "2025-01-29",
+     "UTTime": "20:12",
+     "LimitingMag": "3",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "1cb1f94b64b1"
+    },
+    {
+     "Latitude": "40.46311235007192",
+     "Longitude": "-3.359760212782168",
+     "Elevation(m)": "595.88",
+     "UTDate": "2025-01-30",
+     "UTTime": "19:23",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "c181715db5cb"
+    },
+    {
+     "Latitude": "39.28657737350948",
+     "Longitude": "-2.977254062514705",
+     "Elevation(m)": "644.03",
+     "UTDate": "2025-01-30",
+     "UTTime": "19:37",
+     "LimitingMag": "2",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "5a363efeccca"
+    },
+    {
+     "Latitude": "40.5068164",
+     "Longitude": "-3.3702819",
+     "Elevation(m)": "607.88",
+     "UTDate": "2025-01-30",
+     "UTTime": "19:41",
+     "LimitingMag": "0",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "500fa795af64"
+    },
+    {
+     "Latitude": "40.6332569",
+     "Longitude": "-3.3328702",
+     "Elevation(m)": "718.47",
+     "UTDate": "2025-01-31",
+     "UTTime": "18:11",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "94d57634df6e"
+    },
+    {
+     "Latitude": "42.8357684",
+     "Longitude": "-2.708517",
+     "Elevation(m)": "545.96",
+     "UTDate": "2025-01-31",
+     "UTTime": "18:27",
+     "LimitingMag": "1",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "c7eed8a80d5b"
+    },
+    {
+     "Latitude": "40.46835639378017",
+     "Longitude": "-3.3686318598009435",
+     "Elevation(m)": "582.3",
+     "UTDate": "2025-01-31",
+     "UTTime": "20:02",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "6b2bbabcb4c7"
+    },
+    {
+     "Latitude": "40.51214",
+     "Longitude": "-3.36034",
+     "Elevation(m)": "608.65",
+     "UTDate": "2025-01-31",
+     "UTTime": "20:46",
+     "LimitingMag": "1",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "bedc827d3d8d"
+    },
+    {
+     "Latitude": "40.47619982252796",
+     "Longitude": "-3.392711671931793",
+     "Elevation(m)": "581.59",
+     "UTDate": "2025-01-31",
+     "UTTime": "22:41",
+     "LimitingMag": "6",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "03be2913203d"
+    },
+    {
+     "Latitude": "40.5134295",
+     "Longitude": "-3.4094629",
+     "Elevation(m)": "615.04",
+     "UTDate": "2025-02-02",
+     "UTTime": "21:34",
+     "LimitingMag": "5",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "c74c708c76c4"
+    },
+    {
+     "Latitude": "40.5648765",
+     "Longitude": "-3.2680616",
+     "Elevation(m)": "632.04",
+     "UTDate": "2025-02-02",
+     "UTTime": "22:59",
+     "LimitingMag": "2",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "229bee0cd5ff"
+    },
+    {
+     "Latitude": "40.44169007682365",
+     "Longitude": "-3.470822020378097",
+     "Elevation(m)": "575.52",
+     "UTDate": "2025-02-03",
+     "UTTime": "21:32",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "22b82583b499"
+    },
+    {
+     "Latitude": "42.6463539",
+     "Longitude": "-8.598375",
+     "Elevation(m)": "249.45",
+     "UTDate": "2025-02-03",
+     "UTTime": "22:06",
+     "LimitingMag": "5",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "41821d8f93b3"
+    },
+    {
+     "Latitude": "42.631000030917114",
+     "Longitude": "-8.586792886319714",
+     "Elevation(m)": "239.06",
+     "UTDate": "2025-02-04",
+     "UTTime": "20:37",
+     "LimitingMag": "5",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "287ff1a0010c"
+    },
+    {
+     "Latitude": "40.4673603",
+     "Longitude": "-3.3614106",
+     "Elevation(m)": "581.48",
+     "UTDate": "2025-02-05",
+     "UTTime": "20:41",
+     "LimitingMag": "3",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "0250c048e8ec"
+    },
+    {
+     "Latitude": "40.481895572257876",
+     "Longitude": "-3.350304415714165",
+     "Elevation(m)": "585.85",
+     "UTDate": "2025-02-06",
+     "UTTime": "21:18",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "8216374e74c6"
+    },
+    {
+     "Latitude": "40.4417024689684",
+     "Longitude": "-3.3574366641749886",
+     "Elevation(m)": "661.75",
+     "UTDate": "2025-02-07",
+     "UTTime": "20:15",
+     "LimitingMag": "0",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "0c57b57b2bda"
+    },
+    {
+     "Latitude": "28.569437403222953",
+     "Longitude": "-16.332401249452083",
+     "Elevation(m)": "6.11",
+     "UTDate": "2025-02-08",
+     "UTTime": "23:19",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Canis Major",
+     "Country": "Spain",
+     "ref": "3f5e8ae4be6e"
+    },
+    {
+     "Latitude": "40.4653704",
+     "Longitude": "-3.5951518",
+     "Elevation(m)": "645.74",
+     "UTDate": "2025-02-11",
+     "UTTime": "20:40",
+     "LimitingMag": "0",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "2f10f2105377"
+    },
+    {
+     "Latitude": "40.47926486102803",
+     "Longitude": "-3.3785537671982446",
+     "Elevation(m)": "585.05",
+     "UTDate": "2025-02-12",
+     "UTTime": "19:32",
+     "LimitingMag": "4",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "4fc1246ba475"
+    },
+    {
+     "Latitude": "40.61630892733578",
+     "Longitude": "-3.6976073273557852",
+     "Elevation(m)": "685.18",
+     "UTDate": "2025-02-14",
+     "UTTime": "21:18",
+     "LimitingMag": "5",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "ecce2bc9eb30"
+    },
+    {
+     "Latitude": "40.35542981537407",
+     "Longitude": "-3.195031059733613",
+     "Elevation(m)": "840.82",
+     "UTDate": "2025-02-16",
+     "UTTime": "18:30",
+     "LimitingMag": "1",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "1c8c2aa7e88e"
+    },
+    {
+     "Latitude": "40.239594671100335",
+     "Longitude": "-2.50583460895613",
+     "Elevation(m)": "786.45",
+     "UTDate": "2025-02-16",
+     "UTTime": "19:34",
+     "LimitingMag": "1",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "01f2fd9ea26a"
+    },
+    {
+     "Latitude": "40.46657848538021",
+     "Longitude": "-3.3679946487930845",
+     "Elevation(m)": "581.49",
+     "UTDate": "2025-02-17",
+     "UTTime": "18:36",
+     "LimitingMag": "1",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "c9c1932cf44b"
+    },
+    {
+     "Latitude": "40.4324658",
+     "Longitude": "-3.2987244",
+     "Elevation(m)": "741.28",
+     "UTDate": "2025-02-17",
+     "UTTime": "20:24",
+     "LimitingMag": "3",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "6c02ce8e089f"
+    },
+    {
+     "Latitude": "40.49596449101464",
+     "Longitude": "-3.364971582388938",
+     "Elevation(m)": "601.97",
+     "UTDate": "2025-02-18",
+     "UTTime": "22:13",
+     "LimitingMag": "4",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "6ef134b8776c"
+    },
+    {
+     "Latitude": "40.4476695",
+     "Longitude": "-3.114935",
+     "Elevation(m)": "686.42",
+     "UTDate": "2025-02-19",
+     "UTTime": "22:42",
+     "LimitingMag": "7",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "3f0a1168d070"
+    },
+    {
+     "Latitude": "42.8531869",
+     "Longitude": "-2.6732421",
+     "Elevation(m)": "515.45",
+     "UTDate": "2025-02-20",
+     "UTTime": "22:26",
+     "LimitingMag": "3",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "b9e4d1f63ed2"
+    },
+    {
+     "Latitude": "40.4950347",
+     "Longitude": "-3.359517",
+     "Elevation(m)": "590.02",
+     "UTDate": "2025-02-21",
+     "UTTime": "20:48",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "de5c1edcdf5a"
+    },
+    {
+     "Latitude": "40.4851851",
+     "Longitude": "-3.3476247",
+     "Elevation(m)": "587.18",
+     "UTDate": "2025-02-21",
+     "UTTime": "21:02",
+     "LimitingMag": "1",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "06436816d96c"
+    },
+    {
+     "Latitude": "40.43596105288898",
+     "Longitude": "-3.299128737829007",
+     "Elevation(m)": "725.75",
+     "UTDate": "2025-02-22",
+     "UTTime": "19:57",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "a07de3373742"
+    },
+    {
+     "Latitude": "40.4693256",
+     "Longitude": "-3.3642348",
+     "Elevation(m)": "583.41",
+     "UTDate": "2025-02-22",
+     "UTTime": "21:30",
+     "LimitingMag": "2",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "8b0368834fa3"
+    },
+    {
+     "Latitude": "40.5474107",
+     "Longitude": "-3.3766851",
+     "Elevation(m)": "635.43",
+     "UTDate": "2025-02-23",
+     "UTTime": "19:39",
+     "LimitingMag": "2",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "7306729b5b93"
+    },
+    {
+     "Latitude": "40.4683383",
+     "Longitude": "-3.3649242",
+     "Elevation(m)": "584.02",
+     "UTDate": "2025-02-23",
+     "UTTime": "20:36",
+     "LimitingMag": "4",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "b059ccce49a4"
+    },
+    {
+     "Latitude": "40.4772041",
+     "Longitude": "-3.3633253",
+     "Elevation(m)": "586.03",
+     "UTDate": "2025-02-24",
+     "UTTime": "20:34",
+     "LimitingMag": "1",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "133138fb638d"
+    },
+    {
+     "Latitude": "40.4742533",
+     "Longitude": "-3.3864734",
+     "Elevation(m)": "584.04",
+     "UTDate": "2025-02-24",
+     "UTTime": "22:30",
+     "LimitingMag": "1",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "63a25ecbc60c"
+    },
+    {
+     "Latitude": "40.4843898",
+     "Longitude": "-3.3688023",
+     "Elevation(m)": "586.61",
+     "UTDate": "2025-02-25",
+     "UTTime": "19:18",
+     "LimitingMag": "1",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "d2588be35b3c"
+    },
+    {
+     "Latitude": "40.48851937289266",
+     "Longitude": "-3.3756286390539203",
+     "Elevation(m)": "591.93",
+     "UTDate": "2025-02-25",
+     "UTTime": "20:08",
+     "LimitingMag": "2",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "7ab98e1869c5"
+    },
+    {
+     "Latitude": "40.4707015",
+     "Longitude": "-3.3620906",
+     "Elevation(m)": "584.93",
+     "UTDate": "2025-02-26",
+     "UTTime": "20:17",
+     "LimitingMag": "3",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "0c87098a9f3d"
+    },
+    {
+     "Latitude": "40.4843898",
+     "Longitude": "-3.3688023",
+     "Elevation(m)": "586.61",
+     "UTDate": "2025-02-26",
+     "UTTime": "23:07",
+     "LimitingMag": "0",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "5de2c45f20a3"
+    },
+    {
+     "Latitude": "40.5107829",
+     "Longitude": "-3.3689906",
+     "Elevation(m)": "610.82",
+     "UTDate": "2025-02-28",
+     "UTTime": "19:00",
+     "LimitingMag": "3",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "56a9920247d8"
+    },
+    {
+     "Latitude": "40.3437868",
+     "Longitude": "-3.3783208",
+     "Elevation(m)": "737.18",
+     "UTDate": "2025-02-28",
+     "UTTime": "19:56",
+     "LimitingMag": "5",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "0f83be24aa1e"
+    },
+    {
+     "Latitude": "42.6490546",
+     "Longitude": "-6.3388531",
+     "Elevation(m)": "880.01",
+     "UTDate": "2025-02-28",
+     "UTTime": "19:57",
+     "LimitingMag": "6",
+     "SQMReading": "20.85",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "d758cfeb63d9"
+    },
+    {
+     "Latitude": "40.589120414515946",
+     "Longitude": "-3.248770342750904",
+     "Elevation(m)": "636.55",
+     "UTDate": "2025-02-28",
+     "UTTime": "21:01",
+     "LimitingMag": "0",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "17ad49579eaf"
+    },
+    {
+     "Latitude": "40.5017366",
+     "Longitude": "-3.334407",
+     "Elevation(m)": "592.7",
+     "UTDate": "2025-02-28",
+     "UTTime": "21:32",
+     "LimitingMag": "1",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "2649522f1095"
+    },
+    {
+     "Latitude": "42.6490546",
+     "Longitude": "-6.3388531",
+     "Elevation(m)": "880.01",
+     "UTDate": "2025-03-01",
+     "UTTime": "20:45",
+     "LimitingMag": "6",
+     "SQMReading": "20.93",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "1e2b46a40c9e"
+    },
+    {
+     "Latitude": "42.65216909999999",
+     "Longitude": "-6.3447485",
+     "Elevation(m)": "840.96",
+     "UTDate": "2025-03-02",
+     "UTTime": "19:39",
+     "LimitingMag": "5",
+     "SQMReading": "20.31",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "a1f477eb2a29"
+    },
+    {
+     "Latitude": "40.43555522239139",
+     "Longitude": "-3.362363151626293",
+     "Elevation(m)": "658.73",
+     "UTDate": "2025-03-02",
+     "UTTime": "21:46",
+     "LimitingMag": "2",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Canis Major",
+     "Country": "Spain",
+     "ref": "deb3b5dc2ccc"
+    },
+    {
+     "Latitude": "40.4298938402018",
+     "Longitude": "-3.2946956822140328",
+     "Elevation(m)": "809.18",
+     "UTDate": "2025-03-03",
+     "UTTime": "20:00",
+     "LimitingMag": "2",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "c029af2af5ae"
+    },
+    {
+     "Latitude": "40.47115704509764",
+     "Longitude": "-3.382200715929231",
+     "Elevation(m)": "580.55",
+     "UTDate": "2025-03-03",
+     "UTTime": "22:29",
+     "LimitingMag": "3",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "239a590feec6"
+    },
+    {
+     "Latitude": "28.11141939542052",
+     "Longitude": "-15.42301171346302",
+     "Elevation(m)": "11.31",
+     "UTDate": "2025-03-03",
+     "UTTime": "22:49",
+     "LimitingMag": "4",
+     "SQMReading": "18.4",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "bec1feeb13b7"
+    },
+    {
+     "Latitude": "40.4567552",
+     "Longitude": "-3.4754967",
+     "Elevation(m)": "585.95",
+     "UTDate": "2025-03-03",
+     "UTTime": "23:01",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "4b45390124fa"
+    },
+    {
+     "Latitude": "42.4298846",
+     "Longitude": "-8.6446202",
+     "Elevation(m)": "23.07",
+     "UTDate": "2025-03-04",
+     "UTTime": "19:23",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "5de7de3dee9e"
+    },
+    {
+     "Latitude": "40.49300005001255",
+     "Longitude": "-3.378869169480536",
+     "Elevation(m)": "595.29",
+     "UTDate": "2025-03-04",
+     "UTTime": "20:40",
+     "LimitingMag": "3",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "bcc2655f3944"
+    },
+    {
+     "Latitude": "37.14313989849413",
+     "Longitude": "-3.631463392463228",
+     "Elevation(m)": "669.38",
+     "UTDate": "2025-03-13",
+     "UTTime": "13:14",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "32cdc5f1065f"
+    },
+    {
+     "Latitude": "40.6456116",
+     "Longitude": "-3.3370028",
+     "Elevation(m)": "721.96",
+     "UTDate": "2025-03-15",
+     "UTTime": "18:55",
+     "LimitingMag": "1",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "a5a13a857b5a"
+    },
+    {
+     "Latitude": "40.452884",
+     "Longitude": "-3.1331221",
+     "Elevation(m)": "885.21",
+     "UTDate": "2025-03-18",
+     "UTTime": "21:52",
+     "LimitingMag": "6",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "a5f39911e7dd"
+    },
+    {
+     "Latitude": "40.479664",
+     "Longitude": "-3.400078",
+     "Elevation(m)": "583.06",
+     "UTDate": "2025-03-19",
+     "UTTime": "21:24",
+     "LimitingMag": "0",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "26ca991841cd"
+    },
+    {
+     "Latitude": "40.4524268",
+     "Longitude": "-3.133319",
+     "Elevation(m)": "884.49",
+     "UTDate": "2025-03-22",
+     "UTTime": "21:29",
+     "LimitingMag": "7",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "2de47f4bf239"
+    },
+    {
+     "Latitude": "40.34771995637971",
+     "Longitude": "-3.833940603718584",
+     "Elevation(m)": "697.15",
+     "UTDate": "2025-03-23",
+     "UTTime": "20:46",
+     "LimitingMag": "1",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "45de13aa2a30"
+    },
+    {
+     "Latitude": "40.6456116",
+     "Longitude": "-3.3370028",
+     "Elevation(m)": "721.96",
+     "UTDate": "2025-03-25",
+     "UTTime": "20:53",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "bc8dd8cb0ba1"
+    },
+    {
+     "Latitude": "42.42138392402869",
+     "Longitude": "-5.41782464916501",
+     "Elevation(m)": "808.24",
+     "UTDate": "2025-03-26",
+     "UTTime": "14:14",
+     "LimitingMag": "6",
+     "SQMReading": "21.18",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "da4bdd649e44"
+    },
+    {
+     "Latitude": "40.4773013",
+     "Longitude": "-3.3911861",
+     "Elevation(m)": "581.76",
+     "UTDate": "2025-03-26",
+     "UTTime": "19:53",
+     "LimitingMag": "2",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "d9002f60482e"
+    },
+    {
+     "Latitude": "40.6456116",
+     "Longitude": "-3.3370028",
+     "Elevation(m)": "721.96",
+     "UTDate": "2025-03-26",
+     "UTTime": "20:30",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "11aaae050e4b"
+    },
+    {
+     "Latitude": "40.4742533",
+     "Longitude": "-3.3864734",
+     "Elevation(m)": "584.04",
+     "UTDate": "2025-03-27",
+     "UTTime": "22:21",
+     "LimitingMag": "1",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "99b50ca093cd"
+    },
+    {
+     "Latitude": "40.4843898",
+     "Longitude": "-3.3688023",
+     "Elevation(m)": "586.61",
+     "UTDate": "2025-03-30",
+     "UTTime": "21:01",
+     "LimitingMag": "1",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "cdeb56a4861d"
+    },
+    {
+     "Latitude": "43.134803689608304",
+     "Longitude": "-5.635222807132689",
+     "Elevation(m)": "1197.49",
+     "UTDate": "2025-03-31",
+     "UTTime": "00:03",
+     "LimitingMag": "6",
+     "SQMReading": "21.43",
+     "CloudCover": "clear",
+     "Constellation": "Orion",
+     "Country": "Spain",
+     "ref": "aa3be66c19be"
+    },
+    {
+     "Latitude": "40.4762446",
+     "Longitude": "-3.3859516",
+     "Elevation(m)": "583.65",
+     "UTDate": "2025-03-31",
+     "UTTime": "19:46",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "64a5d4de472a"
+    },
+    {
+     "Latitude": "40.6359766",
+     "Longitude": "-3.3193764",
+     "Elevation(m)": "732.96",
+     "UTDate": "2025-04-04",
+     "UTTime": "20:40",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "bf3cc7cd702d"
+    },
+    {
+     "Latitude": "40.4693256",
+     "Longitude": "-3.3642348",
+     "Elevation(m)": "583.41",
+     "UTDate": "2025-04-09",
+     "UTTime": "20:20",
+     "LimitingMag": "2",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "10abf8c8acbb"
+    },
+    {
+     "Latitude": "40.36036036036036",
+     "Longitude": "-3.2631633432076743",
+     "Elevation(m)": "833.16",
+     "UTDate": "2025-04-12",
+     "UTTime": "20:45",
+     "LimitingMag": "0",
+     "CloudCover": "over 1/2 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "c6adfb482dc5"
+    },
+    {
+     "Latitude": "38.3975788",
+     "Longitude": "-6.4763215",
+     "Elevation(m)": "520.73",
+     "UTDate": "2025-04-13",
+     "UTTime": "21:30",
+     "LimitingMag": "2",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "b80f9eb8f64d"
+    },
+    {
+     "Latitude": "40.4756879",
+     "Longitude": "-3.384194",
+     "Elevation(m)": "583.8",
+     "UTDate": "2025-04-14",
+     "UTTime": "20:16",
+     "LimitingMag": "0",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "90c424306b21"
+    },
+    {
+     "Latitude": "40.4344286",
+     "Longitude": "-3.7131782",
+     "Elevation(m)": "672.85",
+     "UTDate": "2025-04-15",
+     "UTTime": "19:59",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "bce1a66b53b8"
+    },
+    {
+     "Latitude": "40.4524268",
+     "Longitude": "-3.133319",
+     "Elevation(m)": "884.49",
+     "UTDate": "2025-04-18",
+     "UTTime": "21:53",
+     "LimitingMag": "7",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "17aca61dc297"
+    },
+    {
+     "Latitude": "41.85745068858483",
+     "Longitude": "2.5637415003024033",
+     "Elevation(m)": "449.28",
+     "UTDate": "2025-04-19",
+     "UTTime": "23:00",
+     "LimitingMag": "6",
+     "SQMReading": "21.01",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "2cb4f24868c1"
+    },
+    {
+     "Latitude": "41.857376956563975",
+     "Longitude": "2.5639104624959996",
+     "Elevation(m)": "449.51",
+     "UTDate": "2025-04-20",
+     "UTTime": "00:40",
+     "LimitingMag": "6",
+     "SQMReading": "21.05",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "f81ef1ec7779"
+    },
+    {
+     "Latitude": "40.4843898",
+     "Longitude": "-3.3688023",
+     "Elevation(m)": "586.61",
+     "UTDate": "2025-04-20",
+     "UTTime": "20:16",
+     "LimitingMag": "1",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "75b9b9e292cf"
+    },
+    {
+     "Latitude": "40.5068164",
+     "Longitude": "-3.3702819",
+     "Elevation(m)": "607.88",
+     "UTDate": "2025-04-20",
+     "UTTime": "20:32",
+     "LimitingMag": "2",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "de2fd06a4c28"
+    },
+    {
+     "Latitude": "42.796664853485694",
+     "Longitude": "-5.9883218096155755",
+     "Elevation(m)": "1175.86",
+     "UTDate": "2025-04-24",
+     "UTTime": "02:27",
+     "LimitingMag": "6",
+     "SQMReading": "21.61",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "a8ca6d2bd776"
+    },
+    {
+     "Latitude": "40.5124559",
+     "Longitude": "-3.3642245",
+     "Elevation(m)": "612.08",
+     "UTDate": "2025-04-24",
+     "UTTime": "20:15",
+     "LimitingMag": "2",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "ba410740722f"
+    },
+    {
+     "Latitude": "43.13601455891577",
+     "Longitude": "-5.6339910397625665",
+     "Elevation(m)": "1190.79",
+     "UTDate": "2025-04-25",
+     "UTTime": "02:34",
+     "LimitingMag": "6",
+     "SQMReading": "21.34",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "18c2ab664e40"
+    },
+    {
+     "Latitude": "40.5068164",
+     "Longitude": "-3.3702819",
+     "Elevation(m)": "607.88",
+     "UTDate": "2025-04-25",
+     "UTTime": "19:25",
+     "LimitingMag": "1",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "997fd3db1deb"
+    },
+    {
+     "Latitude": "40.4843898",
+     "Longitude": "-3.3688023",
+     "Elevation(m)": "586.61",
+     "UTDate": "2025-04-25",
+     "UTTime": "20:11",
+     "LimitingMag": "2",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "9790002c5298"
+    },
+    {
+     "Latitude": "40.5053844",
+     "Longitude": "-3.3331936",
+     "Elevation(m)": "595.54",
+     "UTDate": "2025-04-25",
+     "UTTime": "21:46",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "1849b5145f21"
+    },
+    {
+     "Latitude": "40.4742533",
+     "Longitude": "-3.3864734",
+     "Elevation(m)": "584.04",
+     "UTDate": "2025-04-26",
+     "UTTime": "21:57",
+     "LimitingMag": "2",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "2d5a846beff5"
+    },
+    {
+     "Latitude": "40.4756879",
+     "Longitude": "-3.384194",
+     "Elevation(m)": "583.8",
+     "UTDate": "2025-04-27",
+     "UTTime": "19:50",
+     "LimitingMag": "1",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "e0b850b59f25"
+    },
+    {
+     "Latitude": "43.13468250382648",
+     "Longitude": "-5.635633636959227",
+     "Elevation(m)": "1199.54",
+     "UTDate": "2025-04-28",
+     "UTTime": "01:01",
+     "LimitingMag": "6",
+     "SQMReading": "21.37",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "46d38e8c1eab"
+    },
+    {
+     "Latitude": "40.43337148117447",
+     "Longitude": "-3.285911751718422",
+     "Elevation(m)": "819.67",
+     "UTDate": "2025-04-28",
+     "UTTime": "20:14",
+     "LimitingMag": "6",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "f37f858b92a3"
+    },
+    {
+     "Latitude": "40.6449872",
+     "Longitude": "-3.3383975",
+     "Elevation(m)": "714.26",
+     "UTDate": "2025-04-30",
+     "UTTime": "19:41",
+     "LimitingMag": "3",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "992bdc85fa81"
+    },
+    {
+     "Latitude": "40.477231",
+     "Longitude": "-3.3598319",
+     "Elevation(m)": "584.93",
+     "UTDate": "2025-04-30",
+     "UTTime": "20:09",
+     "LimitingMag": "1",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "64eef7eed3cd"
+    },
+    {
+     "Latitude": "40.5068164",
+     "Longitude": "-3.3702819",
+     "Elevation(m)": "607.88",
+     "UTDate": "2025-04-30",
+     "UTTime": "21:55",
+     "LimitingMag": "3",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "c4cddf334220"
+    },
+    {
+     "Latitude": "36.4832206",
+     "Longitude": "-4.9754969",
+     "Elevation(m)": "12.12",
+     "UTDate": "2025-05-01",
+     "UTTime": "21:28",
+     "LimitingMag": "2",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "1de847005cec"
+    },
+    {
+     "Latitude": "40.46862454657423",
+     "Longitude": "-3.3702895331349425",
+     "Elevation(m)": "582.41",
+     "UTDate": "2025-05-02",
+     "UTTime": "20:20",
+     "LimitingMag": "0",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "7db1980a9e56"
+    },
+    {
+     "Latitude": "40.4801153",
+     "Longitude": "-3.7346836",
+     "Elevation(m)": "644.8",
+     "UTDate": "2025-05-02",
+     "UTTime": "21:43",
+     "LimitingMag": "2",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "2dfec1e53dd4"
+    },
+    {
+     "Latitude": "40.441199224961686",
+     "Longitude": "-3.268338670484223",
+     "Elevation(m)": "854.25",
+     "UTDate": "2025-05-03",
+     "UTTime": "20:00",
+     "LimitingMag": "4",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "5a5b5ef2d1e0"
+    },
+    {
+     "Latitude": "40.41672790000001",
+     "Longitude": "-3.7032905",
+     "Elevation(m)": "648.3",
+     "UTDate": "2025-05-03",
+     "UTTime": "21:21",
+     "LimitingMag": "1",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "79ecaf6a912e"
+    },
+    {
+     "Latitude": "40.47546615172621",
+     "Longitude": "-3.388723682503396",
+     "Elevation(m)": "580.79",
+     "UTDate": "2025-05-04",
+     "UTTime": "20:53",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "d337ce225e8c"
+    },
+    {
+     "Latitude": "40.242427",
+     "Longitude": "-3.7592255",
+     "Elevation(m)": "645.45",
+     "UTDate": "2025-05-05",
+     "UTTime": "21:56",
+     "LimitingMag": "4",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "10cbd151d4b1"
+    },
+    {
+     "Latitude": "40.47185520000001",
+     "Longitude": "-3.4436282",
+     "Elevation(m)": "592.17",
+     "UTDate": "2025-05-10",
+     "UTTime": "20:46",
+     "LimitingMag": "1",
+     "CloudCover": "over 1/2 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "9eddef6859c7"
+    },
+    {
+     "Latitude": "40.4739545",
+     "Longitude": "-3.3754116",
+     "Elevation(m)": "586.01",
+     "UTDate": "2025-05-10",
+     "UTTime": "21:33",
+     "LimitingMag": "1",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "0b9f9b2c4a6a"
+    },
+    {
+     "Latitude": "40.4926213",
+     "Longitude": "-3.553388",
+     "Elevation(m)": "585.93",
+     "UTDate": "2025-05-13",
+     "UTTime": "04:46",
+     "LimitingMag": "0",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "ce92663add9b"
+    },
+    {
+     "Latitude": "40.4416309",
+     "Longitude": "-3.592152",
+     "Elevation(m)": "636.73",
+     "UTDate": "2025-05-13",
+     "UTTime": "05:30",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "79b5ee70b23d"
+    },
+    {
+     "Latitude": "40.4742533",
+     "Longitude": "-3.3864734",
+     "Elevation(m)": "584.04",
+     "UTDate": "2025-05-14",
+     "UTTime": "20:38",
+     "LimitingMag": "1",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "1f16c2c68338"
+    },
+    {
+     "Latitude": "40.426472201953516",
+     "Longitude": "-3.5658858244838587",
+     "Elevation(m)": "619.59",
+     "UTDate": "2025-05-14",
+     "UTTime": "22:59",
+     "LimitingMag": "1",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "7931bce77748"
+    },
+    {
+     "Latitude": "40.4524268",
+     "Longitude": "-3.133319",
+     "Elevation(m)": "884.49",
+     "UTDate": "2025-05-15",
+     "UTTime": "23:40",
+     "LimitingMag": "7",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "5cb8495eef95"
+    },
+    {
+     "Latitude": "40.4758433",
+     "Longitude": "-3.3868382",
+     "Elevation(m)": "583.97",
+     "UTDate": "2025-05-16",
+     "UTTime": "20:51",
+     "LimitingMag": "1",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "c5e01f40c2c5"
+    },
+    {
+     "Latitude": "41.8572074",
+     "Longitude": "2.5636934",
+     "Elevation(m)": "445.38",
+     "UTDate": "2025-05-17",
+     "UTTime": "22:52",
+     "LimitingMag": "6",
+     "SQMReading": "20.84",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "8f5e95fd222b"
+    },
+    {
+     "Latitude": "40.46962277344686",
+     "Longitude": "-3.362376964196733",
+     "Elevation(m)": "583.22",
+     "UTDate": "2025-05-18",
+     "UTTime": "20:21",
+     "LimitingMag": "2",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "c8167b05176b"
+    },
+    {
+     "Latitude": "40.36629662720006",
+     "Longitude": "-3.5973358154296875",
+     "Elevation(m)": "649.27",
+     "UTDate": "2025-05-18",
+     "UTTime": "23:01",
+     "LimitingMag": "5",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "352ac0d51e46"
+    },
+    {
+     "Latitude": "40.46506283891439",
+     "Longitude": "-3.359488432940916",
+     "Elevation(m)": "586.73",
+     "UTDate": "2025-05-20",
+     "UTTime": "21:08",
+     "LimitingMag": "0",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "cff20dfdb896"
+    },
+    {
+     "Latitude": "42.109641274463065",
+     "Longitude": "0.2589860921985876",
+     "Elevation(m)": "517.61",
+     "UTDate": "2025-05-26",
+     "UTTime": "22:30",
+     "LimitingMag": "6",
+     "SQMReading": "21.1",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "7d125ab9a0b3"
+    },
+    {
+     "Latitude": "43.13477636499287",
+     "Longitude": "-5.635367614402105",
+     "Elevation(m)": "1197.46",
+     "UTDate": "2025-05-29",
+     "UTTime": "01:26",
+     "LimitingMag": "6",
+     "SQMReading": "21.27",
+     "CloudCover": "clear",
+     "Constellation": "Leo",
+     "Country": "Spain",
+     "ref": "29503470c1b7"
+    },
+    {
+     "Latitude": "41.31337533849968",
+     "Longitude": "2.069849856613688",
+     "Elevation(m)": "4.0",
+     "UTDate": "2025-06-18",
+     "UTTime": "21:50",
+     "LimitingMag": "3",
+     "SQMReading": "17.7",
+     "CloudCover": "clear",
+     "Constellation": "Hercules",
+     "Country": "Spain",
+     "ref": "ae0f3798dcfb"
+    },
+    {
+     "Latitude": "38.4839233",
+     "Longitude": "-1.6905317",
+     "Elevation(m)": "494.02",
+     "UTDate": "2025-06-22",
+     "UTTime": "22:54",
+     "LimitingMag": "5",
+     "CloudCover": "clear",
+     "Constellation": "Bootes",
+     "Country": "Spain",
+     "ref": "05ccd0287e5c"
+    },
+    {
+     "Latitude": "41.64138522907033",
+     "Longitude": "-0.8834926075457838",
+     "Elevation(m)": "214.58",
+     "UTDate": "2025-06-25",
+     "UTTime": "21:49",
+     "LimitingMag": "2",
+     "CloudCover": "clear",
+     "Constellation": "Bootes",
+     "Country": "Spain",
+     "ref": "96269a2ca535"
+    },
+    {
+     "Latitude": "38.4837931",
+     "Longitude": "-1.6905538",
+     "Elevation(m)": "494.05",
+     "UTDate": "2025-07-21",
+     "UTTime": "23:27",
+     "LimitingMag": "5",
+     "CloudCover": "clear",
+     "Constellation": "Cygnus",
+     "Country": "Spain",
+     "ref": "ca22498085b1"
+    },
+    {
+     "Latitude": "42.78141868526244",
+     "Longitude": "-5.914256273402114",
+     "Elevation(m)": "1113.62",
+     "UTDate": "2025-07-30",
+     "UTTime": "22:48",
+     "LimitingMag": "6",
+     "SQMReading": "21.35",
+     "CloudCover": "clear",
+     "Constellation": "Hercules",
+     "Country": "Spain",
+     "ref": "00310f83ca91"
+    },
+    {
+     "Latitude": "41.60936275689276",
+     "Longitude": "2.4447974763749203",
+     "Elevation(m)": "374.88",
+     "UTDate": "2025-08-15",
+     "UTTime": "22:29",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Cygnus",
+     "Country": "Spain",
+     "ref": "1efb57ade726"
+    },
+    {
+     "Latitude": "43.137232160827004",
+     "Longitude": "-5.647859649901608",
+     "Elevation(m)": "1169.63",
+     "UTDate": "2025-08-24",
+     "UTTime": "02:08",
+     "LimitingMag": "6",
+     "SQMReading": "21.0",
+     "CloudCover": "clear",
+     "Constellation": "Hercules",
+     "Country": "Spain",
+     "ref": "2fe87a01625c"
+    },
+    {
+     "Latitude": "41.857407613367116",
+     "Longitude": "2.5638274904001257",
+     "Elevation(m)": "449.38",
+     "UTDate": "2025-09-19",
+     "UTTime": "22:26",
+     "LimitingMag": "6",
+     "SQMReading": "20.72",
+     "CloudCover": "1/4 of sky",
+     "Constellation": "Cygnus",
+     "Country": "Spain",
+     "ref": "8c80a65b96c1"
+    },
+    {
+     "Latitude": "37.1356853",
+     "Longitude": "-3.5728107",
+     "Elevation(m)": "720.27",
+     "UTDate": "2025-10-02",
+     "UTTime": "22:42",
+     "LimitingMag": "3",
+     "CloudCover": "clear",
+     "Constellation": "Pegasus",
+     "Country": "Spain",
+     "ref": "30f1760e5cfd"
+    },
+    {
+     "Latitude": "27.845978954405144",
+     "Longitude": "-15.439677811398713",
+     "Elevation(m)": "78.48",
+     "UTDate": "2025-10-14",
+     "UTTime": "15:31",
+     "LimitingMag": "7",
+     "CloudCover": "clear",
+     "Constellation": "Pegasus",
+     "Country": "Spain",
+     "ref": "2399f17508fc"
+    },
+    {
+     "Latitude": "42.252607999743546",
+     "Longitude": "1.786763963708644",
+     "Elevation(m)": "1293.8",
+     "UTDate": "2025-11-24",
+     "UTTime": "23:30",
+     "LimitingMag": "6",
+     "SQMReading": "21.35",
+     "CloudCover": "1/2 of sky",
+     "Constellation": "Perseus",
+     "Country": "Spain",
+     "ref": "c2209260c342"
+    },
+    {
+     "Latitude": "42.252622454666806",
+     "Longitude": "1.78680783166683",
+     "Elevation(m)": "1293.18",
+     "UTDate": "2025-11-25",
+     "UTTime": "01:45",
+     "LimitingMag": "6",
+     "SQMReading": "21.3",
+     "CloudCover": "clear",
+     "Constellation": "Perseus",
+     "Country": "Spain",
+     "ref": "9ce4e3143919"
+    }
+   ]
+  }
+ }
+}
