@@ -46,6 +46,16 @@ services:
       timeout: 5s
       retries: 20
 
+  # Catches every mail the application sends, and lets nothing out of the machine.
+  # Web interface on 8026: 8025 is taken by another Ibercivis stack.
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports:
+      - "8026:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+
   redis:
     image: redis:7-alpine
     healthcheck:
@@ -84,10 +94,14 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_DB: "4"
-      # Mail goes to this container's stdout. settings.py defines no EMAIL_HOST,
-      # so a mail catcher could not be pointed at without editing settings, and
-      # the console backend is settings.py's own default anyway.
-      EMAIL_BACKEND: "django.core.mail.backends.console.EmailBackend"
+      # Mail goes to mailpit, not to stdout and not to SES. It has to go
+      # somewhere readable: ACCOUNT_EMAIL_VERIFICATION is 'mandatory', so an
+      # account registered through the app's own form cannot be confirmed
+      # without opening the link, and a link printed into a container's log is
+      # gone the moment the container restarts.
+      EMAIL_BACKEND: "django.core.mail.backends.smtp.EmailBackend"
+      EMAIL_HOST: "mailpit"
+      EMAIL_PORT: "1025"
       DEFAULT_FROM_EMAIL: "openred@openred.invalid"
       SERVER_EMAIL: "openred@openred.invalid"
       # settings.py hardcodes three real staff addresses as the default for this.
@@ -107,6 +121,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   # One worker per queue, as openred/settings.py declares them and as
   # deploy/supervisor/ runs them on the VM. The emails queue is separate because
@@ -124,6 +140,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   worker-weather:
     build: .
@@ -137,6 +155,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   worker-emails:
     build: .
@@ -150,6 +170,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   scheduler:
     build: .
@@ -163,6 +185,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
 volumes:
   db-data:

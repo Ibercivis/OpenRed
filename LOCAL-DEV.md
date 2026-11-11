@@ -133,10 +133,14 @@ workers that `openred/settings.py` declares, and `rqscheduler`. Migrations run o
 on 8000, 8010 and 5432, so this one takes **8020** for the API and **5436** for PostgreSQL and
 collides with none of them.
 
-Mail is printed to the API's console, so nothing leaves the machine and no SES credentials are
-needed: `docker compose logs -f api`. `openred/settings.py` defines no `EMAIL_HOST`, so a mail
-catcher could not be pointed at without editing settings, and the console backend is that file's own
-default anyway.
+**Mail is caught by `mailpit`, at <http://localhost:8026/>.** Nothing leaves the machine and no SES
+credentials are needed. It has to be readable rather than printed, because
+`ACCOUNT_EMAIL_VERIFICATION` is `'mandatory'` as in production: an account registered through the
+app's own form cannot be confirmed without opening the link in that mail, and a link printed into a
+container's log is gone the moment the container restarts. The seeded accounts do not need it — they
+are created already confirmed — but registering is one of the things you will want to try.
+
+The web interface is on 8026 because 8025 is taken by another Ibercivis stack.
 
 ### Why the database is not `postgis/postgis`
 
@@ -231,6 +235,14 @@ reserved `.invalid` domain, so none of them can reach a mailbox.
 `ACCOUNT_EMAIL_VERIFICATION` stays `'mandatory'` as in production, so the seeded accounts are given
 confirmed `EmailAddress` rows and can sign in at once. Each also gets a DRF token, which is what the
 API authenticates with.
+
+**An account you register yourself is a different matter**, and the failure is confusing: sign-in
+returns `non_field_errors: El correo electrónico no ha sido verificado` and nothing on screen says
+where to confirm it. Open <http://localhost:8026/> and click the link in the mail. Registering also
+puts an address that is **not** on `.invalid` into the database, which is exactly what
+`seed_local`'s guard looks for, so the next `seed_local` or `seed_local --reset` will refuse until
+you pass `--force` or delete that account. That is the guard doing its job; it cannot tell your own
+test registration from a database it should not touch.
 
 ## The React app
 
