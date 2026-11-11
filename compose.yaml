@@ -69,6 +69,13 @@ services:
       # so a browser POST from the dev server is refused with
       # "Origin checking failed". These are added to that list.
       CSRF_TRUSTED_ORIGINS_EXTRA: "http://localhost:3010,http://127.0.0.1:3010"
+      # Drop SessionAuthentication from DRF. It exists for the browsable API, but
+      # it also means that once you have logged into /admin/, the session cookie --
+      # which ignores the port, so :8020 reaches :3010 -- makes DRF demand a CSRF
+      # token the token-authenticated React app never sends. Off here, the app works
+      # whether or not you are logged into the admin. Swagger at /api/docs/ is
+      # unaffected: it authenticates with a token.
+      ENABLE_SESSION_AUTH: "False"
       DB_NAME: openred_db
       DB_USER: openred_user
       DB_PASSWORD: openred
