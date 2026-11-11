@@ -297,20 +297,31 @@ touched.
    production was never affected — but the query log completely buried the output of
    `seed_local` and of every other management command.
 
-6. **`CSRF_TRUSTED_ORIGINS` is a hardcoded list, and a dev server on any other port is refused.**
-   *Fixed here*, minimally. Under `DEBUG` the list named only ports 8001 and 3000, so a browser
-   POST from the app on 3010 came back as
-   `CSRF Failed: Origin checking failed - http://localhost:3010 does not match any trusted origins`.
-   The level is now extended by `config('CSRF_TRUSTED_ORIGINS_EXTRA', default='')`, empty by default
-   so nothing changes for anyone not setting it, and `compose.yaml` adds the two 3010 origins.
+6. **Logging into `/admin/` broke sign-in on the React app.** *Fixed here.* Two settings had to
+   move, and the second is the one that mattered:
 
-   **Two things make this hard to find.** `curl` sends no `Origin` header, so the API answers 200
-   from a shell and fails only in a browser. And it does not fail for everyone: DRF enforces CSRF
-   only once `SessionAuthentication` has authenticated somebody from the session, so an anonymous
-   POST sails through. What turns it on is having logged into `/admin/` first — **cookies ignore the
-   port**, so the `sessionid` set on `localhost:8020` is sent to `localhost:3010` as well, the API
-   authenticates that session, and the origin check then runs. Reproduce it with
-   `-H "Origin: http://localhost:3010"` and a logged-in session cookie, not with a bare `curl`.
+   `SessionAuthentication` is in `DEFAULT_AUTHENTICATION_CLASSES` so the DRF browsable API works
+   while logged into the admin. But once it authenticates a request from the session cookie, DRF
+   enforces CSRF — and the React app authenticates with a token and never sends an `X-CSRFToken`
+   header. **Cookies ignore the port**, so merely having logged into `/admin/` on
+   `localhost:8020` sent that `sessionid` to the app on `localhost:3010`, and every write came back
+   `CSRF Failed: CSRF token missing.` It is now `config('ENABLE_SESSION_AUTH', default=True)`, so
+   production and every other setup are unchanged, and `compose.yaml` sets it to `False`. With it
+   off the session cookie is ignored, CSRF never engages, and token auth is the only path. Swagger
+   at `/api/docs/` is unaffected — it authenticates with a token — and `/admin/` itself still works,
+   because that is Django's own session login, not DRF's.
+
+   Before that error you hit a different one from the same area:
+   `CSRF Failed: Origin checking failed - http://localhost:3010 does not match any trusted origins`.
+   Under `DEBUG`, `CSRF_TRUSTED_ORIGINS` was a hardcoded list naming only ports 8001 and 3000. It is
+   now extended by `config('CSRF_TRUSTED_ORIGINS_EXTRA', default='')`, empty by default, and
+   `compose.yaml` adds the 3010 origins. Redundant once session auth is off, kept because the
+   hardcoded list is a real limitation for anyone who does leave it on.
+
+   **Why `curl` will not reproduce either of these.** `curl` sends no `Origin` header and carries no
+   session cookie, so the API answers 200 from a shell and fails only in a browser, and only for
+   somebody who has visited the admin. To reproduce, pass `-H "Origin: http://localhost:3010"` and a
+   logged-in session cookie jar.
 
 7. **`TRACK_UPLOAD_NOTIFY_EMAILS` defaults to three named staff addresses** in `settings.py`.
    `compose.yaml` sets it empty so a local track upload cannot try to mail anybody.

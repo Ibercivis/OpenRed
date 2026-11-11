@@ -218,11 +218,26 @@ PASSWORD_RESET_TIMEOUT = 3600  # 1 hora para que expire el link
 # ====================
 # REST Framework Configuration
 # ====================
+# SessionAuthentication is in the list below only so the DRF browsable API works
+# while logged into /admin/. It has a side effect that breaks the React app: once
+# it authenticates a request from the session cookie, DRF enforces CSRF, and the
+# app authenticates with a token and never sends an X-CSRFToken header. Cookies
+# ignore the port, so merely having logged into /admin/ on localhost:8020 sends
+# that sessionid to the app on localhost:3010 and every write fails with
+# "CSRF Failed: CSRF token missing."
+#
+# So it is opt-out. The default is True, which keeps production and anyone else's
+# setup exactly as it was; the local composition turns it off, and then the
+# session cookie is ignored, CSRF never engages, and token auth is the only path.
+ENABLE_SESSION_AUTH = config('ENABLE_SESSION_AUTH', default=True, cast=bool)
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',  # Para el browsable API
-    ],
+    ] + (
+        ['rest_framework.authentication.SessionAuthentication']  # Para el browsable API
+        if ENABLE_SESSION_AUTH else []
+    ),
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',  # Lectura pública, escritura requiere autenticación
     ],
