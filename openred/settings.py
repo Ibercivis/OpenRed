@@ -188,6 +188,18 @@ SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # Google ya verificó el email
 # Amazon SES Email Configuration
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 
+# SMTP host, for when EMAIL_BACKEND is the SMTP one. These were not configurable,
+# which meant the only alternative to SES was the console backend -- and
+# ACCOUNT_EMAIL_VERIFICATION is 'mandatory', so a self-registered account could
+# not be confirmed at all without reading a link out of a log. The defaults are
+# Django's own, so nothing changes unless they are set; the local composition
+# points them at a mail catcher.
+EMAIL_HOST = config('EMAIL_HOST', default='localhost')
+EMAIL_PORT = config('EMAIL_PORT', default=25, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+
 # AWS Credentials (mejor usar IAM roles en producción)
 AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default='')
 AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default='')
