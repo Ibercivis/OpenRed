@@ -13,14 +13,90 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.8, 3.9]
+        # The version production runs (docs/deployment/production-setup.md).
+        # 3.8 and 3.9 are past end-of-life and no longer offered by the runners.
+        python-version: ["3.11"]
+
+    services:
+      # PostGIS, because measures/models.py has PointFields and 0001_initial
+      # creates them, and because settings.py uses the postgis backend. Django's
+      # PostGIS backend creates the extension in the test database itself, which
+      # works here because the image's POSTGRES_USER is a superuser.
+      #
+      # This image has no h3-pg: Debian packages it nowhere, so it would have
+      # to be compiled from source. Migration 0002 tolerates its absence, and
+      # the ten tests in measures/test_h3.py that genuinely need it skip
+      # themselves when it is missing -- they cover the aggregation endpoints,
+      # which call h3_lat_lng_to_cell() in SQL. Every other piece of H3 work in
+      # the application is done in Python.
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: openred_db
+          POSTGRES_USER: openred_user
+          POSTGRES_PASSWORD: openred
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # django-rq enqueues track processing and the periodic emails, and the
+      # views that do it are exercised by the suite, so a Redis has to answer.
+      # The defaults in settings.py (localhost:6379, DB 4) need no environment.
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # settings.py reads these through python-decouple, which falls back to the
+      # environment when there is no .env file. SECRET_KEY and FRONTEND_URL are
+      # the only two with no default: FRONTEND_URL is read in the DEBUG=False
+      # branch, for CORS_ALLOWED_ORIGINS and CSRF_TRUSTED_ORIGINS.
+      SECRET_KEY: django-insecure-ci-only-not-a-production-secret
+      DEBUG: "False"
+      # DEBUG=False turns on the production security block, whose
+      # SECURE_SSL_REDIRECT sends every request to https -- so the test client
+      # gets a 301 instead of the view. The setting exists to be overridden;
+      # everything else in that block is harmless here.
+      SECURE_SSL_REDIRECT: "False"
+      FRONTEND_URL: http://localhost:3000
+      DB_NAME: openred_db
+      DB_USER: openred_user
+      DB_PASSWORD: openred
+      DB_HOST: localhost
+      DB_PORT: "5432"
 
     steps:
     - uses: actions/checkout@v4
+    - name: Install system libraries
+      # GeoDjango loads GEOS, GDAL and PROJ at import time; psycopg2 is built
+      # from source (not psycopg2-binary) and needs libpq; WeasyPrint, used by
+      # the PDF reports, loads Pango through cffi when imported.
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          binutils \
+          gdal-bin \
+          libgdal-dev \
+          libgeos-dev \
+          libpango-1.0-0 \
+          libpangoft2-1.0-0 \
+          libpq-dev \
+          libproj-dev
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+        cache: pip
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
