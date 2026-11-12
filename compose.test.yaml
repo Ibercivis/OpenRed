@@ -1,0 +1,42 @@
+# The two services the test suite needs, and nothing else.
+#
+# PostGIS because settings.py uses the postgis backend, and Redis because
+# django-rq enqueues work from views the suite exercises. Python stays on your
+# machine: this file deliberately does not containerise the application, so
+# `manage.py test` runs in the virtualenv you already have.
+#
+# These are the images the CI job uses (.github/workflows/django.yml), so a pass
+# here is a pass there. Both are throwaway: the data lives in anonymous volumes
+# and `down -v` takes it with it.
+#
+#   docker compose -f compose.test.yaml up -d --wait
+#   ... run the tests: docs/getting-started/running-the-tests.md ...
+#   docker compose -f compose.test.yaml down -v
+
+name: openred-tests
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: openred_db
+      POSTGRES_USER: openred_user
+      POSTGRES_PASSWORD: openred
+    # 5434 is what settings.py defaults DB_PORT to, so nothing has to be set.
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openred_user -d openred_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
