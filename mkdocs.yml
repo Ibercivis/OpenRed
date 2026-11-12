@@ -102,7 +102,6 @@ nav:
       - Installation: getting-started/installation.md
       - Quick Start: getting-started/quick-start.md
       - Configuration: getting-started/configuration.md
-      - Running the Tests: getting-started/running-the-tests.md
   - Architecture:
       - Overview: architecture/overview.md
       - Data Hierarchy: architecture/data-hierarchy.md
