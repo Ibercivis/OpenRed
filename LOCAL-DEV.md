@@ -280,15 +280,31 @@ touched.
    is what the comment always claimed — and a server that has the extension still gets it created,
    so production behaviour is unchanged.
 
-3. **The frontend calls six endpoints that do not exist on this branch.** Pre-existing, and nothing
-   to do with the dataset:
+3. **The frontend calls five endpoints that do not exist on this branch.** Pre-existing, and nothing
+   to do with the dataset. Measured against the running environment on 12 November 2026; `…/compact/`
+   used to be listed here and was wrong — see the note under the table.
 
    | Endpoint | Status |
    |---|---|
-   | `…/compact/` | exists only on the unmerged `origin/feature/weather-cache-and-stats`, commit `69eb384`. **This is where the map gets its points**, and `getCompact` in `src/services/measurements/BaseMeasurementService.ts` throws rather than falling back, so the map stays empty. Deliberately not merged: that is someone else's unreleased work |
    | `/api/stats/activity/`, `/api/stats/records/` | do not exist on any branch. `StatsViewSet` has only `global` and `heatmap` |
    | `/api/missions/`, `/api/campaigns/` | only the **nested** routes exist (`/api/projects/<id>/missions/`, `/api/missions/<id>/campaigns/`). The flat lists 404, and the frontend quietly substitutes `mockMissions` / `mockCampaigns` |
    | `/api/profile/` | does not exist; `users/urls.py` registers only `users` |
+
+   **`…/compact/` is not one of them, and an earlier version of this file said it was.** It is on
+   this branch and it is served. Measured on 12 November 2026:
+
+   ```sh
+   curl -s http://localhost:8020/api/radiation-measurements/compact/
+   # {"fields":["id","lat","lon","dose_rate"],"rows":[[1,43.055538,-7.555707,0.10479], …
+   curl -s http://localhost:8020/api/radiation-measurements/h3-aggregation/
+   # {"resolution":8,"hexagons":[{"h3_index":"88397050adfffff","measurement_count":396, …
+   ```
+
+   `…/light-pollution-measurements/` answers the same on both. Which one the map asks for depends on
+   zoom: `useMeasurementsByZoom.ts:322` in the React app calls `…/compact/` at zoom ≥ 15 and
+   `getH3Aggregation` below it, so both of the map's data paths work here. What `…/compact/` is
+   genuinely absent from is `origin/main`, which is a different claim — the branch the integration
+   works on is not `main`, and conflating the two is what produced the wrong row.
 
    **The mock fallback is the trap here.** `src/services/api.ts` catches a failed measurements,
    missions or campaigns call and returns invented Zaragoza data with a `console.warn`. A screen full
@@ -350,10 +366,9 @@ touched.
 
 - **The map needs a Mapbox token, which we do not have.** Every screen works without one. The map's
   deck.gl layers still compute, but there is no basemap under the points. Any token from a free
-  Mapbox account in `REACT_APP_MAPBOX_TOKEN` fixes it; nothing in this repository needs one.
-  Separately, the map has no points at all on this branch — see known issue 3.
-- **The map screen is the one screen that cannot show the seeded data**, for that reason. The
-  statistics, tracks, devices, stations, spectra and report screens all do.
+  Mapbox account in `REACT_APP_MAPBOX_TOKEN` fixes it; nothing in this repository needs one. The
+  basemap is the **only** part of the map that is missing: its data endpoints are served on this
+  branch, which an earlier version of this file got wrong — see known issue 3.
 - **"Darkest sky" reads 0.00 lux.** Not a seeding bug: a natural dark sky really is about
   0.0008 lux, and `stats/global` rounds to two decimals. The honest figure is in
   `legacy_data.sky_brightness_mag_arcsec2`, around 21.6 mag/arcsec².
