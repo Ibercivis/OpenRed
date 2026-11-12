@@ -23,11 +23,12 @@ jobs:
       # PostGIS backend creates the extension in the test database itself, which
       # works here because the image's POSTGRES_USER is a superuser.
       #
-      # This image has no h3-pg: Debian packages it nowhere, so it would have to
-      # be compiled. Migration 0002 tolerates its absence and no test needs it --
-      # the application's own H3 work is done in Python. The H3 aggregation
-      # endpoints are the only thing that needs the extension, and they are not
-      # covered by this suite.
+      # This image has no h3-pg: Debian packages it nowhere, so it would have
+      # to be compiled from source. Migration 0002 tolerates its absence, and
+      # the ten tests in measures/test_h3.py that genuinely need it skip
+      # themselves when it is missing -- they cover the aggregation endpoints,
+      # which call h3_lat_lng_to_cell() in SQL. Every other piece of H3 work in
+      # the application is done in Python.
       postgres:
         image: postgis/postgis:16-3.4
         env:

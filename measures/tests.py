@@ -8,6 +8,8 @@ Run with:
     python manage.py test measures -v 2
 """
 
+import unittest
+
 from django.test import TestCase, override_settings
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -136,6 +138,13 @@ class RadiationMeasurementPermissionTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['id'], self.measurement_user1.id)
     
+    # `RadiationMeasurementViewSet.create` returns 503 on purpose: creating a
+    # loose measurement was disabled because it does not check the campaign
+    # password, and `/api/tracks/upload_json/` is the only supported way in. The
+    # test is left asserting 201, the behaviour it was written for, so that
+    # re-enabling the endpoint makes it pass unexpectedly and turns the suite
+    # red until this decorator is removed with it.
+    @unittest.expectedFailure
     def test_authenticated_user_can_create_measurement(self):
         """
         Test that authenticated user can create a measurement via API
@@ -210,7 +219,7 @@ class RadiationMeasurementPermissionTests(TestCase):
             'project': self.project.id,
             'latitude': 0.0,
             'longitude': 0.0,
-            'radiation_value': 200.0,
+            'dose_rate': 200.0,
             'cpm': 200,
             'dateTime': timezone.now().isoformat()
         }
@@ -218,7 +227,7 @@ class RadiationMeasurementPermissionTests(TestCase):
         response = self.client1.put(url, data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(float(response.data['radiation_value']), 200.0)
+        self.assertEqual(float(response.data['dose_rate']), 200.0)
     
     def test_user_cannot_update_other_user_measurement(self):
         """
@@ -230,7 +239,7 @@ class RadiationMeasurementPermissionTests(TestCase):
             'project': self.project.id,
             'latitude': 1.0,
             'longitude': 1.0,
-            'radiation_value': 300.0,
+            'dose_rate': 300.0,
             'cpm': 300,
             'dateTime': timezone.now().isoformat()
         }
