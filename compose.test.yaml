@@ -1,17 +1,24 @@
-# The two services the test suite needs, and nothing else.
+# The two services `manage.py test` needs, and nothing else.
 #
 # PostGIS because settings.py uses the postgis backend, and Redis because
 # django-rq enqueues work from views the suite exercises. Python stays on your
-# machine: this file deliberately does not containerise the application, so
-# `manage.py test` runs in the virtualenv you already have.
-#
-# These are the images the CI job uses (.github/workflows/django.yml), so a pass
-# here is a pass there. Both are throwaway: the data lives in anonymous volumes
-# and `down -v` takes it with it.
+# machine: this deliberately does not containerise the application. The images
+# and the system libraries are the ones .github/workflows/django.yml uses, so a
+# pass here is a pass in CI.
 #
 #   docker compose -f compose.test.yaml up -d --wait
-#   ... run the tests: docs/getting-started/running-the-tests.md ...
+#   SECRET_KEY=dev FRONTEND_URL=http://localhost:3000 \
+#     SECURE_SSL_REDIRECT=False python manage.py test
 #   docker compose -f compose.test.yaml down -v
+#
+# Two things worth knowing:
+#
+#   * The ten tests in measures/test_h3.py skip here. They call
+#     h3_lat_lng_to_cell() in SQL, which comes from h3-pg -- an extension
+#     Debian packages nowhere, so no ready-made image carries it.
+#   * Run the suite whole before pushing. One test at a time hides failures that
+#     only a full run produces: a leaked transaction, for instance, surfaces in
+#     every later test and in none on its own.
 
 name: openred-tests
 
