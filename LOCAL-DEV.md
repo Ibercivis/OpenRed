@@ -142,6 +142,23 @@ are created already confirmed — but registering is one of the things you will 
 
 The web interface is on 8026 because 8025 is taken by another Ibercivis stack.
 
+### Running the test suite
+
+```sh
+docker compose run --rm api python manage.py test
+```
+
+The entrypoint falls through to `exec "$@"` and the `api` service already carries `SECRET_KEY`, the
+database and Redis, so nothing else is needed. Django creates and drops its own test database and
+leaves the seeded one alone.
+
+This runs **81 tests where CI runs 71**: the ten in `measures/test_h3.py` call
+`h3_lat_lng_to_cell()` in SQL and skip themselves wherever h3-pg is absent, which is everywhere but
+here. Two of them fail on a `center_lat` key the endpoint no longer returns, and one more failure is
+this stack's own doing -- `ENABLE_SESSION_AUTH: "False"` in `compose.yaml` makes the anonymous track
+list answer 401, so `test_public_can_list_all_tracks` fails here and passes with that variable
+unset. Worth knowing before reading anything into a red run.
+
 ### Why the database is not `postgis/postgis`
 
 OpenRed needs **two** PostgreSQL extensions, not one. PostGIS, for the three `PointField`s in
