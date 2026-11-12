@@ -39,7 +39,11 @@ class RequiresH3Extension:
 
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
+        # Checked *before* super(), deliberately: TestCase.setUpClass opens a
+        # class-wide atomic block, and unittest does not call tearDownClass when
+        # setUpClass raises -- so skipping after super() would leave that
+        # transaction open and every later test in the run would fail with
+        # "connection already closed".
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1 FROM pg_extension WHERE extname = 'h3'")
             if cursor.fetchone() is None:
@@ -48,6 +52,7 @@ class RequiresH3Extension:
                     "server; the aggregation endpoints call "
                     "h3_lat_lng_to_cell() in SQL"
                 )
+        super().setUpClass()
 
 
 class H3AggregationTestCase(RequiresH3Extension, TestCase):
