@@ -46,15 +46,15 @@ where a name turns up when nobody is looking for it.
 
 What is deliberately thrown away:
 
-| Source | Dropped | Why |
-|---|---|---|
-| Safecast | `user_id` | `api.safecast.org/en-US/users/<id>` shows that contributor's name |
-| Safecast | `device_id` | one physical instrument, therefore its owner |
-| Safecast | `id` | the measurement's own page names whoever submitted it, so even the record id is a back-reference to a person. A salted one-way `ref` is stored instead, only so a later run can deduplicate |
-| Safecast | `location_name` | free text a contributor typed |
-| Globe at Night | `SQMSerial` | a photometer serial number: one instrument, one owner |
+| Source         | Dropped                         | Why |
+|----------------|---------------------------------|---|
+| Safecast       | `user_id`                       | `api.safecast.org/en-US/users/<id>` shows that contributor's name |
+| Safecast       | `device_id`                     | one physical instrument, therefore its owner |
+| Safecast       | `id`                            | the measurement's own page names whoever submitted it, so even the record id is a back-reference to a person. A salted one-way `ref` is stored instead, only so a later run can deduplicate |
+| Safecast       | `location_name`                 | free text a contributor typed |
+| Globe at Night | `SQMSerial`                     | a photometer serial number: one instrument, one owner |
 | Globe at Night | `SkyComment`, `LocationComment` | free text; in practice "my back garden at…". 8,830 of the 13,402 rows in the 2025 file have one |
-| Globe at Night | `LocalDate`, `LocalTime` | a local clock plus a place is more identifying than UT |
+| Globe at Night | `LocalDate`, `LocalTime`        | a local clock plus a place is more identifying than UT |
 
 ## The two public sources
 
@@ -82,7 +82,7 @@ open and fetchable, and unlike the other two it is citizen-collected, which is w
 Worth being precise about, because a development dataset that looks measured but is not is worse
 than an obviously fake one.
 
-| | Real | Invented |
+| What | Real | Invented |
 |---|---|---|
 | Radiation value | yes — the CPM is as Safecast published it, kept in `raw_data.source_value` | the dose rate is derived: CPM ÷ 334, Safecast's own constant for the LND 7317 tube. Not a calibrated figure |
 | Sky brightness | yes — mag/arcsec² from the SQM reading, in `legacy_data.sky_brightness_mag_arcsec2` | `lux` is derived from it by standard photometry. `cct` and the CIE coordinates are left **null**: Globe at Night does not publish them, so nothing is invented to fill them |
@@ -184,17 +184,27 @@ production a superuser enabled PostGIS by hand — so without that script the fi
 
 `seed_local` creates, by default:
 
-| | |
-|---|---|
-| **People** | 6 invented accounts: one superuser, one staff member who owns the projects and the stations, four volunteers |
-| **Projects** | *Radiación gamma de fondo en España* (radiation, public), *Contaminación lumínica del cielo nocturno* (light pollution, public), and *Radiación en balsas de riego* — public: false and deliberately empty, so the empty states are reachable |
-| **Missions, campaigns** | 3 missions, 4 campaigns. One campaign is password-protected, so the protected upload path can be exercised; the password is printed by the command |
-| **Radiation** | ~223 measurements in 11 tracks, plus ~17 loose points with no track — which is `capture_mode='movement'` with `track=NULL`, what the model itself calls *"punto suelto a agrupar en track"*. Keeping them matters: the snapshot's whole upper value range, 88 readings above 200 CPM and up to 1026, sits in those fragments, because they come from fixed loggers rather than drives. Without them every dose rate falls in a 0.05–0.18 µSv/h band and the map's colour scale and the histogram have nothing to show |
-| **Stations** | 2, on real measured coordinates, each with a recent series — one `online` and reporting up to now, one `offline` because it stopped three days ago, which is what gives the watchdog something to find |
-| **Spectra** | 22, two per track, 1024 channels each. Synthesised |
-| **Light pollution** | ~159 measurements from Globe at Night's 2025 Spanish rows |
-| **Devices** | 7 instances of 4 real device models (bGeigie Nano, RadiaCode 103, a GammaStation M5, an SQM-LE). The two station devices get an ingest token, printed once as in production |
-| **Weather** | 20 synthesised cache rows, keyed on H3 resolution 8 as the production code does |
+- **People** — 6 invented accounts: one superuser, one staff member who owns the projects and the
+  stations, four volunteers
+- **Projects** — *Radiación gamma de fondo en España* (radiation, public), *Contaminación lumínica
+  del cielo nocturno* (light pollution, public), and *Radiación en balsas de riego* — public: false
+  and deliberately empty, so the empty states are reachable
+- **Missions, campaigns** — 3 missions, 4 campaigns. One campaign is password-protected, so the
+  protected upload path can be exercised; the password is printed by the command
+- **Radiation** — ~223 measurements in 11 tracks, plus ~17 loose points with no track — which is
+  `capture_mode='movement'` with `track=NULL`, what the model itself calls *"punto suelto a agrupar
+  en track"*. Keeping them matters: the snapshot's whole upper value range, 88 readings above 200
+  CPM and up to 1026, sits in those fragments, because they come from fixed loggers rather than
+  drives. Without them every dose rate falls in a 0.05–0.18 µSv/h band and the map's colour scale
+  and the histogram have nothing to show
+- **Stations** — 2, on real measured coordinates, each with a recent series — one `online` and
+  reporting up to now, one `offline` because it stopped three days ago, which is what gives the
+  watchdog something to find
+- **Spectra** — 22, two per track, 1024 channels each. Synthesised
+- **Light pollution** — ~159 measurements from Globe at Night's 2025 Spanish rows
+- **Devices** — 7 instances of 4 real device models (bGeigie Nano, RadiaCode 103, a GammaStation M5,
+  an SQM-LE). The two station devices get an ingest token, printed once as in production
+- **Weather** — 20 synthesised cache rows, keyed on H3 resolution 8 as the production code does
 
 Options:
 
