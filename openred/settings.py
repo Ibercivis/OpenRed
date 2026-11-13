@@ -231,16 +231,12 @@ PASSWORD_RESET_TIMEOUT = 3600  # 1 hora para que expire el link
 # REST Framework Configuration
 # ====================
 # SessionAuthentication is in the list below only so the DRF browsable API works
-# while logged into /admin/. It has a side effect that breaks the React app: once
-# it authenticates a request from the session cookie, DRF enforces CSRF, and the
-# app authenticates with a token and never sends an X-CSRFToken header. Cookies
-# ignore the port, so merely having logged into /admin/ on localhost:8020 sends
-# that sessionid to the app on localhost:3010 and every write fails with
-# "CSRF Failed: CSRF token missing."
-#
-# So it is opt-out. The default is True, which keeps production and anyone else's
-# setup exactly as it was; the local composition turns it off, and then the
-# session cookie is ignored, CSRF never engages, and token auth is the only path.
+# while logged into /admin/. It has a side effect that breaks a front end
+# authenticating with a token: once DRF authenticates a request from the session
+# cookie it enforces CSRF, and a token client sends no X-CSRFToken header. Cookies
+# ignore the port, so merely having logged into /admin/ sends that sessionid to a
+# front end running on another local port, and every write there fails with
+# "CSRF Failed: CSRF token missing." Turn this off and token auth is the only path.
 ENABLE_SESSION_AUTH = config('ENABLE_SESSION_AUTH', default=True, cast=bool)
 
 REST_FRAMEWORK = {
@@ -339,13 +335,9 @@ if DEBUG:
         'http://127.0.0.1:3000',
         'http://192.168.1.2:3000',
     ]
-    # The list above is hardcoded, so a dev server on any other port is refused
-    # with "CSRF Failed: Origin checking failed". That is easy to miss, because
-    # curl sends no Origin header and only a browser trips it. The local
-    # composition serves the React app on 3010 (3000 and 3001 are taken by the
-    # other Ibercivis front ends), so it adds its origin through this variable
-    # instead of editing the list. Comma-separated; empty by default, so
-    # behaviour is unchanged for anyone not setting it.
+    # Hardcoded, so a browser on any other port gets "CSRF Failed: Origin
+    # checking failed" -- curl never reproduces it, it sends no Origin header.
+    # Extra origins, comma-separated, for dev servers on other ports:
     CSRF_TRUSTED_ORIGINS += [
         origin.strip()
         for origin in config('CSRF_TRUSTED_ORIGINS_EXTRA', default='').split(',')
@@ -683,10 +675,9 @@ LOGGING = {
             'propagate': False,
         },
         'django.db.backends': {
-            # Logs every SQL query. Django only emits these when DEBUG is True,
-            # so this is a development setting; it is left at DEBUG by default so
-            # behaviour is unchanged, and the local composition sets it to INFO
-            # because the query log buries the output of management commands.
+            # Logs every SQL query (Django only emits these when DEBUG is
+            # True). Set DB_LOG_LEVEL=INFO to silence it: the query log buries
+            # the output of management commands.
             'handlers': ['console'],
             'level': config('DB_LOG_LEVEL', default='DEBUG'),
             'propagate': False,
