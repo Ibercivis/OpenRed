@@ -1,5 +1,5 @@
 #!/bin/sh
-# Entrypoint for the local pilot container. One image, four roles, chosen by the
+# Entrypoint for the local development container. One image, four roles, chosen by the
 # first argument, because the three RQ queues in openred/settings.py each want
 # their own worker and rq-scheduler runs on its own (deploy/supervisor/ does the
 # same thing with supervisor programs on the production VM).

@@ -1,8 +1,7 @@
 # OpenRed, running locally with a seeded sample dataset.
 #
-# For local development and for the pilot composition (ADR-0009 in
-# citsci-federation). Not production: OpenRed runs under gunicorn + supervisor on
-# a VM, and this file is on the `federation` branch only.
+# For local development. Not production: OpenRed runs under gunicorn +
+# supervisor on a VM, and this file is on the `federation` branch only.
 #
 # Host ports are deliberately unusual. A development laptop already has the
 # other Ibercivis stacks on 8000, 8010 and 5432, so this one takes 8020 and 5436

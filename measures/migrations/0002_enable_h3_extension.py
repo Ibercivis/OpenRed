@@ -22,7 +22,8 @@ migration now tries, then logs and continues on failure, which is what its
 comment always claimed it did; the aggregation endpoints are left to fail on
 their own terms, loudly, where the missing extension is the obvious cause.
 
-The pilot's local database image installs h3-pg for exactly this reason.
+The local development database image (local_dev/postgis-h3/) installs h3-pg
+for exactly this reason.
 
 A server that *does* have the extension still gets it created, so production
 behaviour is unchanged.
