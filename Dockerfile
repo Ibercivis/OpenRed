@@ -1,4 +1,4 @@
-# OpenRed, built for the local pilot composition (ADR-0009 in citsci-federation).
+# OpenRed, containerised for local development. See LOCAL-DEV.md.
 #
 # This image exists on the `federation` branch only. OpenRed is not containerised
 # in production — it runs under gunicorn + supervisor on a VM (see gunicorn.conf.py
@@ -37,8 +37,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY local_dev/requirements-pilot.txt /app/local_dev/requirements-pilot.txt
-RUN pip install --upgrade pip && pip install -r /app/local_dev/requirements-pilot.txt
+COPY local_dev/requirements.txt /app/local_dev/requirements.txt
+RUN pip install --upgrade pip && pip install -r /app/local_dev/requirements.txt
 
 COPY local_dev/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

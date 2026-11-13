@@ -3,12 +3,15 @@
 The API, its workers and the React app on a laptop, with a small sample of data and
 **nothing copied from production**.
 
-OpenRed had no `Dockerfile` and no `compose.yaml`, so unlike the other applications in the pilot
-this one needed its environment built rather than reused. What this adds is that environment —
+OpenRed had no `Dockerfile` and no `compose.yaml`, so this environment had to be built rather
+than reused. What this adds is that environment —
 `Dockerfile`, `compose.yaml`, `local_dev/` — plus the dataset: one management command,
 `measures/management/commands/seed_local.py`, and the public snapshot it plants.
 
-Everything here is on the `federation` branch and nowhere else. OpenRed is not containerised in
+Everything here is on the `federation` branch and nowhere else. That branch carries the work of
+the [Citizen Science Federation](https://github.com/Ibercivis/citsci-federation), which is adding
+shared sign-in across the Ibercivis applications and needs each of them runnable on a laptop.
+Everything below stands on its own without reading that. OpenRed is not containerised in
 production: it runs under gunicorn and supervisor on a VM (`gunicorn.conf.py`, `deploy/`), and
 none of this proposes changing that.
 
@@ -285,7 +288,7 @@ touched.
    imports are **missing** from it — `drf_yasg`, imported by `measures/views.py`,
    `measures/views_stats.py`, `missions/views.py` and `devices/views.py`, and `django_extensions`,
    which is in `INSTALLED_APPS`. Django cannot start without either. `cryptography` is needed too,
-   by allauth's Google provider. *Worked around here:* `local_dev/requirements-pilot.txt` is the
+   by allauth's Google provider. *Worked around here:* `local_dev/requirements.txt` is the
    container's list, pinned to the same versions wherever `requirements.txt` names one. The
    repository's own file is left alone.
 

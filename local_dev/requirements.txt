@@ -1,4 +1,4 @@
-# Python dependencies for the LOCAL PILOT CONTAINER. Not production's list.
+# Python dependencies for the local development container. Not production's list.
 #
 # Why this file exists instead of `requirements.txt`: the repository's
 # `requirements.txt` is a `pip freeze` of a conda environment on a developer's
@@ -14,7 +14,7 @@
 #     `manage.py check` fails before it reaches the database.
 #
 # Both of those are reported in LOCAL-DEV.md under "Known issues". Versions here
-# match `requirements.txt` wherever it names one, so the pilot runs the same
+# match `requirements.txt` wherever it names one, so the container runs the same
 # library versions as production; the two missing packages are pinned to the
 # newest release compatible with Django 4.2 and DRF 3.15.
 #
