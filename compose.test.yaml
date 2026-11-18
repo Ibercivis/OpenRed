@@ -1,0 +1,49 @@
+# The two services `manage.py test` needs, and nothing else.
+#
+# PostGIS because settings.py uses the postgis backend, and Redis because
+# django-rq enqueues work from views the suite exercises. Python stays on your
+# machine: this deliberately does not containerise the application. The images
+# and the system libraries are the ones .github/workflows/django.yml uses, so a
+# pass here is a pass in CI.
+#
+#   docker compose -f compose.test.yaml up -d --wait
+#   SECRET_KEY=dev FRONTEND_URL=http://localhost:3000 \
+#     SECURE_SSL_REDIRECT=False python manage.py test
+#   docker compose -f compose.test.yaml down -v
+#
+# Two things worth knowing:
+#
+#   * The ten tests in measures/test_h3.py skip here. They call
+#     h3_lat_lng_to_cell() in SQL, which comes from h3-pg -- an extension
+#     Debian packages nowhere, so no ready-made image carries it.
+#   * Run the suite whole before pushing. One test at a time hides failures that
+#     only a full run produces: a leaked transaction, for instance, surfaces in
+#     every later test and in none on its own.
+
+name: openred-tests
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: openred_db
+      POSTGRES_USER: openred_user
+      POSTGRES_PASSWORD: openred
+    # 5434 is what settings.py defaults DB_PORT to, so nothing has to be set.
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openred_user -d openred_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
