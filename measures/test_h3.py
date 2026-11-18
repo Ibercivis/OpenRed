@@ -7,6 +7,9 @@ Run with:
     python manage.py test measures.test_h3 -v 2
 """
 
+import unittest
+
+from django.db import connection
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -21,7 +24,38 @@ from measures.models import RadiationMeasurement, LightPollutionMeasurement
 from devices.models import Device, DeviceModel
 
 
-class H3AggregationTestCase(TestCase):
+class RequiresH3Extension:
+    """
+    Skip the class when the server has no ``h3`` extension.
+
+    The aggregation endpoints call ``h3_lat_lng_to_cell()`` in raw SQL, so these
+    tests need h3-pg installed in the database -- not just the ``h3`` Python
+    package. Debian packages h3-pg nowhere, so no ready-made PostgreSQL or
+    PostGIS image carries it and it has to be compiled; a database without it
+    runs the whole application except these endpoints, which is why migration
+    0002 tolerates its absence. Skipping here keeps that the only consequence,
+    instead of a suite that cannot pass anywhere but a hand-built database.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        # Checked *before* super(), deliberately: TestCase.setUpClass opens a
+        # class-wide atomic block, and unittest does not call tearDownClass when
+        # setUpClass raises -- so skipping after super() would leave that
+        # transaction open and every later test in the run would fail with
+        # "connection already closed".
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1 FROM pg_extension WHERE extname = 'h3'")
+            if cursor.fetchone() is None:
+                raise unittest.SkipTest(
+                    "the PostgreSQL 'h3' extension is not installed on this "
+                    "server; the aggregation endpoints call "
+                    "h3_lat_lng_to_cell() in SQL"
+                )
+        super().setUpClass()
+
+
+class H3AggregationTestCase(RequiresH3Extension, TestCase):
     """
     Test H3 hexagon aggregation endpoint for radiation measurements.
     """
@@ -94,7 +128,7 @@ class H3AggregationTestCase(TestCase):
                 device=self.device,
                 latitude=Decimal(str(data['lat'])),
                 longitude=Decimal(str(data['lng'])),
-                radiation_value=Decimal(str(data['value'])),
+                dose_rate=float(data['value']),
                 dateTime='2024-01-01T12:00:00Z'
             )
     
@@ -271,7 +305,7 @@ class H3AggregationTestCase(TestCase):
             self.assertAlmostEqual(hexagon['center_lng'], expected_lng, places=5)
 
 
-class H3LightPollutionAggregationTestCase(TestCase):
+class H3LightPollutionAggregationTestCase(RequiresH3Extension, TestCase):
     """
     Test H3 hexagon aggregation endpoint for light pollution measurements.
     """
