@@ -1,0 +1,63 @@
+# Python dependencies for the local development container. Not production's list.
+#
+# Why this file exists instead of `requirements.txt`: the repository's
+# `requirements.txt` is a `pip freeze` of a conda environment on a developer's
+# macOS laptop. It cannot be installed in a Linux container, and it is not a
+# complete manifest of what this project imports:
+#
+#   * `appnope` is macOS-only; `conda-package-handling`, `conda_package_streaming`
+#     and `pycosat` are conda's own plumbing and are not on PyPI in those versions.
+#   * `drf_yasg` is imported by `measures/views.py`, `measures/views_stats.py`,
+#     `missions/views.py` and `devices/views.py`, and is **absent** from
+#     `requirements.txt`. Django cannot import the URLconf without it.
+#   * `django_extensions` is in `INSTALLED_APPS` and is **absent** too, so
+#     `manage.py check` fails before it reaches the database.
+#
+# Both of those are reported in LOCAL-DEV.md under "Known issues". Versions here
+# match `requirements.txt` wherever it names one, so the container runs the same
+# library versions as production; the two missing packages are pinned to the
+# newest release compatible with Django 4.2 and DRF 3.15.
+#
+# `psycopg2-binary` replaces `psycopg2` so the image needs no build toolchain.
+# `scipy` is dropped: nothing in the project imports it.
+
+# --- Django core ---
+Django==4.2.17
+psycopg2-binary==2.9.9
+python-decouple==3.8
+Pillow==10.4.0
+
+# --- DRF and schema ---
+djangorestframework==3.15.2
+djangorestframework-simplejwt==5.3.1
+drf-spectacular==0.28.0
+drf-yasg==1.21.7          # MISSING from requirements.txt; imported by four view modules
+django-cors-headers==4.9.0
+
+# --- auth ---
+django-allauth==65.0.2
+dj-rest-auth==6.0.0
+cryptography==43.0.1   # allauth's Google provider imports it via jwtkit
+
+# --- INSTALLED_APPS that are not otherwise pulled in ---
+django-extensions==3.2.3  # MISSING from requirements.txt; listed in INSTALLED_APPS
+django-bootstrap5==24.3
+django-ses==4.2.0
+
+# --- queue and cache ---
+django-rq==3.0.0
+rq==2.0.0
+rq-scheduler==0.14.0
+redis==5.1.1
+django-redis==5.4.0
+
+# --- domain and reporting ---
+h3==4.3.1
+numpy==1.26.1
+pandas==2.1.2
+matplotlib==3.8.1
+weasyprint==66.0
+geopy==2.4.1
+openrouteservice==2.3.3
+boto3==1.35.70
+requests==2.32.3

@@ -188,6 +188,18 @@ SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # Google ya verificó el email
 # Amazon SES Email Configuration
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 
+# SMTP host, for when EMAIL_BACKEND is the SMTP one. These were not configurable,
+# which meant the only alternative to SES was the console backend -- and
+# ACCOUNT_EMAIL_VERIFICATION is 'mandatory', so a self-registered account could
+# not be confirmed at all without reading a link out of a log. The defaults are
+# Django's own, so nothing changes unless they are set; the local composition
+# points them at a mail catcher.
+EMAIL_HOST = config('EMAIL_HOST', default='localhost')
+EMAIL_PORT = config('EMAIL_PORT', default=25, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+
 # AWS Credentials (mejor usar IAM roles en producción)
 AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default='')
 AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default='')
@@ -218,11 +230,22 @@ PASSWORD_RESET_TIMEOUT = 3600  # 1 hora para que expire el link
 # ====================
 # REST Framework Configuration
 # ====================
+# SessionAuthentication is in the list below only so the DRF browsable API works
+# while logged into /admin/. It has a side effect that breaks a front end
+# authenticating with a token: once DRF authenticates a request from the session
+# cookie it enforces CSRF, and a token client sends no X-CSRFToken header. Cookies
+# ignore the port, so merely having logged into /admin/ sends that sessionid to a
+# front end running on another local port, and every write there fails with
+# "CSRF Failed: CSRF token missing." Turn this off and token auth is the only path.
+ENABLE_SESSION_AUTH = config('ENABLE_SESSION_AUTH', default=True, cast=bool)
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',  # Para el browsable API
-    ],
+    ] + (
+        ['rest_framework.authentication.SessionAuthentication']  # Para el browsable API
+        if ENABLE_SESSION_AUTH else []
+    ),
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',  # Lectura pública, escritura requiere autenticación
     ],
@@ -311,6 +334,14 @@ if DEBUG:
         'http://localhost:3000',
         'http://127.0.0.1:3000',
         'http://192.168.1.2:3000',
+    ]
+    # Hardcoded, so a browser on any other port gets "CSRF Failed: Origin
+    # checking failed" -- curl never reproduces it, it sends no Origin header.
+    # Extra origins, comma-separated, for dev servers on other ports:
+    CSRF_TRUSTED_ORIGINS += [
+        origin.strip()
+        for origin in config('CSRF_TRUSTED_ORIGINS_EXTRA', default='').split(',')
+        if origin.strip()
     ]
 else:
     # Producción: solo FRONTEND_URL
@@ -643,9 +674,12 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        'django.db.backends': {  # Log ALL SQL queries
+        'django.db.backends': {
+            # Logs every SQL query (Django only emits these when DEBUG is
+            # True). Set DB_LOG_LEVEL=INFO to silence it: the query log buries
+            # the output of management commands.
             'handlers': ['console'],
-            'level': 'DEBUG',  # Cambia a INFO para desactivar queries SQL
+            'level': config('DB_LOG_LEVEL', default='DEBUG'),
             'propagate': False,
         },
     },
