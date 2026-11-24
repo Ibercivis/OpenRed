@@ -16,7 +16,8 @@
 # Both of those are reported in LOCAL-DEV.md under "Known issues". Versions here
 # match `requirements.txt` wherever it names one, so the container runs the same
 # library versions as production; the two missing packages are pinned to the
-# newest release compatible with Django 4.2 and DRF 3.15.
+# newest release compatible with Django 4.2 and DRF 3.15. One version deviates,
+# `dj-rest-auth`, and the reason is beside it.
 #
 # `psycopg2-binary` replaces `psycopg2` so the image needs no build toolchain.
 # `scipy` is dropped: nothing in the project imports it.
@@ -36,8 +37,38 @@ django-cors-headers==4.9.0
 
 # --- auth ---
 django-allauth==65.0.2
-dj-rest-auth==6.0.0
+# 7.2.0, where requirements.txt says 6.0.0, and the one version here that does
+# not match it. 6.0.0 cannot redeem an authorization code against the allauth
+# pinned above: it calls `provider.get_scope(request)`, which takes no argument
+# in this allauth, and builds allauth's OAuth2 client with a `scope` parameter
+# that no longer exists. Both raise a TypeError before any request is made, so
+# the Ibercivis account sign-in (users/ibercivis_account.py) cannot work on
+# 6.0.0 at all. The Google sign-in is unaffected either way -- it hands over an
+# access token rather than a code -- and `manage.py test` on 7.2.0 fails nothing
+# that passed on 6.0.0.
+#
+# requirements.txt still says 6.0.0, deliberately: that list is production's, and
+# the Dockerfile on this branch installs this one. So the version moves where
+# this branch runs and the deployment is untouched. Anything that ever runs this
+# branch from requirements.txt needs 7.2.0 there as well, or the Ibercivis
+# account endpoint raises a TypeError on the first code it is given. LOCAL-DEV.md
+# says so where somebody deploying will read it.
+#
+# django-allauth stays where requirements.txt has it. 65.15.0 was tried, because
+# its OpenID Connect provider validates the ID token itself; on it, registration
+# through this API's own form stops sending its confirmation mail, and two of
+# this project's own tests fail. Verifying the token is done here instead, with
+# allauth 65.0.2's own `verify_and_decode` -- the same code its Google and Apple
+# providers use.
+dj-rest-auth==7.2.0
 cryptography==43.0.1   # allauth's Google provider imports it via jwtkit
+# PyJWT is deliberately NOT named here, though requirements.txt names it and
+# though the Ibercivis account sign-in reads it through allauth's jwtkit: it
+# arrives as a dependency of djangorestframework-simplejwt, and left to resolve
+# it gives a current release rather than the one production froze. Pinning it
+# down to match would be the only version in this file that moves backwards, in
+# the one library the signature check goes through. Raising production's pin is
+# the maintainers' call and a separate conversation.
 
 # --- INSTALLED_APPS that are not otherwise pulled in ---
 django-extensions==3.2.3  # MISSING from requirements.txt; listed in INSTALLED_APPS
