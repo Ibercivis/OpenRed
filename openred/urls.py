@@ -20,17 +20,18 @@ from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from users.views_social import GoogleLogin
+from users.ibercivis_account import IbercivisAccountLoginView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # URL mínima necesaria para que dj-rest-auth no falle (no se usa directamente)
+    # The one URL dj-rest-auth needs in order to load; nothing calls it directly
     path('password-reset-confirm/<uidb64>/<token>/', 
          auth_views.PasswordResetConfirmView.as_view(), 
          name='password_reset_confirm'),
     
-    # Solo APIs - no vistas HTML de allauth
-    path('accounts/', include('allauth.urls')),  # Necesario para social auth
+    # APIs only, none of allauth's HTML views
+    path('accounts/', include('allauth.urls')),  # Needed by the social providers
     
     path('api/', include('devices.urls')),
     path('api/', include('measures.urls')),
@@ -45,6 +46,9 @@ urlpatterns = [
     path('dj-rest-auth/', include('dj_rest_auth.urls')),
     path('dj-rest-auth/registration/', include('dj_rest_auth.registration.urls')),
     path('dj-rest-auth/google/', GoogleLogin.as_view(), name='google_login'),
+    # Signing in with an Ibercivis account: the web app posts the code its
+    # callback page received, and this API redeems it. See users/ibercivis_account.py.
+    path('dj-rest-auth/ibercivis/', IbercivisAccountLoginView.as_view(), name='ibercivis_account_login'),
     path('django-rq/', include('django_rq.urls')),  # RQ dashboard
 ]
 
