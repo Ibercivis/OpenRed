@@ -11,28 +11,28 @@ User = get_user_model()
 
 class EmailUsernameAdapter(DefaultAccountAdapter):
     """
-    Adaptador personalizado para generar automáticamente el username
-    basado en el email y evitar conflictos.
+    Custom adapter that generates the username from the email address and
+    avoids collisions.
     """
     
     def generate_unique_username(self, txts, regex=None):
         """
-        Genera un username único basado en el email.
+        Generates a unique username from the email address.
         """
-        # Usar el email como base para el username
+        # The email address is the base for the username
         if txts and len(txts) > 0:
-            base_username = txts[0].split('@')[0]  # Parte antes del @
+            base_username = txts[0].split('@')[0]  # The part before the @
         else:
             base_username = 'user'
         
-        # Limpiar caracteres especiales
+        # Strip the special characters
         base_username = re.sub(r'[^\w]', '', base_username).lower()
         
-        # Si el username está vacío, usar 'user'
+        # An empty username becomes 'user'
         if not base_username:
             base_username = 'user'
         
-        # Verificar si ya existe
+        # Check whether it is taken already
         username = base_username
         counter = 1
         
@@ -40,7 +40,7 @@ class EmailUsernameAdapter(DefaultAccountAdapter):
             username = f"{base_username}_{counter}"
             counter += 1
             
-            # Evitar bucles infinitos
+            # Do not loop forever
             if counter > 1000:
                 username = f"{base_username}_{uuid.uuid4().hex[:8]}"
                 break
@@ -49,34 +49,34 @@ class EmailUsernameAdapter(DefaultAccountAdapter):
     
     def save_user(self, request, user, form, commit=True):
         """
-        Sobrescribir para generar username automáticamente.
+        Overridden so the username is generated.
         """
-        # Manejar tanto formularios de Django como serializadores
+        # Both Django forms and serializers get here
         if hasattr(form, 'cleaned_data'):
-            # Formulario tradicional de Django
+            # An ordinary Django form
             data = form.cleaned_data
         elif hasattr(form, 'get_cleaned_data'):
-            # Serializador que implementa get_cleaned_data (nuestro caso)
+            # A serializer implementing get_cleaned_data (this project's case)
             data = form.get_cleaned_data()
         elif hasattr(form, 'validated_data'):
-            # Serializador DRF directo
+            # A plain DRF serializer
             data = form.validated_data
         else:
-            # Fallback - intentar obtener datos como diccionario
+            # Fallback: read the data as a dictionary
             data = form if isinstance(form, dict) else {}
             
-        print(f"Datos del formulario en save_user: {data}")  # Debug log
+        print(f"Form data in save_user: {data}")  # Debug log
         
-        # Establecer campos básicos
+        # The basic fields
         user.email = data.get('email', user.email)
         
-        print(f"Usuario guardado con: email={user.email}")  # Debug log
+        print(f"User saved with: email={user.email}")  # Debug log
         
-        # Generar username automáticamente si no se proporciona
+        # Generate the username when none was given
         if not user.username:
             user.username = self.generate_unique_username([user.email])
         
-        # Solo establecer contraseña si está en los datos y el usuario no la tiene ya
+        # Set a password only when the data carries one and the user has none
         if 'password1' in data and not user.password:
             user.set_password(data['password1'])
         
@@ -87,8 +87,8 @@ class EmailUsernameAdapter(DefaultAccountAdapter):
     
     def get_email_confirmation_url(self, request, emailconfirmation):
         """
-        Generar URL que apunte al frontend para verificar email.
-        Usa FRONTEND_URL de settings (configurado via .env)
+        The address the confirmation link points at: the front end's own page.
+        Taken from FRONTEND_URL in settings (set through .env).
         
         Development: http://localhost:3000/verify-email?key=...
         Production: https://map.open-red.es/verify-email?key=...
@@ -97,8 +97,8 @@ class EmailUsernameAdapter(DefaultAccountAdapter):
     
     def get_email_verification_redirect_url(self, email_address):
         """
-        Redirección después de confirmar email exitosamente (nuevo método).
-        Usa FRONTEND_URL de settings (configurado via .env)
+        Where a confirmed address lands (the current method).
+        Taken from FRONTEND_URL in settings (set through .env).
         
         Development: http://localhost:3000/email-confirmed?status=success
         Production: https://map.open-red.es/email-confirmed?status=success
@@ -109,18 +109,18 @@ class EmailUsernameAdapter(DefaultAccountAdapter):
 
     def get_email_confirmation_redirect_url(self, request):
         """
-        URL de redirección después de confirmar email (método legacy).
-        Usa FRONTEND_URL de settings (configurado via .env)
+        Where a confirmed address lands (the method allauth has deprecated).
+        Taken from FRONTEND_URL in settings (set through .env).
         
         Development: http://localhost:3000/email-confirmed?status=success&message=...
         Production: https://map.open-red.es/email-confirmed?status=success&message=...
         """
         # pylint: disable=unused-argument
-        # Construir URL con parámetros
+        # Build the address with its parameters
         base_url = getattr(settings, 'ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL', 
                           f"{settings.FRONTEND_URL}/email-confirmed")
         
-        # Agregar parámetros de éxito
+        # Say it worked
         params = {
             'status': 'success',
             'message': 'Tu cuenta ha sido verificada exitosamente.'
@@ -132,36 +132,37 @@ class EmailUsernameAdapter(DefaultAccountAdapter):
 
 class AutoConnectSocialAccountAdapter(DefaultSocialAccountAdapter):
     """
-    Adapter personalizado que vincula automáticamente cuentas sociales
-    con cuentas existentes si el email coincide.
+    Custom adapter that connects a social account to an account that already
+    exists here when the email address matches.
     """
     
     def pre_social_login(self, request, sociallogin):
         """
-        Invocado justo después de que un usuario se autentica con éxito 
-        mediante un proveedor social, pero antes de que la cuenta se conecte.
-        
-        Si ya existe una cuenta con el mismo email verificado, la vincula automáticamente.
+        Called just after somebody authenticates with a social provider and
+        before the account is connected.
+
+        An account that already exists with the same verified address is
+        connected to it.
         """
-        # Si el usuario ya está autenticado, no hacer nada
+        # Nothing to do for a social account already connected
         if sociallogin.is_existing:
             return
         
-        # Si el social login no tiene email, no podemos vincular
+        # Without an address there is nothing to match on
         if not sociallogin.email_addresses:
             return
         
-        # Obtener el email del social login
+        # The address the social login brought
         email = sociallogin.email_addresses[0].email
         
         try:
-            # Buscar usuario existente con ese email
+            # Look for an account already holding it
             user = User.objects.get(email=email)
             
-            # Vincular la cuenta social con el usuario existente
+            # Connect the social account to it
             sociallogin.connect(request, user)
             
         except User.DoesNotExist:
-            # No existe usuario, se creará uno nuevo (comportamiento por defecto)
+            # No account holds it: a new one is created, as allauth does by default
             pass
 
