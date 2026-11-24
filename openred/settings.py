@@ -59,7 +59,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'allauth.socialaccount.providers.openid_connect',  # The Ibercivis account, when configured
-    'dj_rest_auth',  # Agregar el módulo principal
+    'dj_rest_auth',  # The main module
     'dj_rest_auth.registration',
     'rest_framework.authtoken',
 
@@ -173,18 +173,18 @@ ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # Para registro tradicional
 ACCOUNT_USERNAME_REQUIRED = False  # Login solo con email
 ACCOUNT_AUTHENTICATION_METHOD = 'email'  # Login con email, no username
 ACCOUNT_USER_MODEL_USERNAME_FIELD = 'username'  # Usar username
-ACCOUNT_CONFIRM_EMAIL_ON_GET = False  # No confirmar automáticamente con GET
+ACCOUNT_CONFIRM_EMAIL_ON_GET = False  # A GET does not confirm on its own
 ACCOUNT_EMAIL_CONFIRMATION_HMAC = False  # Usar formato de key simple
 
-# Generar username automáticamente basado en email
+# Generate the username from the email address
 ACCOUNT_ADAPTER = 'users.adapters.EmailUsernameAdapter'
 SOCIALACCOUNT_ADAPTER = 'users.adapters.AutoConnectSocialAccountAdapter'
 ACCOUNT_USERNAME_VALIDATORS = []  # Eliminar validadores de username
 
 # Social account settings (Google OAuth)
 SOCIALACCOUNT_QUERY_EMAIL = True
-SOCIALACCOUNT_AUTO_SIGNUP = True  # Login/registro automático con Google
-SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # Google ya verificó el email
+SOCIALACCOUNT_AUTO_SIGNUP = True  # Sign in or sign up with Google in one step
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # Google has confirmed the address already
 
 # Amazon SES Email Configuration
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
@@ -201,31 +201,31 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 
-# AWS Credentials (mejor usar IAM roles en producción)
+# AWS credentials (IAM roles are better in production)
 AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default='')
 AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default='')
-AWS_SES_REGION_NAME = config('AWS_SES_REGION_NAME', default='eu-central-1')  # Región donde está configurado SES
+AWS_SES_REGION_NAME = config('AWS_SES_REGION_NAME', default='eu-central-1')  # The region SES is set up in
 AWS_SES_REGION_ENDPOINT = config('AWS_SES_REGION_ENDPOINT', default=f'email.{AWS_SES_REGION_NAME}.amazonaws.com')
 
-# Configuración adicional de SES
-AWS_SES_AUTO_THROTTLE = 0.5  # Limitar el envío para evitar rate limits
+# Further SES settings
+AWS_SES_AUTO_THROTTLE = 0.5  # Hold the sending rate down, to stay inside SES's limits
 AWS_SES_CONFIGURATION_SET = config('AWS_SES_CONFIGURATION_SET', default=None)  # Opcional: para analytics
 
 # Email settings
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@ibercivis.es')
 SERVER_EMAIL = config('SERVER_EMAIL', default='noreply@ibercivis.es')
 
-# Configuración de dj-rest-auth
+# dj-rest-auth
 REST_AUTH = {
     'REGISTER_SERIALIZER': 'users.serializers.CustomRegisterSerializer',
     'PASSWORD_RESET_SERIALIZER': 'users.serializers.CustomPasswordResetSerializer',
     'USER_DETAILS_SERIALIZER': 'users.serializers.UserSerializer',
-    'SESSION_LOGIN': False,  # Para API pura sin cookies de sesión
+    'SESSION_LOGIN': False,  # A pure API: no session cookies
     'USE_JWT': False,  # Usar tokens en lugar de JWT
     'TOKEN_MODEL': 'rest_framework.authtoken.models.Token',
 }
 
-# Configuración para password reset
+# Password reset
 PASSWORD_RESET_TIMEOUT = 3600  # 1 hora para que expire el link
 
 # ====================
@@ -248,7 +248,7 @@ REST_FRAMEWORK = {
         if ENABLE_SESSION_AUTH else []
     ),
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',  # Lectura pública, escritura requiere autenticación
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',  # Anybody may read; writing needs an account
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',  # Use drf-spectacular for schema generation
     # Throttling is opt-in per view (ScopedRateThrottle); public reads are not throttled.
@@ -291,11 +291,11 @@ SPECTACULAR_SETTINGS = {
 # CORS Configuration
 # ====================
 if DEBUG:
-    # Desarrollo: permitir todos los orígenes
+    # Development: every origin is allowed
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOW_CREDENTIALS = True
 else:
-    # Producción: solo FRONTEND_URL
+    # Production: FRONTEND_URL alone
     CORS_ALLOWED_ORIGINS = [config('FRONTEND_URL')]
     CORS_ALLOW_CREDENTIALS = True
 
@@ -327,7 +327,7 @@ CORS_ALLOW_HEADERS = [
 # CSRF Configuration
 # ====================
 if DEBUG:
-    # Desarrollo: permitir acceso desde múltiples orígenes locales
+    # Development: several local origins are allowed
     CSRF_TRUSTED_ORIGINS = [
         'http://localhost:8001',
         'http://127.0.0.1:8001',
@@ -345,7 +345,7 @@ if DEBUG:
         if origin.strip()
     ]
 else:
-    # Producción: solo FRONTEND_URL
+    # Production: FRONTEND_URL alone
     CSRF_TRUSTED_ORIGINS = [config('FRONTEND_URL')]
 
 # ====================
@@ -360,7 +360,7 @@ SOCIALACCOUNT_PROVIDERS = {
         'AUTH_PARAMS': {
             'access_type': 'online',
         },
-        'VERIFIED_EMAIL': True,  # Asumir que los emails de Google están verificados
+        'VERIFIED_EMAIL': True,  # Take a Google address as confirmed
     }
 }
 
@@ -407,8 +407,8 @@ if IBERCIVIS_ACCOUNT_ISSUER:
 MAPBOX_ACCESS_TOKEN = config('MAPBOX_ACCESS_TOKEN', default='') # Fetch from environment variable
 OSR_API_KEY = config('OSR_API_KEY', default='') # Fetch from environment variable
 
-# Correos que reciben un aviso cada vez que termina de procesarse un track
-# (completado o fallido). Lista separada por comas; vacío = no avisar.
+# Who is told every time a track finishes processing, whether it succeeded or
+# failed. Comma-separated; empty means tell nobody.
 TRACK_UPLOAD_NOTIFY_EMAILS = [
     e.strip() for e in config(
         'TRACK_UPLOAD_NOTIFY_EMAILS',
@@ -633,18 +633,18 @@ RQ_JOBS = {
     },
 }
 
-# Hitos de contribuciones (300.000, 400.000, 500.000...). Ya NO se envía un correo por hito:
-# el informe global mensual (measures.monthly_report) muestra la barra hacia el próximo hito y
-# anuncia el que se haya superado durante el mes. Solo cuentan las medidas del proyecto
-# CONTRIBUTION_MILESTONE_PROJECT.
+# Contribution milestones (300,000, 400,000, 500,000...). A milestone no longer
+# sends a mail of its own: the monthly global report (measures.monthly_report)
+# shows the bar towards the next one and announces any passed during the month.
+# Only measurements of the CONTRIBUTION_MILESTONE_PROJECT project count.
 CONTRIBUTION_MILESTONE_PROJECT = config('CONTRIBUTION_MILESTONE_PROJECT', default='Openred')
 CONTRIBUTION_MILESTONE_START = config('CONTRIBUTION_MILESTONE_START', default=300000, cast=int)
 CONTRIBUTION_MILESTONE_STEP = config('CONTRIBUTION_MILESTONE_STEP', default=100000, cast=int)
 
-# Resumen mensual de actividad (activity_digest): usernames que nunca reciben el correo
-# (cuentas de revisión de tienda, pruebas...).
+# The monthly activity digest (activity_digest): usernames that never receive
+# it -- store-review accounts, test accounts and the like.
 ACTIVITY_DIGEST_EXCLUDE_USERNAMES = ['appleuser', 'googleplay-review']
-# Interruptores de los correos periódicos (desactivados por defecto; activar en .env tras aprobar).
+# The periodic mails' switches. Off by default; turn them on in .env once approved.
 MONTHLY_REPORT_ENABLED = config('MONTHLY_REPORT_ENABLED', default=False, cast=bool)
 ACTIVITY_DIGEST_ENABLED = config('ACTIVITY_DIGEST_ENABLED', default=False, cast=bool)
 

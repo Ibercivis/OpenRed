@@ -25,13 +25,13 @@ from users.ibercivis_account import IbercivisAccountLoginView
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # URL mínima necesaria para que dj-rest-auth no falle (no se usa directamente)
+    # The one URL dj-rest-auth needs in order to load; nothing calls it directly
     path('password-reset-confirm/<uidb64>/<token>/', 
          auth_views.PasswordResetConfirmView.as_view(), 
          name='password_reset_confirm'),
     
-    # Solo APIs - no vistas HTML de allauth
-    path('accounts/', include('allauth.urls')),  # Necesario para social auth
+    # APIs only, none of allauth's HTML views
+    path('accounts/', include('allauth.urls')),  # Needed by the social providers
     
     path('api/', include('devices.urls')),
     path('api/', include('measures.urls')),

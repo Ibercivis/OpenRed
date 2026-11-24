@@ -27,7 +27,7 @@ class UserSerializer(serializers.ModelSerializer):
 # Serializador personalizado para registro
 class CustomRegisterSerializer(serializers.Serializer):
     """
-    Serializador simplificado para registro con solo email y contraseña.
+    A simplified registration serializer: an email address and a password.
     """
     email = serializers.EmailField()
     password1 = serializers.CharField(write_only=True, min_length=8)
@@ -35,7 +35,7 @@ class CustomRegisterSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         """
-        Validar que las contraseñas coincidan.
+        Checks that the two passwords match.
         """
         if attrs['password1'] != attrs['password2']:
             raise serializers.ValidationError("Las contraseñas no coinciden.")
@@ -43,7 +43,7 @@ class CustomRegisterSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         """
-        Validar que el email sea único.
+        Checks that no account holds the address already.
         """
         user = User.objects.filter(email=value).first()
         if user:
@@ -69,13 +69,13 @@ class CustomRegisterSerializer(serializers.Serializer):
 
     def update(self, instance, validated_data):
         """
-        Método requerido por el serializer base (no usado en registro).
+        Required by the base serializer; registration never calls it.
         """
         raise NotImplementedError("Update not supported for registration")
 
     def get_cleaned_data(self):
         """
-        Método esperado por allauth adapter para obtener datos limpios.
+        What allauth's adapter expects, to read the cleaned data from.
         """
         return {
             'email': self.validated_data['email'],
@@ -84,9 +84,9 @@ class CustomRegisterSerializer(serializers.Serializer):
 
     def save(self, request=None, **kwargs):
         """
-        Personalizar el método save para trabajar con allauth y dj-rest-auth.
+        A save() that works with both allauth and dj-rest-auth.
         """
-        # Si se pasa request como parámetro posicional (dj-rest-auth lo hace así)
+        # request may arrive positionally, which is how dj-rest-auth passes it
         if request is None:
             request = kwargs.get('request')
             
@@ -109,16 +109,16 @@ class CustomRegisterSerializer(serializers.Serializer):
         if hasattr(adapter, 'generate_unique_username'):
             user.username = adapter.generate_unique_username([user.email])
         else:
-            # Fallback si no existe el método
+            # Fallback, when the adapter has no such method
             user.username = user.email.split('@')[0]
         
-        # Establecer contraseña
+        # The password
         user.set_password(self.validated_data['password1'])
         
-        # Guardar usuario usando el adaptador (esto llamará a nuestro save_user)
+        # Save through the adapter, which calls our own save_user
         user = adapter.save_user(request, user, self)
         
-        # Configurar email para verificación
+        # Set the address up for confirmation
         setup_user_email(request, user, [])
         
         return user
