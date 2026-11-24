@@ -325,10 +325,10 @@ audience and expiry, and `userinfo` is never called. That check is `users/iberci
 rather than the library's; the module says why, and `local_dev/requirements.txt` carries the two
 version pins the choice rests on.
 
-**One of those pins reaches outside this container.** `dj-rest-auth` is 7.2.0 here where
-`requirements.txt` says 6.0.0, because that older release and the pinned `django-allauth` cannot do
-the OAuth2 code flow together at all. Anything that ever deploys this branch from
-`requirements.txt` needs 7.2.0 there too.
+**One of those pins moved on this branch**, in both dependency lists: `dj-rest-auth` is 7.2.0,
+where `main` has 6.0.0, because that older release and the pinned `django-allauth` cannot do the
+OAuth2 code flow together at all. Both lists agree, so a deployment from either one behaves the
+same.
 
 ### What stays open, and why that is a decision
 
