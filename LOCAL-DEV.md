@@ -155,12 +155,27 @@ The entrypoint falls through to `exec "$@"` and the `api` service already carrie
 database and Redis, so nothing else is needed. Django creates and drops its own test database and
 leaves the seeded one alone.
 
-This runs **81 tests where CI runs 71**: the ten in `measures/test_h3.py` call
+This runs **107 tests where CI runs 97**: the ten in `measures/test_h3.py` call
 `h3_lat_lng_to_cell()` in SQL and skip themselves wherever h3-pg is absent, which is everywhere but
 here. Two of them fail on a `center_lat` key the endpoint no longer returns, and one more failure is
 this stack's own doing -- `ENABLE_SESSION_AUTH: "False"` in `compose.yaml` makes the anonymous track
 list answer 401, so `test_public_can_list_all_tracks` fails here and passes with that variable
 unset. Worth knowing before reading anything into a red run.
+
+**A second run in quick succession fails two registration cases, and the suite is not at fault.**
+`test_complete_registration_and_login_flow` and `test_token_is_created_on_registration` assert that
+a confirmation mail was sent, and `django-allauth` rate-limits `confirm_email`. Its counter lives in
+`CACHES`, which is Redis — the same Redis the application uses, surviving the test database that
+Django creates and drops around each run. So the first run sends the mail and every run inside the
+window is silently limited:
+
+```sh
+docker compose exec redis redis-cli -n "$REDIS_DB" --scan --pattern 'openred:*allauth:rl:*'
+docker compose exec redis redis-cli -n "$REDIS_DB" flushdb   # then the suite is green again
+```
+
+Worth knowing before reading anything into a red run, and worth fixing in the suite one day: a test
+that asserts mail was sent should clear that counter first.
 
 ### Why the database is not `postgis/postgis`
 
@@ -273,6 +288,71 @@ puts an address that is **not** on `.invalid` into the database, which is exactl
 `seed_local`'s guard looks for, so the next `seed_local` or `seed_local --reset` will refuse until
 you pass `--force` or delete that account. That is the guard doing its job; it cannot tell your own
 test registration from a database it should not touch.
+
+## Signing in with an Ibercivis account
+
+The Ibercivis citizen science sites share one sign-in service, reached over OpenID Connect; why,
+and the service itself, live in
+[`Ibercivis/citsci-federation`](https://github.com/Ibercivis/citsci-federation). Here it is a
+second way in, next to the email and password, and it is off unless these are set:
+
+| Variable | |
+|---|---|
+| `IBERCIVIS_ACCOUNT_ISSUER` | The service's issuer URL. Without it the provider is not declared and `POST /dj-rest-auth/ibercivis/` answers 404. |
+| `IBERCIVIS_ACCOUNT_CLIENT_ID`, `IBERCIVIS_ACCOUNT_CLIENT_SECRET` | This API's client at the service. |
+| `IBERCIVIS_ACCOUNT_REDIRECT_URI` | The React app's callback page, `<app>/auth/ibercivis/callback`. |
+
+The React app sends the person to the service and comes back to its callback page with an
+authorization code. It posts that code, with the PKCE verifier it kept, to
+`POST /dj-rest-auth/ibercivis/`. This API redeems it with its own secret and answers with the same
+`{key}` a password sign-in answers with, so nothing downstream of sign-in changes.
+`GET /dj-rest-auth/user/` then carries `ibercivis_account_id`.
+
+What an account created this way is:
+
+- No usable password, not staff, not superuser. **Roles stay here**: nothing the service sends says
+  what somebody may do, and what already decided it still does.
+- Keyed by the identifier the service sends. Nothing about how the person signed in there — with
+  Google, with a password held by the service — is stored: `users/ibercivis_account.py` keeps four
+  claims and drops the rest.
+- **Refused when an account here already holds the address**, under `email`: no second account, and
+  no linking by address. That account keeps signing in with its password, untouched.
+
+### What this verifies
+
+The ID token's signature is checked against the keys the service publishes, along with its issuer,
+audience and expiry, and `userinfo` is never called. That check is `users/ibercivis_account.py`'s
+rather than the library's; the module says why, and `local_dev/requirements.txt` carries the two
+version pins the choice rests on.
+
+**One of those pins reaches outside this container.** `dj-rest-auth` is 7.2.0 here where
+`requirements.txt` says 6.0.0, because that older release and the pinned `django-allauth` cannot do
+the OAuth2 code flow together at all. Anything that ever deploys this branch from
+`requirements.txt` needs 7.2.0 there too.
+
+### What stays open, and why that is a decision
+
+**`POST /dj-rest-auth/registration/` stays open.** The React app no longer offers a sign-up form,
+but the Flutter client still creates accounts there — `lib/api_service.dart` in
+[`Ibercivis/openred-flutter`](https://github.com/Ibercivis/openred-flutter) posts to it. Closing it
+would break that client, so the exposure this closure removes is the web's and not mobile's. It
+closes when the Flutter client signs in with an Ibercivis account, and
+`users/test_registration_stays_open.py` guards it until then.
+
+**`POST /dj-rest-auth/google/` still creates accounts**, for the same reason: the Flutter client
+calls it too, and an account made through it has no password and no other way in. It also still
+connects a new Google login to an account that already holds the address, which the Ibercivis
+account deliberately does not — `users/adapters.py` carries the list and the reasoning.
+
+**An account created this way is named `user`.** `EmailUsernameAdapter.generate_unique_username`
+reads only the first of the candidates allauth offers it, which is the first name, and the service
+sends none -- so the fallback wins, and the second such account is `user_1`. Pre-existing: a Google
+sign-in by somebody with no given name is named the same way. Nothing depends on the username here
+(sign-in is by address, and `/admin/` is for the accounts that have one), so it is recorded rather
+than worked around.
+
+`compose.yaml` here sets none of the four variables: started on its own, this API has no service to
+reach. The stack in `Ibercivis/citsci-federation` that runs it next to the service sets all four.
 
 ## The React app
 
