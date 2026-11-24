@@ -7,10 +7,21 @@ from urllib.parse import urlparse
 
 
 class UserSerializer(serializers.ModelSerializer):
+    # The identifier of the Ibercivis account this user signs in with, or null.
+    # The profile screen shows it, and it is the only thing stored here about
+    # that account (users/ibercivis_account.py).
+    ibercivis_account_id = serializers.SerializerMethodField()
+
+    def get_ibercivis_account_id(self, user):
+        account = user.socialaccount_set.filter(
+            provider=settings.IBERCIVIS_ACCOUNT_PROVIDER,
+        ).first()
+        return account.uid if account else None
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'date_joined', 'is_active']
-        read_only_fields = ['id', 'username', 'date_joined', 'is_active']
+        fields = ['id', 'username', 'email', 'date_joined', 'is_active', 'ibercivis_account_id']
+        read_only_fields = ['id', 'username', 'date_joined', 'is_active', 'ibercivis_account_id']
 
 
 # Serializador personalizado para registro
