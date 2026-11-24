@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.openid_connect',  # The Ibercivis account, when configured
     'dj_rest_auth',  # Agregar el módulo principal
     'dj_rest_auth.registration',
     'rest_framework.authtoken',
@@ -362,6 +363,45 @@ SOCIALACCOUNT_PROVIDERS = {
         'VERIFIED_EMAIL': True,  # Asumir que los emails de Google están verificados
     }
 }
+
+# ====================
+# Sign in with an Ibercivis account
+# ====================
+# LOCAL-DEV.md says what this service is, what it changes and where the values
+# come from; users/ibercivis_account.py redeems the code it hands back.
+#
+# Declared only when there is a service to reach, so a deployment without one is
+# exactly what it was: no provider, and the endpoint answers 404.
+IBERCIVIS_ACCOUNT_ISSUER = config('IBERCIVIS_ACCOUNT_ISSUER', default='')
+
+# The web app's callback page, which received the code. The token request has to
+# name the same address, and the API pins it rather than reading it from
+# whoever posts.
+IBERCIVIS_ACCOUNT_REDIRECT_URI = config('IBERCIVIS_ACCOUNT_REDIRECT_URI', default='')
+
+# The name the provider is registered under, and the `provider` of every
+# SocialAccount it creates. users/serializers.py reads it to find the
+# identifier for the profile screen.
+IBERCIVIS_ACCOUNT_PROVIDER = 'ibercivis'
+
+if IBERCIVIS_ACCOUNT_ISSUER:
+    SOCIALACCOUNT_PROVIDERS['openid_connect'] = {
+        # Not allauth's default `openid profile email`: the service grants this
+        # client only the scopes it was registered with, and refuses the whole
+        # request over one it did not.
+        'SCOPE': ['openid', 'email'],
+        'APPS': [
+            {
+                'provider_id': IBERCIVIS_ACCOUNT_PROVIDER,
+                'name': 'Ibercivis',
+                'client_id': config('IBERCIVIS_ACCOUNT_CLIENT_ID', default=''),
+                'secret': config('IBERCIVIS_ACCOUNT_CLIENT_SECRET', default=''),
+                'settings': {
+                    'server_url': IBERCIVIS_ACCOUNT_ISSUER,
+                },
+            },
+        ],
+    }
 
 # Mapbox
 MAPBOX_ACCESS_TOKEN = config('MAPBOX_ACCESS_TOKEN', default='') # Fetch from environment variable
