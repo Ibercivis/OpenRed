@@ -130,6 +130,20 @@ class EmailUsernameAdapter(DefaultAccountAdapter):
         return url_with_params
 
 
+# The providers whose email address may connect a social login to an account
+# that already exists here. An address says where to reach somebody, not who
+# they are, so this stays the exception written for the provider that had it:
+# allauth offers the same thing as SOCIALACCOUNT_EMAIL_AUTHENTICATION, ships it
+# off by default, and documents a condition on which providers it suits. Any
+# provider added later has to be put here deliberately.
+#
+# The Ibercivis account is not in it: what says two sign-ins are the same person
+# is the identifier that service keeps, never the address. Somebody who already
+# has an account here and arrives with the same address is refused, and linking
+# the two is an act for whoever owns both (users/ibercivis_account.py).
+AUTO_CONNECT_BY_EMAIL_PROVIDERS = {'google'}
+
+
 class AutoConnectSocialAccountAdapter(DefaultSocialAccountAdapter):
     """
     Custom adapter that connects a social account to an account that already
@@ -146,6 +160,10 @@ class AutoConnectSocialAccountAdapter(DefaultSocialAccountAdapter):
         """
         # Nothing to do for a social account already connected
         if sociallogin.is_existing:
+            return
+        
+        # A provider not listed above does not connect by address
+        if sociallogin.account.provider not in AUTO_CONNECT_BY_EMAIL_PROVIDERS:
             return
         
         # Without an address there is nothing to match on
